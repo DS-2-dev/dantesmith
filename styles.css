@@ -251,18 +251,14 @@ h1 {
   font-size: 1.0625rem;
   letter-spacing: 0;
 }
-/* Typography Posters on Transducer. The kit ships this one at weight 100
-   only, so there is no heavier cut to switch to and font-weight:500 would
-   just get a synthesized fake bold. The stroke thickens the real outlines
-   instead — same colour as the fill, so it reads as weight, not an edge.
-   Positive tracking keeps the squared forms from closing up. */
-.work-title--transducer {
-  font-family: "transducer", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 100;
+/* Typography Posters on Syne Mono — ships a single 400, but a normal one,
+   so it needs none of the stroke padding Transducer did. Monospaced, so
+   the advance widths already carry the spacing. */
+.work-title--syne-mono {
+  font-family: "Syne Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 400;
   font-size: 1.0625rem;
-  letter-spacing: 0.05em;
-  -webkit-text-stroke: 0.4px currentColor;
-  paint-order: stroke fill;
+  letter-spacing: 0;
 }
 
 /* reveal — replays each time a page is shown */
