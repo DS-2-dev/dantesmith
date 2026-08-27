@@ -260,6 +260,14 @@ h1 {
   font-size: 1.0625rem;
   letter-spacing: 0;
 }
+/* WSU AI Lab on Fuuld — added to kit yrs7pes, so it comes in on the
+   Typekit request already in the head. Single 400, like the rest. */
+.work-title--fuuld {
+  font-family: "fuuld", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.0625rem;
+  letter-spacing: 0;
+}
 
 /* reveal — replays each time a page is shown */
 .page.active .reveal {
