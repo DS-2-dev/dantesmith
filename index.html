@@ -3,32 +3,229 @@
 <head>
 <meta charset="UTF-8">
 <title>Dante Smith</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital@1&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
 <style>
-  html, body {
-    margin: 0;
-    height: 100%;
-    background: #ffffff;
+  /* shadcn/ui default tokens (dark surface, light cards) */
+  :root {
+    --radius: 0.625rem;
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-xl: calc(var(--radius) + 4px);
+    --background: #000000;
+    --foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --card-border: oklch(0.922 0 0);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
   body {
+    margin: 0;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 1.5rem;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    gap: 1.25rem;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: "early-sans-variable", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* tabs */
+  .tabs {
+    position: relative;
+    display: inline-flex;
+    align-self: flex-start;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--muted);
+    border-radius: var(--radius);
+  }
+  /* the pill itself travels between tabs */
+  .tab-indicator {
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    left: 0;
+    border-radius: var(--radius-md);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+  .tab-indicator.ready {
+    transition:
+      transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+      width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .tab {
+    position: relative;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.375rem 0.875rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color 0.25s ease;
+  }
+  .tab:hover {
+    color: var(--foreground);
+  }
+  .tab[aria-selected="true"],
+  .tab[aria-selected="true"]:hover {
+    color: var(--card-foreground);
+  }
+  .tab:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+  }
+  .page {
+    display: none;
+    height: 100%;
+  }
+  .page.active { display: flex; }
+  .page--grid.active { display: grid; }
+
+  /* home */
+  #home {
+    justify-content: flex-end;
+    gap: 1.5rem;
+  }
+  .left-column {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 1rem;
+  }
+  .stack {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    gap: 1rem;
+  }
+  .card {
+    flex: 1;
+    min-height: 0;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
   }
   h1 {
-    font-family: "Cormorant Garamond", "Garamond", "Times New Roman", serif;
-    font-style: italic;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    color: #000000;
+    font-weight: 300;
+    letter-spacing: -0.025em;
     font-size: 5rem;
     margin: 0;
+    white-space: nowrap;
+  }
+  .tagline {
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+  /* work */
+  #work {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* reveal — replays each time a page is shown */
+  .page.active .reveal {
+    animation: rise 0.4s ease both;
+  }
+  .page.active .reveal:nth-child(2) { animation-delay: 0.05s; }
+  .page.active .reveal:nth-child(3) { animation-delay: 0.10s; }
+  .page.active .reveal:nth-child(4) { animation-delay: 0.15s; }
+  .page.active .reveal:nth-child(5) { animation-delay: 0.20s; }
+  .page.active .reveal:nth-child(6) { animation-delay: 0.25s; }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page.active .reveal { animation: none; }
+    .tab-indicator.ready { transition: none; }
   }
 </style>
 </head>
 <body>
-  <h1>Dante Smith</h1>
+
+  <nav class="tabs" role="tablist">
+    <span class="tab-indicator" aria-hidden="true"></span>
+    <button class="tab" role="tab" data-page="home" aria-selected="true">Home</button>
+    <button class="tab" role="tab" data-page="work" aria-selected="false">Work</button>
+  </nav>
+
+  <main>
+    <section class="page active" id="home">
+      <div class="left-column">
+        <div class="card reveal"></div>
+        <p class="tagline reveal">A few things I like...</p>
+      </div>
+      <div class="stack">
+        <div class="card reveal"></div>
+        <h1 class="reveal">Dante Smith</h1>
+      </div>
+    </section>
+
+    <section class="page page--grid" id="work">
+      <div class="card reveal"></div>
+      <div class="card reveal"></div>
+      <div class="card reveal"></div>
+      <div class="card reveal"></div>
+      <div class="card reveal"></div>
+      <div class="card reveal"></div>
+    </section>
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    const tabs = document.querySelector('.tabs');
+    const indicator = document.querySelector('.tab-indicator');
+
+    function moveIndicator() {
+      const active = document.querySelector('.tab[aria-selected="true"]');
+      const from = tabs.getBoundingClientRect();
+      const to = active.getBoundingClientRect();
+      indicator.style.width = to.width + 'px';
+      indicator.style.transform = `translateX(${to.left - from.left}px)`;
+    }
+
+    function show(name) {
+      document.querySelectorAll('.page').forEach((page) => {
+        page.classList.toggle('active', page.id === name);
+      });
+      document.querySelectorAll('.tab').forEach((tab) => {
+        tab.setAttribute('aria-selected', tab.dataset.page === name);
+      });
+      moveIndicator();
+    }
+
+    document.querySelectorAll('[data-page]').forEach((el) => {
+      el.addEventListener('click', () => show(el.dataset.page));
+    });
+
+    new ResizeObserver(moveIndicator).observe(tabs);
+    moveIndicator();
+    // remeasure once the webfont swaps in, then allow it to animate
+    document.fonts.ready.then(() => {
+      moveIndicator();
+      indicator.classList.add('ready');
+    });
+  </script>
 </body>
 </html>
