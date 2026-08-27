@@ -144,36 +144,23 @@ main {
   justify-content: flex-start;
   gap: 1.5rem;
 }
+/* was a dark card; now just the row of icons sitting on the page */
 .home-card {
   flex: none;
   align-self: flex-start;
-  width: var(--nav-width);
-  height: clamp(8rem, 26vh, 15rem);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1.25rem;
-  box-sizing: border-box;
 }
 .tech-row {
   display: flex;
   align-items: center;
   gap: 1.5rem;
 }
-.card {
-  flex: 1;
-  min-height: 0;
-  background: var(--card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-}
 /* tech stack icons (Simple Icons, CC0) */
 .tech-icon {
   width: 1.75rem;
   height: 1.75rem;
   flex: none;
-  /* sits on the dark card now, not the white page */
-  fill: var(--card-foreground);
+  /* sits directly on the white page now, so it takes the page's ink */
+  fill: var(--foreground);
   opacity: 0.75;
   transition: opacity 0.2s ease;
 }
@@ -342,8 +329,8 @@ h1 {
   overflow: hidden;
 }
 #home { position: relative; }
-/* the card has to out-rank the trail, and DOM order won't do it since the
-   trail is appended last to keep the reveal nth-child delays intact */
+/* the icon row has to out-rank the trail, and DOM order won't do it since
+   the trail is appended last to keep the reveal nth-child delays intact */
 .home-card { position: relative; z-index: 1; }
 .pixel-trail {
   position: absolute;
