@@ -1,3 +1,14 @@
+/* Neutron Demo — Andreas Nylin, 2001. Demo cut, all rights reserved, so
+   only the glyphs that spell one title are subset in; the full TTF stays
+   out of the repo. Check the designer's terms before this ships for real. */
+@font-face {
+  font-family: "Neutron Demo";
+  src: url("fonts/NeutronDemo-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Orbix — Barry Shawn / Besign Foundry, SIL OFL 1.1, self-hosted.
    License text ships alongside the file at fonts/Orbix-OFL.txt */
 @font-face {
@@ -264,6 +275,13 @@ h1 {
    Typekit request already in the head. Single 400, like the rest. */
 .work-title--fuuld {
   font-family: "fuuld", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.0625rem;
+  letter-spacing: 0;
+}
+/* Citri Software on Neutron Demo */
+.work-title--neutron {
+  font-family: "Neutron Demo", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
   font-size: 1.0625rem;
   letter-spacing: 0;
