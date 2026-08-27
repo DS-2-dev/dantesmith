@@ -225,12 +225,12 @@ h1 {
   font-weight: 500;
   letter-spacing: -0.01em;
 }
-/* Vantage rides its own face — Michroma ships 400 only, and its wide
-   sidebearings read large, so it comes down a step and drops the tracking */
+/* Vantage rides its own face — Michroma ships 400 only, so no synthetic
+   bold, and its own wide sidebearings stand in for the tracking */
 .work-title--michroma {
   font-family: "Michroma", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
   letter-spacing: 0;
 }
 
