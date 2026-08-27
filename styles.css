@@ -279,6 +279,15 @@ h1 {
   font-size: 1.0625rem;
   letter-spacing: 0;
 }
+/* Filey on T.26 Carbon — the one title face with real cuts (400/700, both
+   with true italics), so weight is selectable here and needs no stroke. */
+.work-title--carbon {
+  font-family: "t26-carbon", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.0625rem;
+  letter-spacing: 0;
+}
 /* Citri Software on Neutron Demo. Single 400 cut, so there is no lighter
    weight to drop to. Stroking in the page colour instead: the stroke sits
    centred on the outline and paints over the fill, so it eats inward and
