@@ -34,6 +34,8 @@
   --card-border: oklch(0.922 0 0);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   /* nav column sizing — the home card locks to this so the two stay aligned */
+  /* cap height every work title is normalised to */
+  --title-cap: 1.125rem;
   --tab-width: 13rem;
   --tab-gap: 0.75rem;
   --nav-width: calc(var(--tab-width) * 2 + var(--tab-gap));
@@ -241,17 +243,28 @@ h1 {
   padding: 0;
   color: var(--foreground);
 }
+/* Optical sizing. font-size sets the em box, not the letters, and these six
+   faces draw their capitals at anywhere from 0.58 to 0.80 of that em — so a
+   shared font-size made Filey's caps 1.38x smaller than WSU's. Instead each
+   face declares its measured cap-height ratio and derives its own size from
+   one target, so every title's capitals land on the same height.
+   --title-cap is the single knob: raise it and all six grow together. */
 .work-title {
-  font-size: 1.0625rem;
+  --cap-ratio: 0.7;
+  font-size: calc(var(--title-cap) / var(--cap-ratio));
   font-weight: 500;
   letter-spacing: -0.01em;
+  /* pinned so six different default line boxes don't sit the titles at six
+     different heights inside the reveal strip */
+  line-height: 1.1;
+  white-space: nowrap;
 }
 /* Vantage rides its own face — Michroma ships 400 only, so no synthetic
    bold, and its own wide sidebearings stand in for the tracking */
 .work-title--michroma {
   font-family: "Michroma", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.750;   /* measured cap height of Michroma */
   letter-spacing: 0;
 }
 /* Weave on Orbix — also a single 400 weight, and its near-square
@@ -259,7 +272,7 @@ h1 {
 .work-title--orbix {
   font-family: "Orbix", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.705;   /* measured cap height of Orbix */
   letter-spacing: 0;
 }
 /* Typography Posters on Syne Mono — ships a single 400, but a normal one,
@@ -268,7 +281,7 @@ h1 {
 .work-title--syne-mono {
   font-family: "Syne Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 400;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.650;   /* measured cap height of Syne Mono */
   letter-spacing: 0;
 }
 /* WSU AI Lab on Fuuld — added to kit yrs7pes, so it comes in on the
@@ -276,7 +289,7 @@ h1 {
 .work-title--fuuld {
   font-family: "fuuld", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.800;   /* measured cap height of fuuld */
   letter-spacing: 0;
 }
 /* Filey on T.26 Carbon — the one title face with real cuts (400/700, both
@@ -285,7 +298,7 @@ h1 {
   font-family: "t26-carbon", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
   font-style: normal;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.580;   /* measured cap height of t26-carbon */
   letter-spacing: 0;
 }
 /* Citri Software on Neutron Demo. Single 400 cut, so there is no lighter
@@ -296,7 +309,7 @@ h1 {
 .work-title--neutron {
   font-family: "Neutron Demo", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: 1.0625rem;
+  --cap-ratio: 0.700;   /* measured cap height of Neutron Demo */
   letter-spacing: 0.01em;
   -webkit-text-stroke: 0.5px var(--background);
 }
