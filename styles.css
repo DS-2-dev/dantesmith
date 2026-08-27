@@ -279,12 +279,17 @@ h1 {
   font-size: 1.0625rem;
   letter-spacing: 0;
 }
-/* Citri Software on Neutron Demo */
+/* Citri Software on Neutron Demo. Single 400 cut, so there is no lighter
+   weight to drop to. Stroking in the page colour instead: the stroke sits
+   centred on the outline and paints over the fill, so it eats inward and
+   trims stem width without touching the size. Inverse of what a matched
+   stroke does. Raise the value to thin further. */
 .work-title--neutron {
   font-family: "Neutron Demo", ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
   font-size: 1.0625rem;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
+  -webkit-text-stroke: 0.5px var(--background);
 }
 
 /* reveal — replays each time a page is shown */
