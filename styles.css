@@ -1,0 +1,255 @@
+/* shadcn/ui default tokens (dark surface, light cards) */
+:root {
+  --radius: 0.625rem;
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --background: #ffffff;
+  --foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  /* cards go dark so they still read as blocks on the white page */
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --card-border: oklch(0.922 0 0);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  /* nav column sizing — the home card locks to this so the two stay aligned */
+  --tab-width: 13rem;
+  --tab-gap: 0.75rem;
+  --nav-width: calc(var(--tab-width) * 2 + var(--tab-gap));
+}
+body {
+  margin: 0;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "early-sans-variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* nav — header links, not blocks */
+.tabs {
+  display: flex;
+  align-items: baseline;
+  gap: 2.5rem;
+}
+.tab {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.tab:hover {
+  color: var(--foreground);
+}
+.tab[aria-selected="true"] {
+  color: var(--foreground);
+}
+.tab-index {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  opacity: 0.6;
+}
+.tab-word {
+  font-family: "ivypresto-display", "Times New Roman", Times, serif;
+  font-weight: 700;
+  font-size: 3rem;
+  letter-spacing: -0.03em;
+  /* grows upward off the baseline so the underline below it stays put */
+  transform: scaleY(1.35);
+  transform-origin: bottom;
+  /* underline rides on the word alone, clear of the index prefix */
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.12em;
+  transition: text-decoration-color 0.15s ease;
+}
+.tab:hover .tab-word,
+.tab[aria-selected="true"] .tab-word {
+  text-decoration-color: currentColor;
+}
+.tab:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+main {
+  flex: 1;
+  min-height: 0;
+}
+.page {
+  display: none;
+  height: 100%;
+}
+.page.active { display: flex; }
+.page--grid.active { display: grid; }
+
+/* home — shallow card up top, name and stack on the black below */
+/* masthead — name left, tabs right, sitting on one baseline */
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+#home {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1.5rem;
+}
+.home-card {
+  flex: none;
+  align-self: flex-start;
+  width: var(--nav-width);
+  height: clamp(8rem, 26vh, 15rem);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+.tech-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.card {
+  flex: 1;
+  min-height: 0;
+  background: var(--card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+/* tech stack icons (Simple Icons, CC0) */
+.tech-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  /* sits on the dark card now, not the white page */
+  fill: var(--card-foreground);
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+}
+.tech-icon:hover {
+  opacity: 1;
+}
+
+h1 {
+  font-family: "ivypresto-display", "Times New Roman", Times, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  /* one line, sized to run the width of the nav column above it */
+  white-space: nowrap;
+  font-size: 5.5rem;
+  line-height: 1;
+  margin: 0;
+}
+.tagline {
+  font-style: italic;
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+/* work */
+#work {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 1rem;
+}
+.work-card {
+  --reveal: 3.5rem;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  /* grid items default to min-height:auto, so without this the rows
+     blow out to each image's intrinsic height instead of holding 1fr */
+  min-height: 0;
+  min-width: 0;
+}
+.work-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* covers the title until the bottom edge rides up off it */
+  position: relative;
+  z-index: 1;
+  /* `round` keeps the corners on the clip box itself, so the bottom
+     edge stays rounded the whole way up instead of squaring off */
+  clip-path: inset(0 0 0 0 round var(--radius-xl));
+  transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.work-card:hover img,
+.work-card:focus-within img {
+  clip-path: inset(0 0 var(--reveal) 0 round var(--radius-xl));
+}
+/* title sits on the page, not on a surface of its own */
+.work-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--reveal);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: var(--foreground);
+}
+.work-title {
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+/* Vantage rides its own face — Michroma ships 400 only, and its wide
+   sidebearings read large, so it comes down a step and drops the tracking */
+.work-title--michroma {
+  font-family: "Michroma", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  letter-spacing: 0;
+}
+
+/* reveal — replays each time a page is shown */
+.page.active .reveal {
+  animation: rise 0.4s ease both;
+}
+.page.active .reveal:nth-child(2) { animation-delay: 0.05s; }
+.page.active .reveal:nth-child(3) { animation-delay: 0.10s; }
+.page.active .reveal:nth-child(4) { animation-delay: 0.15s; }
+.page.active .reveal:nth-child(5) { animation-delay: 0.20s; }
+.page.active .reveal:nth-child(6) { animation-delay: 0.25s; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page.active .reveal { animation: none; }
+  .tab { transition: none; }
+  .work-card img { transition: clip-path 0.15s linear; }
+}
