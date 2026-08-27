@@ -284,3 +284,37 @@ h1 {
   .tab { transition: none; }
   .work-card img { transition: clip-path 0.15s linear; }
 }
+
+/* pixel trail + goo ------------------------------------------------------ */
+.defs-only {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+#home { position: relative; }
+/* the card has to out-rank the trail, and DOM order won't do it since the
+   trail is appended last to keep the reveal nth-child delays intact */
+.home-card { position: relative; z-index: 1; }
+.pixel-trail {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  pointer-events: none;
+  overflow: hidden;
+  filter: url(#goo-filter);
+  /* cells stay fully opaque so the goo threshold actually fires; the whole
+     layer is knocked back here instead, after the filter has run.
+     This is the knob for how loud the trail reads. */
+  opacity: 0.2;
+}
+.pixel-trail .px {
+  background: var(--foreground);
+  opacity: 0;
+  transition: opacity 0.45s linear;
+}
+.pixel-trail .px.lit {
+  opacity: 1;
+  transition: none;
+}
