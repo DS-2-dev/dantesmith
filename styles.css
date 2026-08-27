@@ -251,6 +251,15 @@ h1 {
   font-size: 1.0625rem;
   letter-spacing: 0;
 }
+/* Typography Posters on Transducer — the kit ships this one at weight 100
+   only, so it runs hairline; the positive tracking is what keeps it
+   legible at title size, and suits the squared-off forms anyway */
+.work-title--transducer {
+  font-family: "transducer", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 100;
+  font-size: 1.0625rem;
+  letter-spacing: 0.05em;
+}
 
 /* reveal — replays each time a page is shown */
 .page.active .reveal {
