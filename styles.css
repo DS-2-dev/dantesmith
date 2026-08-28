@@ -209,6 +209,8 @@ h1 {
   /* covers the title until the bottom edge rides up off it */
   position: relative;
   z-index: 1;
+  /* cover crops the sides; --focal-x picks which part survives, per card */
+  object-position: var(--focal-x, 50%) center;
   /* `round` keeps the corners on the clip box itself, so the bottom
      edge stays rounded the whole way up instead of squaring off */
   clip-path: inset(0 0 0 0 round var(--radius-xl));
@@ -218,6 +220,12 @@ h1 {
 .work-card:focus-within img {
   clip-path: inset(0 0 var(--reveal) 0 round var(--radius-xl));
 }
+/* Vantage's artwork sits left of centre: the leftmost thumbnail starts at
+   16.5% but a centred cover crop begins at 13.3%, leaving it almost flush
+   with the card edge. Biasing left opens that gap to ~6%. 40% is the floor
+   — below it the rightmost thumbnail starts clipping on narrow cards. */
+.work-card--vantage { --focal-x: 40%; }
+
 /* title sits on the page, not on a surface of its own */
 .work-overlay {
   position: absolute;
