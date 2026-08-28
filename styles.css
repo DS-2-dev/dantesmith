@@ -220,13 +220,13 @@ h1 {
 .work-card:focus-within img {
   clip-path: inset(0 0 var(--reveal) 0 round var(--radius-xl));
 }
-/* Vantage's artwork spans 13.4%..82.2% of the frame, so its centre is at
-   47.8%, not 50% — a centred crop pins the left thumbnail to the edge and
-   40% overshot the other way. 42% centres the crop on the content itself,
-   which balances the margins; it solves to 41.7-42.3% across card shapes,
-   so one value holds. Content fills 68.8% of a ~73% window, so ~2% a side
-   is all the slack there is. */
-.work-card--vantage { --focal-x: 42%; }
+/* Vantage's artwork runs 13.4%..83.5% — the right thumbnail has a soft
+   edge that a gradient threshold under-reads by ~40px, which is what made
+   earlier values pin it to the frame. Measured by texture instead, the
+   content centre is 48.45%, so 44% centres the crop window on it and
+   splits the slack evenly (~1.6% a side). Solves to 44.2-44.6% across
+   card shapes, so the single value holds. */
+.work-card--vantage { --focal-x: 44%; }
 
 /* title sits on the page, not on a surface of its own */
 .work-overlay {
