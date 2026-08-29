@@ -34,13 +34,13 @@
   --card-border: oklch(0.922 0 0);
   /* Apple's own hairline grey — the rule that separates their header */
   --hairline: #d2d2d7;
+  /* The iPod's selection bar, flattened. This one declaration is the entire
+     "how literal is the reference" decision — swap it for
+     var(--foreground) and the menu goes monochrome. */
+  --menu-highlight: linear-gradient(180deg, #3f8cf5, #1266dd);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  /* nav column sizing — the home card locks to this so the two stay aligned */
   /* cap height every work title is normalised to */
   --title-cap: 1.4rem;
-  --tab-width: 13rem;
-  --tab-gap: 0.75rem;
-  --nav-width: calc(var(--tab-width) * 2 + var(--tab-gap));
 }
 body {
   margin: 0;
@@ -56,44 +56,6 @@ body {
   font-family: "early-sans-variable", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* nav — Apple product-page language, 2007-2013. Their secondary nav was
-   small, grey, sentence case and evenly spaced; the loud part of the header
-   was the headline, never the links. */
-.tabs {
-  display: flex;
-  align-items: baseline;
-  gap: 1.75rem;
-}
-.tab {
-  padding: 0;
-  border: none;
-  background: transparent;
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: 0;
-  color: var(--muted-foreground);
-  cursor: pointer;
-  /* the underline is declared here, transparent, so turning it on later
-     costs no layout — the link never shifts between states */
-  text-decoration-line: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.35em;
-  transition: color 0.15s ease, text-decoration-color 0.15s ease;
-}
-.tab:hover {
-  color: var(--foreground);
-}
-.tab[aria-selected="true"] {
-  color: var(--foreground);
-  text-decoration-color: currentColor;
-}
-.tab:focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 3px;
-}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -109,11 +71,193 @@ main {
   flex: 1;
   min-height: 0;
 }
-.page {
-  display: none;
+
+/* console ─────────────────────────────────────────────────────────────────
+
+   The slide is one transform on the grid itself. Both columns are always
+   laid out; the closed state just shifts the whole grid right by half the
+   leftover width, which lands the menu column dead centre. So there is no
+   second layout to keep in sync, nothing reflows mid-animation, and the
+   move reverses for free. The overflow it throws off the right edge is
+   already clipped by the body. */
+.console {
+  --menu-w: 15rem;
+  --menu-pad: 0.85rem;
+  --menu-h: 9rem;          /* mobile only, and the script measures the real one */
   height: 100%;
+  display: grid;
+  grid-template-columns: var(--menu-w) 1fr;
+  transform: translateX(calc((100% - var(--menu-w)) / 2));
+  transition: transform 0.65s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.page.active { display: flex; }
+body.is-open .console { transform: translateX(0); }
+
+.menu {
+  /* the grid stretches the pane column to full height; the list stays put
+     on the vertical centre line it landed on, so it only ever moves sideways */
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  /* Pull the bar out by its own padding so the LABELS line up with the name
+     above them, rather than the boxes lining up and the text not. The width
+     has to be pinned first: left to stretch, a negative margin widens the
+     item instead of moving it, and the bar's right edge ends up butted
+     against the separator. */
+  justify-self: start;
+  width: var(--menu-w);
+  margin-left: calc(var(--menu-pad) * -1);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.55rem var(--menu-pad);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 2.5rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--foreground);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+/* The bar is the CURSOR, not a "you are here" marker — which is what it is
+   on the iPod, and why one is always on screen. It also does structural
+   work: with nothing filled, three short labels and three right-aligned
+   chevrons read as six loose things instead of one column. */
+.menu-item.is-cursor {
+  background: var(--menu-highlight);
+  color: #fff;
+}
+.menu-item:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+.menu-chevron {
+  font-size: 1.2em;
+  line-height: 1;
+  opacity: 0.3;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.menu-item.is-cursor .menu-chevron {
+  opacity: 0.9;
+  transform: translateX(2px);
+}
+
+.console-panes {
+  position: relative;
+  min-width: 0;
+  padding-left: 2.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+body.is-open .console-panes {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0.18s;
+}
+/* the rule that splits the screen. A scaled pseudo-element rather than a
+   border so it draws itself in from the middle as the menu arrives. */
+.console-panes::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--hairline);
+  transform: scaleY(0);
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.1s;
+}
+body.is-open .console-panes::before { transform: scaleY(1); }
+
+.pane {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+}
+.pane.is-active { display: flex; }
+
+/* prose panes ------------------------------------------------------------ */
+.pane--prose {
+  justify-content: center;
+  gap: 2.25rem;
+  /* long copy scrolls inside its own pane; the page itself still never does */
+  overflow-y: auto;
+}
+.prose-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: none;
+}
+.prose {
+  margin: 0;
+  max-width: 54ch;
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.prose--muted { color: var(--muted-foreground); }
+.prose-caption {
+  margin: 0;
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.contact-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 30rem;
+  flex: none;
+}
+.contact-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.contact-row:first-child { border-top: 1px solid var(--hairline); }
+.contact-key {
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.contact-val {
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 0.3em;
+  transition: text-decoration-color 0.15s ease;
+}
+a.contact-val:hover { text-decoration-color: currentColor; }
+/* the slots waiting on real details, marked so they read as unfinished
+   rather than as content */
+.contact-val--todo {
+  color: var(--muted-foreground);
+  font-style: italic;
+  text-decoration: none;
+}
 
 /* masthead — name left, links right, sitting on one baseline */
 .masthead {
@@ -126,16 +270,6 @@ main {
   border-bottom: 1px solid var(--hairline);
 }
 
-#home {
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 1.5rem;
-}
-/* was a dark card; now just the row of icons sitting on the page */
-.home-card {
-  flex: none;
-  align-self: flex-start;
-}
 .tech-row {
   display: flex;
   align-items: center;
@@ -169,6 +303,26 @@ h1 {
   font-size: 5.5rem;
   line-height: 1;
   margin: 0;
+  /* the name is the loudest thing on the landing screen and the wrong thing
+     to be loudest once you are actually reading a section */
+  transition: font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+}
+body.is-open h1 { font-size: 2.5rem; }
+/* the name doubles as the way back to the centred menu */
+.home-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  transition: opacity 0.15s ease;
+}
+.home-link:hover { opacity: 0.5; }
+.home-link:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 4px;
 }
 .tagline {
   font-style: italic;
@@ -187,10 +341,6 @@ h1 {
    The constants (angle 56, perspective 1100, and the x/z steps in the
    script) were solved by projecting this exact transform chain offline and
    looking at the result, not by eyeballing it in the browser. */
-.page--flow.active {
-  display: flex;
-  flex-direction: column;
-}
 .flow {
   position: relative;
   flex: 1;
@@ -210,7 +360,7 @@ h1 {
    the script is expressed as a multiple of it. Capped so the cover plus its
    reflection (about 1.55x the cover tall) still clears the viewport. */
 .cover {
-  --cover: min(30vh, 27vw, 300px);
+  --cover: min(32vh, 19vw, 290px);
   --cover-aspect: 1;          /* square, like album art. 1.3333 for 4:3. */
   --tx: 0px;
   --tz: 0px;
@@ -390,23 +540,30 @@ h1 {
   -webkit-text-stroke: 0.5px var(--background);
 }
 
-/* reveal — replays each time a page is shown */
-.page.active .reveal {
+/* reveal — replays each time a pane is opened */
+.pane.is-active .reveal {
   animation: rise 0.4s ease both;
 }
-.page.active .reveal:nth-child(2) { animation-delay: 0.05s; }
-.page.active .reveal:nth-child(3) { animation-delay: 0.10s; }
-.page.active .reveal:nth-child(4) { animation-delay: 0.15s; }
-.page.active .reveal:nth-child(5) { animation-delay: 0.20s; }
-.page.active .reveal:nth-child(6) { animation-delay: 0.25s; }
+.pane.is-active .reveal:nth-child(2) { animation-delay: 0.05s; }
+.pane.is-active .reveal:nth-child(3) { animation-delay: 0.10s; }
+.pane.is-active .reveal:nth-child(4) { animation-delay: 0.15s; }
+.pane.is-active .reveal:nth-child(5) { animation-delay: 0.20s; }
+.pane.is-active .reveal:nth-child(6) { animation-delay: 0.25s; }
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page.active .reveal { animation: none; }
-  .tab { transition: none; }
+  .pane.is-active .reveal { animation: none; }
+  /* the slide still happens, it just happens instantly */
+  .console,
+  .console-panes,
+  .console-panes::before,
+  h1,
+  .menu-item,
+  .menu-chevron,
+  .pixel-trail,
   .cover,
   .flow-scrub-thumb,
   .flow-titles .work-title { transition: none; }
@@ -419,12 +576,12 @@ h1 {
   height: 0;
   overflow: hidden;
 }
-#home { position: relative; }
-/* the icon row has to out-rank the trail, and DOM order won't do it since
-   the trail is appended last to keep the reveal nth-child delays intact */
-.home-card { position: relative; z-index: 1; }
+/* the trail sits behind the whole page, so everything else has to be given
+   a stacking context of its own to sit above it */
+.masthead,
+main { position: relative; z-index: 1; }
 .pixel-trail {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 0;
   display: grid;
@@ -435,7 +592,11 @@ h1 {
      layer is knocked back here instead, after the filter has run.
      This is the knob for how loud the trail reads. */
   opacity: 0.2;
+  transition: opacity 0.4s ease;
 }
+/* it is the landing screen's texture; once you are reading a section it is
+   just noise behind the content */
+body.is-open .pixel-trail { opacity: 0; }
 .pixel-trail .px {
   background: var(--foreground);
   opacity: 0;
@@ -444,4 +605,42 @@ h1 {
 .pixel-trail .px.lit {
   opacity: 1;
   transition: none;
+}
+
+/* Narrow screens run the identical move on the vertical axis: the menu
+   centres itself, then slides UP to the top and the section opens beneath
+   it. Same one transform, same one class, separator flipped to horizontal. */
+@media (max-width: 780px) {
+  .console {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    transform: translateY(calc((100% - var(--menu-h)) / 2));
+  }
+  body.is-open .console { transform: translateY(0); }
+  /* full-bleed rows down here — there is no separator on the right to
+     collide with, and a short bar on a narrow screen looks stranded */
+  .menu {
+    align-self: start;
+    justify-self: stretch;
+    width: auto;
+  }
+  .console-panes {
+    padding-left: 0;
+    padding-top: 1.75rem;
+    min-height: 0;
+  }
+  .console-panes::before {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 1px;
+    transform: scaleX(0);
+  }
+  body.is-open .console-panes::before { transform: scaleX(1); }
+  h1 { font-size: 3rem; }
+  body.is-open h1 { font-size: 1.625rem; }
+  .menu-item { font-size: 1.5rem; }
+  .cover { --cover: min(26vh, 34vw, 200px); }
 }
