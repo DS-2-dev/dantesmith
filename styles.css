@@ -272,7 +272,8 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   align-items: center;
   gap: 1.25rem;
 }
-/* tech stack icons (Simple Icons, CC0) */
+/* tech stack icons. Simple Icons (CC0), except Are.na — Simple Icons has
+   no entry for it, so that mark comes from are.na's own favicon. */
 .tech-icon {
   /* closer to the text scale beside it — 1.75rem read as its own row of
      objects rather than part of the passage */
@@ -288,6 +289,11 @@ a.contact-val:hover { text-decoration-color: currentColor; }
 .tech-icon:hover {
   opacity: 1;
 }
+/* Are.na's mark is a wide logo, not a square glyph like the rest. Left in a
+   square box it letterboxes to 24x14 and reads as the runt of the row, so it
+   gets a wider box instead — 32x19 once it scales to fit, which matches the
+   others by area rather than by bounding box. */
+.tech-icon--wide { width: 2rem; }
 
 
 /* work — contact sheet -----------------------------------------------------
@@ -353,6 +359,25 @@ a.contact-val:hover { text-decoration-color: currentColor; }
    centres on the content rather than a least-bad compromise. Narrower cards
    (a squarer aspect) would put it back to splitting the loss. */
 .work-card--vantage { --focal-x: 43%; }
+
+/* Transparent hit target covering the card. Above the image so it catches
+   the click, but it inherits the card's hover, so the title peek still runs
+   exactly as before — and :focus-within means tabbing to it reveals the
+   title too. */
+.work-open {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+.work-open:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
 
 /* title sits on the page, not on a surface of its own */
 .work-overlay {
@@ -457,6 +482,8 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   /* the slide still happens, it just happens instantly */
   .nav-link,
   .nav-pill,
+  .work-back,
+  .detail-switch button,
   .pixel-trail,
   .wordmark,
   .work-card img { transition: none; }
@@ -505,4 +532,147 @@ body.is-open { --trail-ink: #e2e2e2; }
     grid-template-columns: repeat(2, 1fr);
     width: 100%;
   }
+}
+
+/* work detail ------------------------------------------------------------
+
+   The Work section's second state, not an overlay. One of the two is shown
+   at a time, so the section keeps its own footprint and the wordmark stays
+   down — nothing about the page's shape changes when you open a piece. */
+.work-detail { display: none; }
+.pane.is-detail .work-grid { display: none; }
+.pane.is-detail .work-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  animation: rise 0.35s ease both;
+}
+
+.work-back {
+  flex: none;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+  letter-spacing: -0.011em;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+.work-back:hover { opacity: 1; }
+.work-back:focus-visible { opacity: 1; outline: 2px solid var(--foreground); outline-offset: 4px; }
+
+.detail-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* minmax(0,…) on both, or the image's intrinsic width — up to 3046px —
+     blows the left column past the viewport and squeezes the text to nothing */
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 2.5rem;
+}
+
+.detail-main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+/* Contain, not cover — the work is the content, so cropping it to fill the
+   frame defeats the point of opening it. Centred rather than left, because
+   the set runs 0.72 to 1.78 in aspect: three portrait, three landscape.
+   Hugging one edge leaves lopsided dead space that reads as a misalignment
+   against the full-width thumb strip below; symmetric letterboxing just
+   reads as letterboxing. */
+.detail-main img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  object-position: center;
+  border-radius: var(--radius-md);
+}
+.detail-thumbs {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+.detail-thumb {
+  aspect-ratio: 4 / 3;
+  margin: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.05);
+  /* an outline rather than a fill, so an empty slot reads as waiting for
+     something rather than a grey rectangle someone meant to be there */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+}
+.detail-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.detail-side {
+  min-width: 0;
+  /* top-aligned, not centred: once there is a real write-up here the block
+     grows downward, and a centred one would drift as it does */
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: 100%;
+  overflow-y: auto;
+}
+.detail-heading { margin: 0; }
+/* the title keeps its own display face — the span is given the card's
+   work-title classes at open time, and they carry their own cap-ratio */
+.detail-heading .work-title {
+  --title-cap: 1.5rem;
+  white-space: normal;
+}
+.detail-note { color: var(--muted-foreground); max-width: none; }
+
+/* the switcher: every piece listed, the current one marked, so you can move
+   between them without going back out to the grid first */
+.detail-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--hairline);
+}
+.detail-switch button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+  letter-spacing: -0.011em;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+.detail-switch button:hover { opacity: 0.8; }
+.detail-switch button[aria-current="true"] { opacity: 1; }
+.detail-switch button:focus-visible { opacity: 1; outline: 2px solid var(--foreground); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  /* one column: the shot, its slots, then the writing under them */
+  .detail-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.4fr) auto;
+    gap: 1.25rem;
+    overflow-y: auto;
+  }
+  .detail-side { align-self: start; overflow: visible; }
+  .detail-heading .work-title { --title-cap: 1.1rem; }
 }

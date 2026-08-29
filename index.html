@@ -51,27 +51,57 @@
       <figure class="work-card reveal">
         <img src="images/anotherone.jpg" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--neutron">Citri Software</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open Citri Software"></button>
       </figure>
       <figure class="work-card work-card--vantage reveal">
         <img src="images/vantage.webp" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open Vantage"></button>
       </figure>
       <figure class="work-card reveal">
         <img src="images/results.jpg" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--orbix">Weave</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open Weave"></button>
       </figure>
       <figure class="work-card reveal">
         <img src="images/moreflowers.webp" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open WSU AI Lab"></button>
       </figure>
       <figure class="work-card reveal">
         <img src="images/yeha.jpg" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--syne-mono">Typography Posters</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open Typography Posters"></button>
       </figure>
       <figure class="work-card reveal">
         <img src="images/yesss.webp" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--carbon">Filey</span></figcaption>
+        <button class="work-open" type="button" aria-label="Open Filey"></button>
       </figure>
+      </div>
+
+      <!-- The same section, in its other state. Not a dialog: work is the
+           page's actual content, so opening a piece should be somewhere you
+           ARE, not a layer over where you were. -->
+      <div class="work-detail" id="work-detail">
+        <button class="work-back" type="button" id="work-back">&larr;&nbsp; All work</button>
+        <div class="detail-body">
+          <div class="detail-main">
+            <img id="detail-img" alt="">
+            <!-- six slots: the first holds the real image, the rest wait for
+                 more shots per project. Built by script, so adding them is
+                 data rather than markup. -->
+            <div class="detail-thumbs" id="detail-thumbs"></div>
+          </div>
+          <div class="detail-side">
+            <h2 class="detail-heading"><span id="detail-title"></span></h2>
+            <!-- TODO(dante): a paragraph or two per project goes here. -->
+            <p class="prose detail-note">Room for a write-up — what the project
+              was, what you made, what you'd point at. Send me the copy and it
+              slots in per project.</p>
+            <nav class="detail-switch" id="detail-switch" aria-label="Switch project"></nav>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -90,6 +120,7 @@
       <div class="prose-block reveal">
         <p class="prose-caption">Tools</p>
         <div class="tech-row">
+          <svg class="tech-icon tech-icon--wide" role="img" viewBox="0 0 150.38 88.986"><title>Are.na</title><path d="M148.93 62.356l-20.847-16.384c-1.276-1-1.276-2.642 0-3.645l20.848-16.38c1.28-1.002 1.815-2.695 1.19-3.76-.626-1.062-2.374-1.44-3.88-.84l-24.79 9.874c-1.507.606-2.927-.22-3.153-1.83L114.57 2.926C114.34 1.317 113.13 0 111.877 0c-1.247 0-2.456 1.317-2.68 2.925l-3.73 26.467c-.228 1.61-1.646 2.434-3.155 1.83l-24.38-9.71c-1.512-.602-3.975-.602-5.483 0l-24.384 9.71c-1.508.604-2.928-.22-3.154-1.83L41.186 2.925C40.956 1.317 39.748 0 38.5 0c-1.252 0-2.463 1.317-2.688 2.925l-3.73 26.467c-.226 1.61-1.645 2.434-3.153 1.83L4.14 21.35c-1.507-.603-3.252-.223-3.878.838-.625 1.066-.092 2.76 1.184 3.76l20.85 16.38c1.277 1.003 1.277 2.645 0 3.646L1.446 62.356C.166 63.358-.364 65.152.26 66.34c.627 1.19 2.372 1.668 3.877 1.064l24.567-9.866c1.51-.603 2.914.218 3.125 1.828l3.544 26.696c.214 1.607 1.618 2.923 3.12 2.923 1.5 0 2.905-1.315 3.12-2.923l3.55-26.696c.21-1.61 1.62-2.43 3.122-1.828l24.164 9.698c1.506.606 3.97.606 5.477 0l24.16-9.698c1.504-.603 2.91.218 3.125 1.828l3.55 26.696c.212 1.607 1.617 2.923 3.115 2.923 1.502 0 2.907-1.315 3.12-2.923l3.55-26.696c.216-1.61 1.62-2.43 3.124-1.828l24.57 9.866c1.5.604 3.25.125 3.876-1.063.627-1.186.094-2.98-1.185-3.982zM95.89 46.18L77.53 60.315c-1.285.99-3.393.99-4.674 0L54.49 46.18c-1.284-.99-1.294-2.62-.02-3.625l18.4-14.493c1.274-1.005 3.363-1.005 4.638 0l18.4 14.493c1.277 1.004 1.267 2.634-.02 3.626z"/></svg>
           <svg class="tech-icon" role="img" viewBox="40.27 42.30 155.81 155.81"><title>Affinity</title><path d="M112.908,165.979c-10.413,0 -17.037,-6.317 -17.037,-14.329c0,-34.287 90.164,-41.151 90.164,-77.563c0,-22.213 -25.731,-31.787 -58.577,-31.787c-19.98,0 -42.571,3.698 -63.552,10.315l0,43.438c30.919,-22.52 65.272,-32.16 87.4,-32.16c13.914,0 23.355,3.882 23.355,10.838c0,28.658 -124.353,24.117 -124.353,86.042c0,23.736 16.321,37.335 39.283,37.335c34.732,0 61.003,-33.753 80.657,-74.897l3.982,1.43c-10.351,25.143 -31.771,52.712 -35.943,70.434l44.715,0l0,-91.685l-10.327,0c-14.99,32.574 -36.957,62.59 -59.767,62.59"/></svg>
           <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Figma</title><path d="M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.014-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8.98zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117V8.981H8.148zM8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539zm-.024-7.51a3.023 3.023 0 0 0-3.019 3.019c0 1.665 1.365 3.019 3.044 3.019 1.705 0 3.093-1.376 3.093-3.068v-2.97H8.148zm7.704 0h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49zm-.097-7.509c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h.098c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-.098z"/></svg>
           <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Cursor</title><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>
@@ -167,6 +198,96 @@
 
       const home = document.getElementById('home-link');
       if (home) home.addEventListener('click', () => select(null));
+    })();
+
+    /* Work detail. A state of the section rather than a layer over it, so
+       the grid and the piece are two faces of the same pane. One shell filled
+       from whichever card was picked: the cards already hold the image and
+       the title with its per-project face, and duplicating that into six
+       static blocks would be two places to keep in sync. */
+    (function () {
+      const pane = document.querySelector('.pane[data-view="work"]');
+      const detail = document.getElementById('work-detail');
+      if (!pane || !detail) return;
+      const cards = Array.from(pane.querySelectorAll('.work-card'));
+      const img = document.getElementById('detail-img');
+      const title = document.getElementById('detail-title');
+      const thumbs = document.getElementById('detail-thumbs');
+      const switcher = document.getElementById('detail-switch');
+      const SLOTS = 6;
+      let at = -1;
+
+      const labelOf = (card) => card.querySelector('.work-title');
+
+      /* built once — only the aria-current marker changes as you move */
+      cards.forEach((card, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = labelOf(card).textContent;
+        b.addEventListener('click', () => open_(i));
+        switcher.appendChild(b);
+      });
+      const switchButtons = Array.from(switcher.children);
+
+      function open_(i) {
+        at = (i + cards.length) % cards.length;
+        const card = cards[at];
+        const source = card.querySelector('img');
+        const label = labelOf(card);
+        const src = source.currentSrc || source.src;
+
+        img.src = src;
+        img.alt = label.textContent;
+        /* the card's own classes carry the face and its cap-ratio, so the
+           detail view inherits the right type with no lookup table */
+        title.className = label.className;
+        title.textContent = label.textContent;
+        switchButtons.forEach((b, n) => b.setAttribute('aria-current', String(n === at)));
+
+        thumbs.replaceChildren();
+        thumbs.setAttribute('aria-hidden', 'true');
+        for (let n = 0; n < SLOTS; n++) {
+          const slot = document.createElement('figure');
+          slot.className = 'detail-thumb';
+          if (n === 0) {
+            const t = document.createElement('img');
+            t.src = src;
+            t.alt = '';
+            slot.appendChild(t);
+          }
+          thumbs.appendChild(slot);
+        }
+
+        pane.classList.add('is-detail');
+        detail.querySelector('.work-back').focus({ preventScroll: true });
+      }
+
+      function close_() {
+        pane.classList.remove('is-detail');
+        const hit = at >= 0 && cards[at].querySelector('.work-open');
+        if (hit) hit.focus({ preventScroll: true });
+      }
+
+      cards.forEach((card, i) => {
+        const hit = card.querySelector('.work-open');
+        if (hit) hit.addEventListener('click', () => open_(i));
+      });
+      document.getElementById('work-back').addEventListener('click', close_);
+
+      /* Escape steps back one level — to the grid first, and only then out of
+         the section, which the nav's own handler takes care of. Capture, so
+         this runs before that one and can stop it when there is a detail
+         open to close. */
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !pane.classList.contains('is-detail')) return;
+        event.stopPropagation();
+        close_();
+      }, true);
+
+      /* leaving Work entirely should not leave it parked on one piece */
+      document.querySelectorAll('.nav-link, .brand').forEach((el) => {
+        el.addEventListener('click', () => pane.classList.remove('is-detail'));
+      });
     })();
 
     /* Pixel trail — vanilla port of danielpetho/pixel-trail. Cells light up
