@@ -24,8 +24,9 @@
   --radius: 0.625rem;
   --radius-md: calc(var(--radius) - 2px);
   --radius-xl: calc(var(--radius) + 4px);
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --background: #f4f4f2;
+  --foreground: #0d0d0d;
+  --gutter: 1.5rem;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   /* cards go dark so they still read as blocks on the white page */
@@ -33,27 +34,35 @@
   --card-foreground: oklch(0.985 0 0);
   --card-border: oklch(0.922 0 0);
   /* Apple's own hairline grey — the rule that separates their header */
-  --hairline: #d2d2d7;
-  /* The iPod's selection bar, flattened. This one declaration is the entire
-     "how literal is the reference" decision — swap it for
-     var(--foreground) and the menu goes monochrome. */
-  --menu-highlight: linear-gradient(180deg, #3f8cf5, #1266dd);
+  --hairline: #d8d8d4;
+  /* The iPod's selection bar. One flat blue for the trail cells and for the
+     cells the row itself is built from — it cannot be a gradient, because a
+     gradient would need every trail cell to sample the bar's ramp at its own
+     position to line up. Flat-on-flat is the only way the join disappears.
+     Swap it for var(--foreground) and the menu goes monochrome, goo and all. */
+  --goo-blue: #2879e9;
+  /* Trail ink is a flat grey, NOT black-at-low-opacity. Same result on white
+     (20% black IS #cccccc) but the knock-back is now in the colour rather
+     than on the layer, which leaves the layer free to carry a fully
+     saturated blue. Nothing in a goo layer can be translucent: the alpha
+     ramp in feColorMatrix needs opaque input or the blobs never threshold. */
+  --trail-ink: #cccccc;
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  /* cap height every work title is normalised to */
-  --title-cap: 1.4rem;
+  /* cap height every work title is normalised to. Bounded by the longest
+     title in the narrowest face: "Typography Posters" in Syne Mono. */
+  --title-cap: 0.8rem;
 }
 body {
   margin: 0;
+  padding: 0;
   height: 100vh;
   box-sizing: border-box;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
   overflow: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: "early-sans-variable", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 .sr-only {
@@ -67,123 +76,96 @@ body {
   white-space: nowrap;
 }
 
-main {
+/* Swiss layout: small functional type across the top, a deliberate void,
+   and the name anchored to the bottom running off the right edge. The rule
+   is full-bleed while the text is inset, so the gutter lives on each block
+   rather than on the body. */
+.topbar,
+.lede,
+.stage,
+.wordmark { position: relative; z-index: 1; }
+
+.topbar {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1rem var(--gutter) 0.7rem;
+  border-bottom: 1px solid var(--hairline);
+}
+.brand,
+.nav-link,
+.lede {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.011em;
+}
+.brand,
+.nav-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  cursor: pointer;
+}
+.nav { display: flex; gap: 1.1rem; }
+.nav-link {
+  /* declared transparent so turning it on costs no layout */
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+  transition: text-decoration-color 0.15s ease;
+}
+.nav-link:hover,
+.nav-link[aria-current="true"] { text-decoration-color: currentColor; }
+.brand:focus-visible,
+.nav-link:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
+
+.lede {
+  flex: none;
+  margin: 0;
+  padding: 0.7rem var(--gutter) 0;
+}
+
+/* the void, and where a section opens when you pick one */
+.stage {
   flex: 1;
   min-height: 0;
+  padding: 0 var(--gutter);
 }
-
-/* console ─────────────────────────────────────────────────────────────────
-
-   The slide is one transform on the grid itself. Both columns are always
-   laid out; the closed state just shifts the whole grid right by half the
-   leftover width, which lands the menu column dead centre. So there is no
-   second layout to keep in sync, nothing reflows mid-animation, and the
-   move reverses for free. The overflow it throws off the right edge is
-   already clipped by the body. */
-.console {
-  --menu-w: 15rem;
-  --menu-pad: 0.85rem;
-  --menu-h: 9rem;          /* mobile only, and the script measures the real one */
-  height: 100%;
-  display: grid;
-  grid-template-columns: var(--menu-w) 1fr;
-  transform: translateX(calc((100% - var(--menu-w)) / 2));
-  transition: transform 0.65s cubic-bezier(0.32, 0.72, 0, 1);
-}
-body.is-open .console { transform: translateX(0); }
-
-.menu {
-  /* the grid stretches the pane column to full height; the list stays put
-     on the vertical centre line it landed on, so it only ever moves sideways */
-  align-self: center;
-  display: flex;
-  flex-direction: column;
-  /* Pull the bar out by its own padding so the LABELS line up with the name
-     above them, rather than the boxes lining up and the text not. The width
-     has to be pinned first: left to stretch, a negative margin widens the
-     item instead of moving it, and the bar's right edge ends up butted
-     against the separator. */
-  justify-self: start;
-  width: var(--menu-w);
-  margin-left: calc(var(--menu-pad) * -1);
-}
-.menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  width: 100%;
-  padding: 0.55rem var(--menu-pad);
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  font-size: 2.5rem;
-  font-weight: 400;
-  line-height: 1.25;
-  color: var(--foreground);
-  transition: background 0.15s ease, color 0.15s ease;
-}
-/* The bar is the CURSOR, not a "you are here" marker — which is what it is
-   on the iPod, and why one is always on screen. It also does structural
-   work: with nothing filled, three short labels and three right-aligned
-   chevrons read as six loose things instead of one column. */
-.menu-item.is-cursor {
-  background: var(--menu-highlight);
-  color: #fff;
-}
-.menu-item:focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 2px;
-}
-.menu-chevron {
-  font-size: 1.2em;
-  line-height: 1;
-  opacity: 0.3;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.menu-item.is-cursor .menu-chevron {
-  opacity: 0.9;
-  transform: translateX(2px);
-}
-
-.console-panes {
-  position: relative;
-  min-width: 0;
-  padding-left: 2.75rem;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.35s ease;
-}
-body.is-open .console-panes {
-  opacity: 1;
-  pointer-events: auto;
-  transition-delay: 0.18s;
-}
-/* the rule that splits the screen. A scaled pseudo-element rather than a
-   border so it draws itself in from the middle as the menu arrives. */
-.console-panes::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--hairline);
-  transform: scaleY(0);
-  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.1s;
-}
-body.is-open .console-panes::before { transform: scaleY(1); }
-
 .pane {
   display: none;
   flex-direction: column;
+  justify-content: center;
   height: 100%;
   outline: none;
 }
 .pane.is-active { display: flex; }
+
+/* Inter's cap height is 0.727em and its ascent+descent 1.21em, so a 0.85
+   line box puts the baseline 0.789em down and leaves ~0.06em under it —
+   which is the small gap above the bottom edge, not a guess. */
+.wordmark {
+  flex: none;
+  padding: 0 0 0.5rem var(--gutter);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  /* "Dante Smith" advances 5.8047em in Inter *Medium* — the weight this
+     actually renders at. -0.03em across 11 characters brings it to 5.4747em.
+     5.5 adds ~0.5% headroom so the final h lands just inside the right edge
+     instead of overflowing it. Measuring Regular instead of Medium is what
+     clipped it before: 5.404 vs 5.475 is only 1.4%, and 1.4% of a 260px
+     wordmark is most of a letter. Re-measure if the name or weight changes. */
+  font-size: calc((100vw - var(--gutter)) / 5.5);
+  line-height: 0.85;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  user-select: none;
+}
 
 /* prose panes ------------------------------------------------------------ */
 .pane--prose {
@@ -259,17 +241,6 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   text-decoration: none;
 }
 
-/* masthead — name left, links right, sitting on one baseline */
-.masthead {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  /* the hairline rule is the single most era-specific thing in the header */
-  padding-bottom: 1.125rem;
-  border-bottom: 1px solid var(--hairline);
-}
-
 .tech-row {
   display: flex;
   align-items: center;
@@ -294,20 +265,6 @@ a.contact-val:hover { text-decoration-color: currentColor; }
    is Adobe's open face from the same lineage, so it carries the same warmth
    Helvetica-based stand-ins lose. Weight 300 is the whole effect — at 400
    this reads like any other site. */
-h1 {
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 300;
-  /* a 300 goes loose as it grows, so the tracking has to come back in */
-  letter-spacing: -0.025em;
-  white-space: nowrap;
-  font-size: 5.5rem;
-  line-height: 1;
-  margin: 0;
-  /* the name is the loudest thing on the landing screen and the wrong thing
-     to be loudest once you are actually reading a section */
-  transition: font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1);
-}
-body.is-open h1 { font-size: 2.5rem; }
 /* the name doubles as the way back to the centred menu */
 .home-link {
   padding: 0;
@@ -331,142 +288,71 @@ body.is-open h1 { font-size: 2.5rem; }
   margin: 0;
 }
 
-/* work — Cover Flow -------------------------------------------------------
+/* work — contact sheet -----------------------------------------------------
 
-   iTunes 7, 2006. The centre cover sits flat and nearest; the rest fan back
-   into a corridor, each turned so its INNER edge comes toward the viewer.
-   Getting that sign backwards is what makes a coverflow read as the inside
-   of a box instead, so it is worth stating plainly.
+   Six plates, deliberately not stretched to fill the pane: at pane size they
+   would read as six big pictures, and the point is a set you take in at once.
 
-   The constants (angle 56, perspective 1100, and the x/z steps in the
-   script) were solved by projecting this exact transform chain offline and
-   looking at the result, not by eyeballing it in the browser. */
-.flow {
+   The peek is the image clipping its OWN bottom edge upward, uncovering a
+   title that was underneath the whole time — no sliding panel, no second
+   surface. `round` on the inset keeps the corners on the clip box, so the
+   bottom edge stays rounded all the way up instead of squaring off. */
+.pane--grid { justify-content: center; }
+.work-grid {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  /* 44rem gives 227px cards — the width "Typography Posters" needs at the
+     current --title-cap, with ~29px to spare. Widen one without the other
+     and that title runs out of its card. */
+  width: min(100%, 44rem);
+}
+.work-card {
+  --reveal: 2rem;
   position: relative;
-  flex: 1;
-  min-height: 0;
-  perspective: 1100px;
-  /* matches where the covers actually sit, so the projection stays square */
-  perspective-origin: 50% 40%;
-  outline: none;
-}
-.flow-stage {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-}
-
-/* Cover size is the single knob the whole stage scales from: every offset in
-   the script is expressed as a multiple of it. Capped so the cover plus its
-   reflection (about 1.55x the cover tall) still clears the viewport. */
-.cover {
-  --cover: min(32vh, 19vw, 290px);
-  --cover-aspect: 1;          /* square, like album art. 1.3333 for 4:3. */
-  --tx: 0px;
-  --tz: 0px;
-  --ry: 0deg;
-  position: absolute;
-  left: 50%;
-  top: 40%;
-  width: var(--cover);
-  height: calc(var(--cover) / var(--cover-aspect));
-  margin-left: calc(var(--cover) / -2);
-  margin-top: calc(var(--cover) / var(--cover-aspect) / -2);
+  margin: 0;
   padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  transform: translateX(var(--tx)) translateZ(var(--tz)) rotateY(var(--ry));
-  transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+  /* 4:3 sizes the rows off the column width, so the grid needs no height of
+     its own — and it is the aspect at which Vantage finally fits uncropped */
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+  min-width: 0;
 }
-.cover-face,
-.cover-reflection {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.cover-face {
-  top: 0;
-  border-radius: 2px;
-  overflow: hidden;
-  /* album art on white needs an edge or it dissolves into the page */
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.07), 0 10px 30px -12px rgb(0 0 0 / 0.35);
-}
-/* The reflection is a second copy of the same src — same cache entry, no
-   extra request. Only the img is flipped, so the mask on the box still
-   fades downward from the join and needs no mirroring of its own. */
-.cover-reflection {
-  top: 100%;
-  opacity: 0.3;
-  pointer-events: none;
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 55%);
-          mask-image: linear-gradient(to bottom, #000, transparent 55%);
-}
-.cover img {
+.work-card img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* covers the title until the bottom edge rides up off it */
+  position: relative;
+  z-index: 1;
+  /* cover crops the sides; --focal-x picks which part survives, per card */
   object-position: var(--focal-x, 50%) center;
+  clip-path: inset(0 0 0 0 round var(--radius-md));
+  transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.cover-reflection img {
-  transform: scaleY(-1);
+.work-card:hover img,
+.work-card:focus-within img {
+  clip-path: inset(0 0 var(--reveal) 0 round var(--radius-md));
 }
-.cover:focus-visible .cover-face {
-  box-shadow: 0 0 0 2px var(--foreground), 0 10px 30px -12px rgb(0 0 0 / 0.35);
-}
-/* A square window onto Vantage shows 58.9% of its width, and the artwork is
-   70.1% wide, so it cannot all fit — 46% is the value that centres the
-   window on the content and splits the loss evenly between the two
-   thumbnails. Switching --cover-aspect to 1.3333 would fit it whole. */
-.cover--vantage { --focal-x: 46%; }
+/* At 4:3 the window shows 78.6% of this image's width and the artwork is
+   70.1% wide, so for the first time it fits whole — 43% is where the window
+   centres on the content rather than a least-bad compromise. Narrower cards
+   (a squarer aspect) would put it back to splitting the loss. */
+.work-card--vantage { --focal-x: 43%; }
 
-/* footer — title and scrubber, the two things iTunes put under the stack */
-.flow-footer {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding-bottom: 0.25rem;
-}
-.flow-titles {
-  position: relative;
-  width: 100%;
-  height: 2.4rem;
-}
-.flow-titles .work-title {
+/* title sits on the page, not on a surface of its own */
+.work-overlay {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-.flow-titles .work-title.is-active { opacity: 1; }
-
-.flow-scrub {
-  position: relative;
-  width: min(320px, 55%);
-  height: 3px;
-  border-radius: 999px;
-  background: var(--hairline);
-  cursor: pointer;
-}
-.flow-scrub-thumb {
-  position: absolute;
-  top: -3px;
   left: 0;
-  width: 34px;
-  margin-left: -17px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--foreground);
-  transition: left 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+  right: 0;
+  bottom: 0;
+  height: var(--reveal);
+  display: flex;
+  align-items: center;
+  padding: 0;
+  color: var(--foreground);
 }
 
 /* Optical sizing. font-size sets the em box, not the letters, and these six
@@ -557,16 +443,10 @@ body.is-open h1 { font-size: 2.5rem; }
 @media (prefers-reduced-motion: reduce) {
   .pane.is-active .reveal { animation: none; }
   /* the slide still happens, it just happens instantly */
-  .console,
-  .console-panes,
-  .console-panes::before,
-  h1,
-  .menu-item,
-  .menu-chevron,
+  .nav-link,
   .pixel-trail,
-  .cover,
-  .flow-scrub-thumb,
-  .flow-titles .work-title { transition: none; }
+  .goo-bar,
+  .work-card img { transition: none; }
 }
 
 /* pixel trail + goo ------------------------------------------------------ */
@@ -576,10 +456,6 @@ body.is-open h1 { font-size: 2.5rem; }
   height: 0;
   overflow: hidden;
 }
-/* the trail sits behind the whole page, so everything else has to be given
-   a stacking context of its own to sit above it */
-.masthead,
-main { position: relative; z-index: 1; }
 .pixel-trail {
   position: fixed;
   inset: 0;
@@ -588,17 +464,13 @@ main { position: relative; z-index: 1; }
   pointer-events: none;
   overflow: hidden;
   filter: url(#goo-filter);
-  /* cells stay fully opaque so the goo threshold actually fires; the whole
-     layer is knocked back here instead, after the filter has run.
-     This is the knob for how loud the trail reads. */
-  opacity: 0.2;
-  transition: opacity 0.4s ease;
 }
-/* it is the landing screen's texture; once you are reading a section it is
-   just noise behind the content */
-body.is-open .pixel-trail { opacity: 0; }
+/* It used to fade out entirely once a section opened. It cannot now — the
+   menu is live in both states, so the goo has to be too, or hovering a row
+   with a section open would do nothing. Knocked back instead of removed. */
+body.is-open { --trail-ink: #e2e2e2; }
 .pixel-trail .px {
-  background: var(--foreground);
+  background: var(--trail-ink);
   opacity: 0;
   transition: opacity 0.45s linear;
 }
@@ -606,41 +478,44 @@ body.is-open .pixel-trail { opacity: 0; }
   opacity: 1;
   transition: none;
 }
+/* Cells near a menu row take the row's colour, so the trail changes as it
+   arrives rather than only once it touches. They are BEHIND the button, so
+   the ones actually on top of it are hidden — the visible part of the effect
+   is the ring just outside, which is why the test rect is expanded. */
+.pixel-trail .px.on-button {
+  background: var(--goo-blue);
+}
 
-/* Narrow screens run the identical move on the vertical axis: the menu
-   centres itself, then slides UP to the top and the section opens beneath
-   it. Same one transform, same one class, separator flipped to horizontal. */
+/* The proxy. A goo filter can only weld shapes inside its own filtered
+   element, so the trail can never merge with the real button — it merges
+   with this stand-in, sized and placed over the hovered row, while the real
+   button sits on top in the same blue and hides the seam. Keeping the real
+   background too means a browser that drops the SVG filter still gets a
+   perfectly ordinary hover state. */
+/* The proxy. A goo filter can only weld shapes inside its own filtered
+   element, so the trail can never merge with the real row — it merges with
+   this stand-in, sized and placed over the hovered one, while the real row
+   sits on top in the same blue and hides the seam. Keeping the row's own
+   background too means a browser that drops the SVG filter still gets a
+   perfectly ordinary hover state. */
+.goo-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: 4px;
+  background: var(--goo-blue);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+.goo-bar.is-on { opacity: 1; }
+
 @media (max-width: 780px) {
-  .console {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    transform: translateY(calc((100% - var(--menu-h)) / 2));
-  }
-  body.is-open .console { transform: translateY(0); }
-  /* full-bleed rows down here — there is no separator on the right to
-     collide with, and a short bar on a narrow screen looks stranded */
-  .menu {
-    align-self: start;
-    justify-self: stretch;
-    width: auto;
-  }
-  .console-panes {
-    padding-left: 0;
-    padding-top: 1.75rem;
-    min-height: 0;
-  }
-  .console-panes::before {
-    top: 0;
-    bottom: auto;
-    left: 0;
-    right: 0;
-    width: auto;
-    height: 1px;
-    transform: scaleX(0);
-  }
-  body.is-open .console-panes::before { transform: scaleX(1); }
-  h1 { font-size: 3rem; }
-  body.is-open h1 { font-size: 1.625rem; }
-  .menu-item { font-size: 1.5rem; }
-  .cover { --cover: min(26vh, 34vw, 200px); }
+  :root { --gutter: 1rem; }
+  .brand, .nav-link, .lede { font-size: 0.9375rem; }
+  .nav { gap: 0.85rem; }
+  /* three 4:3 plates across a phone are stamps */
+  .work-grid { grid-template-columns: repeat(2, 1fr); }
 }
