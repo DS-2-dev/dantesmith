@@ -32,6 +32,8 @@
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --card-border: oklch(0.922 0 0);
+  /* Apple's own hairline grey — the rule that separates their header */
+  --hairline: #d2d2d7;
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   /* nav column sizing — the home card locks to this so the two stay aligned */
   /* cap height every work title is normalised to */
@@ -54,54 +56,38 @@ body {
   font-family: "early-sans-variable", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* nav — header links, not blocks */
+/* nav — Apple product-page language, 2007-2013. Their secondary nav was
+   small, grey, sentence case and evenly spaced; the loud part of the header
+   was the headline, never the links. */
 .tabs {
   display: flex;
   align-items: baseline;
-  gap: 2.5rem;
+  gap: 1.75rem;
 }
 .tab {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
   padding: 0;
-  font: inherit;
-  line-height: 1;
-  text-transform: uppercase;
   border: none;
   background: transparent;
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
   color: var(--muted-foreground);
   cursor: pointer;
-  transition: color 0.15s ease;
+  /* the underline is declared here, transparent, so turning it on later
+     costs no layout — the link never shifts between states */
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.35em;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 .tab:hover {
   color: var(--foreground);
 }
 .tab[aria-selected="true"] {
   color: var(--foreground);
-}
-.tab-index {
-  font-size: 0.6875rem;
-  letter-spacing: 0.06em;
-  opacity: 0.6;
-}
-.tab-word {
-  font-family: "ivypresto-display", "Times New Roman", Times, serif;
-  font-weight: 700;
-  font-size: 3rem;
-  letter-spacing: -0.03em;
-  /* grows upward off the baseline so the underline below it stays put */
-  transform: scaleY(1.35);
-  transform-origin: bottom;
-  /* underline rides on the word alone, clear of the index prefix */
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.12em;
-  transition: text-decoration-color 0.15s ease;
-}
-.tab:hover .tab-word,
-.tab[aria-selected="true"] .tab-word {
   text-decoration-color: currentColor;
 }
 .tab:focus-visible {
@@ -130,13 +116,15 @@ main {
 .page.active { display: flex; }
 .page--grid.active { display: grid; }
 
-/* home — shallow card up top, name and stack on the black below */
-/* masthead — name left, tabs right, sitting on one baseline */
+/* masthead — name left, links right, sitting on one baseline */
 .masthead {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem;
+  /* the hairline rule is the single most era-specific thing in the header */
+  padding-bottom: 1.125rem;
+  border-bottom: 1px solid var(--hairline);
 }
 
 #home {
@@ -168,11 +156,16 @@ main {
   opacity: 1;
 }
 
+/* The 2007-2013 headline voice: a humanist sans at a LIGHT weight, big, with
+   the tracking pulled in. Apple set these in Myriad Pro Light; Source Sans 3
+   is Adobe's open face from the same lineage, so it carries the same warmth
+   Helvetica-based stand-ins lose. Weight 300 is the whole effect — at 400
+   this reads like any other site. */
 h1 {
-  font-family: "ivypresto-display", "Times New Roman", Times, serif;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  /* one line, sized to run the width of the nav column above it */
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  /* a 300 goes loose as it grows, so the tracking has to come back in */
+  letter-spacing: -0.025em;
   white-space: nowrap;
   font-size: 5.5rem;
   line-height: 1;
