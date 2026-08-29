@@ -21,43 +21,27 @@
 
 /* shadcn/ui default tokens (dark surface, light cards) */
 :root {
-  --radius: 0.625rem;
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-xl: calc(var(--radius) + 4px);
   --background: #000000;
   --foreground: #ffffff;
-  /* the bar is its own little light-mode island, so it carries its own pair
-     rather than flipping --foreground and breaking everything downstream */
+  /* The bar is its own little light-mode island, so it carries its own pair
+     rather than flipping --foreground and breaking everything downstream. */
   --bar-bg: #ffffff;
   --bar-fg: #0a0a0a;
   --gutter: 1.5rem;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  /* cards go dark so they still read as blocks on the white page */
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --card-border: oklch(0.922 0 0);
-  /* rules now sit on black, so the hairline lifts off the ground instead of
+  --muted-foreground: #808080;
+  /* rules sit on black now, so the hairline lifts off the ground rather than
      settling onto it */
   --hairline: #2b2b2b;
-  /* The iPod's selection bar. One flat blue for the trail cells and for the
-     cells the row itself is built from — it cannot be a gradient, because a
-     gradient would need every trail cell to sample the bar's ramp at its own
-     position to line up. Flat-on-flat is the only way the join disappears.
-     Swap it for var(--foreground) and the menu goes monochrome, goo and all. */
-  --goo-blue: #2879e9;
-  /* Trail ink is a flat grey, NOT black-at-low-opacity. Same result on white
-     (20% black IS #cccccc) but the knock-back is now in the colour rather
-     than on the layer, which leaves the layer free to carry a fully
-     saturated blue. Nothing in a goo layer can be translucent: the alpha
-     ramp in feColorMatrix needs opaque input or the blobs never threshold. */
+  --radius: 0.625rem;
+  --radius-md: calc(var(--radius) - 2px);
+  /* Trail ink is a flat grey, NOT black at low opacity: nothing in a goo
+     layer can be translucent, because the alpha ramp in feColorMatrix needs
+     opaque input or the blobs never threshold. On white, 20% black IS
+     #cccccc — the knock-back just lives in the colour instead of the layer. */
   --trail-ink: #cccccc;
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   /* Cap height every work title is normalised to. Bounded by the longest
      title in the narrowest face — "Typography Posters" in Syne Mono, which
-     runs 248px at 1rem. That used to overflow: a 1280x720 window squeezed
-     cards to 237px once the wordmark had taken its cut of the height. With
-     the name dropping out of a section, the smallest card is 330px. */
+     runs 248px at 1rem against a smallest card of 330px. */
   --title-cap: 1rem;
 }
 body {
@@ -75,16 +59,6 @@ body {
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
 
 /* Swiss layout: small functional type across the top, a deliberate void,
    and the name anchored to the bottom running off the right edge. The rule
@@ -148,7 +122,9 @@ body {
   display: flex;
   padding: 3px;
   border-radius: 999px;
-  background: rgb(0 0 0 / 0.06);
+  /* a solid black track, not a 6% tint — the tint barely separated from the
+     white bar, so the control had no edge of its own */
+  background: var(--bar-fg);
 }
 .nav-pill {
   position: absolute;
@@ -157,7 +133,7 @@ body {
   height: calc(100% - 6px);
   width: 0;
   border-radius: 999px;
-  background: var(--bar-fg);
+  background: var(--bar-bg);
   opacity: 0;
   pointer-events: none;
   transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
@@ -167,7 +143,10 @@ body {
 /* nothing is selected on the home screen, so the pill has nowhere to be —
    it fades in on the first pick and slides from then on */
 .nav-pill.is-on { opacity: 1; }
+/* the labels sit on the black track, so they invert too — and flip back to
+   dark as the white thumb arrives under them */
 .nav-link {
+  color: var(--bar-bg);
   position: relative;
   z-index: 1;
   padding: 0.3rem 0.85rem;
@@ -176,8 +155,7 @@ body {
   transition: color 0.25s ease, opacity 0.15s ease;
 }
 .nav-link:hover { opacity: 0.6; }
-/* flips to the bar's ground colour once the pill is underneath it */
-.nav-link[aria-current="true"] { color: var(--bar-bg); opacity: 1; }
+.nav-link[aria-current="true"] { color: var(--bar-fg); opacity: 1; }
 .brand:focus-visible,
 .nav-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
@@ -243,7 +221,9 @@ body.is-open .wordmark { transform: translateY(105%); }
 /* prose panes ------------------------------------------------------------ */
 .pane--prose {
   justify-content: center;
-  gap: 2.25rem;
+  /* 2.25rem let the tools drift free of the copy; at 1.5rem they read as the
+     end of the same passage rather than a separate module */
+  gap: 1.5rem;
   /* long copy scrolls inside its own pane; the page itself still never does */
   overflow-y: auto;
 }
@@ -256,47 +236,27 @@ body.is-open .wordmark { transform: translateY(105%); }
 .prose {
   margin: 0;
   max-width: 54ch;
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   font-weight: 400;
   line-height: 1.6;
 }
-.prose--muted { color: var(--muted-foreground); }
+/* Was Source Sans 3, uppercase and letterspaced — the last survivor of the
+   Apple-era header and the only third typeface left on the page, which is
+   what made this block read as imported from somewhere else. Same face and
+   sentence case as everything around it now; muted colour alone is enough
+   to mark it as a label. */
 .prose-caption {
   margin: 0;
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.75rem;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
   font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: -0.011em;
   color: var(--muted-foreground);
 }
 
-.contact-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  max-width: 30rem;
-  flex: none;
-}
-.contact-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--hairline);
-}
-.contact-row:first-child { border-top: 1px solid var(--hairline); }
-.contact-key {
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
 .contact-val {
-  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   color: var(--foreground);
   text-decoration-line: underline;
@@ -310,49 +270,25 @@ a.contact-val:hover { text-decoration-color: currentColor; }
 .tech-row {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 /* tech stack icons (Simple Icons, CC0) */
 .tech-icon {
-  width: 1.75rem;
-  height: 1.75rem;
+  /* closer to the text scale beside it — 1.75rem read as its own row of
+     objects rather than part of the passage */
+  width: 1.5rem;
+  height: 1.5rem;
   flex: none;
-  /* sits directly on the white page now, so it takes the page's ink */
   fill: var(--foreground);
-  opacity: 0.75;
+  /* 0.75 was set against a white page; white ink knocked back that far on
+     black goes properly grey */
+  opacity: 0.85;
   transition: opacity 0.2s ease;
 }
 .tech-icon:hover {
   opacity: 1;
 }
 
-/* The 2007-2013 headline voice: a humanist sans at a LIGHT weight, big, with
-   the tracking pulled in. Apple set these in Myriad Pro Light; Source Sans 3
-   is Adobe's open face from the same lineage, so it carries the same warmth
-   Helvetica-based stand-ins lose. Weight 300 is the whole effect — at 400
-   this reads like any other site. */
-/* the name doubles as the way back to the centred menu */
-.home-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  letter-spacing: inherit;
-  transition: opacity 0.15s ease;
-}
-.home-link:hover { opacity: 0.5; }
-.home-link:focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 4px;
-}
-.tagline {
-  font-style: italic;
-  font-size: 1.25rem;
-  color: var(--muted-foreground);
-  margin: 0;
-}
 
 /* work — contact sheet -----------------------------------------------------
 
@@ -363,7 +299,6 @@ a.contact-val:hover { text-decoration-color: currentColor; }
    title that was underneath the whole time — no sliding panel, no second
    surface. `round` on the inset keeps the corners on the clip box, so the
    bottom edge stays rounded all the way up instead of squaring off. */
-.pane--grid { justify-content: center; }
 .work-grid {
   flex: none;
   display: grid;
@@ -523,7 +458,6 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   .nav-link,
   .nav-pill,
   .pixel-trail,
-  .goo-bar,
   .wordmark,
   .work-card img { transition: none; }
 }
@@ -557,39 +491,7 @@ body.is-open { --trail-ink: #e2e2e2; }
   opacity: 1;
   transition: none;
 }
-/* Cells near a menu row take the row's colour, so the trail changes as it
-   arrives rather than only once it touches. They are BEHIND the button, so
-   the ones actually on top of it are hidden — the visible part of the effect
-   is the ring just outside, which is why the test rect is expanded. */
-.pixel-trail .px.on-button {
-  background: var(--goo-blue);
-}
 
-/* The proxy. A goo filter can only weld shapes inside its own filtered
-   element, so the trail can never merge with the real button — it merges
-   with this stand-in, sized and placed over the hovered row, while the real
-   button sits on top in the same blue and hides the seam. Keeping the real
-   background too means a browser that drops the SVG filter still gets a
-   perfectly ordinary hover state. */
-/* The proxy. A goo filter can only weld shapes inside its own filtered
-   element, so the trail can never merge with the real row — it merges with
-   this stand-in, sized and placed over the hovered one, while the real row
-   sits on top in the same blue and hides the seam. Keeping the row's own
-   background too means a browser that drops the SVG filter still gets a
-   perfectly ordinary hover state. */
-.goo-bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0;
-  height: 0;
-  border-radius: 4px;
-  background: var(--goo-blue);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease;
-}
-.goo-bar.is-on { opacity: 1; }
 
 @media (max-width: 780px) {
   :root { --gutter: 1rem; }

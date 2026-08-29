@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Source+Sans+3:wght@300;400&family=Syne+Mono&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Syne+Mono&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -43,7 +43,7 @@
 
   <!-- broken at the sentence, not to square off the block: the claim on one
        line, the qualification on the next -->
-  <p class="lede">Modern AI Designer.<br>Leveraging the future, without losing taste.</p>
+  <p class="lede">18yo Modern AI Designer<br>Leveraging the future, without losing taste.</p>
 
   <main class="stage">
     <section class="pane" data-view="work" tabindex="-1" aria-label="Work">
@@ -69,7 +69,7 @@
         <figcaption class="work-overlay"><span class="work-title work-title--syne-mono">Typography Posters</span></figcaption>
       </figure>
       <figure class="work-card reveal">
-        <img src="images/yesss.png" alt="" loading="lazy">
+        <img src="images/yesss.webp" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--carbon">Filey</span></figcaption>
       </figure>
       </div>
@@ -77,10 +77,15 @@
 
     <section class="pane pane--prose" data-view="about" tabindex="-1" aria-label="About">
       <div class="prose-block reveal">
-        <!-- TODO(dante): placeholder copy — replace with your own. -->
-        <p class="prose">Placeholder. Write how you actually want to introduce
-          yourself here — three or four sentences is plenty at this size, and
-          the measure is capped so it stays readable.</p>
+        <p class="prose">Hi, I’d repeat my name again, but I think you already
+          know it by now. Anyways, I’m currently working on my Bachelors of
+          Management Info Systems.</p>
+        <p class="prose">On the side I love to do Web (UI/UX) Design! But… I do
+          it a bit different. I’ll gather inspo, have ideas, draw wireframes,
+          design everything with my own mind, and have AI become the glue of
+          putting it together.</p>
+        <p class="prose">Oh, and don’t worry, I understand the code, but now I
+          have more time to focus on my craft.</p>
       </div>
       <div class="prose-block reveal">
         <p class="prose-caption">Tools</p>
@@ -96,17 +101,14 @@
     </section>
 
     <section class="pane pane--prose" data-view="contact" tabindex="-1" aria-label="Contact">
-      <ul class="contact-list reveal">
-        <li class="contact-row">
-          <span class="contact-key">Email</span>
-          <a class="contact-val" href="mailto:dantesmith@weber.edu">dantesmith@weber.edu</a>
-        </li>
-        <li class="contact-row">
-          <span class="contact-key">LinkedIn</span>
+      <div class="prose-block reveal">
+        <p class="prose">Reach out to me if you want to talk.</p>
+        <p class="prose">
           <a class="contact-val" href="https://www.linkedin.com/in/dante-smith-/"
-             target="_blank" rel="noopener noreferrer">dante-smith-</a>
-        </li>
-      </ul>
+             target="_blank" rel="noopener noreferrer">LinkedIn</a><br>
+          Email: <a class="contact-val" href="mailto:dantesmith@weber.edu">dantesmith@weber.edu</a>
+        </p>
+      </div>
     </section>
   </main>
 
@@ -183,31 +185,10 @@
 
       const SIZE = window.matchMedia('(max-width: 767px)').matches ? 24 : 32;
       const HOLD = 500;
-      /* how far outside a row still counts as "on" it. The cells directly
-         over the button are hidden behind it, so this reach is the part of
-         the colour change anyone actually sees. */
-      const NEAR = SIZE * 1.5;
       let cols = 0;
       let rows = 0;
       let cells = [];
       const timers = new WeakMap();
-
-      /* The proxy the trail welds to. It has to live INSIDE the filtered
-         layer — a goo filter only fuses shapes it is applied to, so blobs
-         can never merge with the real button, only with this. */
-      const bar = document.createElement('div');
-      bar.className = 'goo-bar';
-
-      /* menuRows, not rows — this closure already has a `rows` for the cell
-         grid, and a `row` inside paint() for the cell being lit */
-      const menuRows = Array.from(document.querySelectorAll('.menu-item'));
-      let menuBoxes = [];
-      const measure = () => { menuBoxes = menuRows.map((el) => el.getBoundingClientRect()); };
-
-      function nearRow(x, y) {
-        return menuBoxes.some((b) => x >= b.left - NEAR && x <= b.right + NEAR &&
-                                     y >= b.top - NEAR && y <= b.bottom + NEAR);
-      }
 
       function build() {
         const w = trail.clientWidth;
@@ -232,9 +213,7 @@
           cells.push(cell);
           frag.appendChild(cell);
         }
-        /* the bar goes back in after every rebuild — replaceChildren would
-           otherwise drop it along with the old cells */
-        trail.replaceChildren(bar, frag);
+        trail.replaceChildren(frag);
       }
 
       let queued = false;
@@ -254,11 +233,9 @@
         if (!cell) return;
 
         cell.classList.add('lit');
-        cell.classList.toggle('on-button',
-          nearRow(box.left + col * SIZE + SIZE / 2, box.top + row * SIZE + SIZE / 2));
         // plain property, not dataset — dataset stringifies the timer id
         clearTimeout(timers.get(cell));
-        timers.set(cell, setTimeout(() => cell.classList.remove('lit', 'on-button'), HOLD));
+        timers.set(cell, setTimeout(() => cell.classList.remove('lit'), HOLD));
       }
 
       window.addEventListener('pointermove', (event) => {
@@ -269,49 +246,9 @@
         requestAnimationFrame(paint);
       }, { passive: true });
 
-      let hoverRow = null;
-
-      function placeBar(el) {
-        if (!el) { bar.classList.remove('is-on'); return; }
-        const b = el.getBoundingClientRect();
-        bar.style.left = b.left + 'px';
-        bar.style.top = b.top + 'px';
-        bar.style.width = b.width + 'px';
-        bar.style.height = b.height + 'px';
-        bar.classList.add('is-on');
-      }
-
-      /* Falls back to the open row rather than nothing: that row is blue
-         whether or not the pointer is on it, so the trail should still be
-         able to weld to it. */
-      function restBar() {
-        placeBar(hoverRow ||
-          menuRows.find((el) => el.getAttribute('aria-current') === 'true'));
-      }
-
-      menuRows.forEach((el) => {
-        el.addEventListener('pointerenter', () => {
-          hoverRow = el;
-          measure();
-          placeBar(el);
-        });
-      });
-      const menu = document.getElementById('menu');
-      if (menu) menu.addEventListener('pointerleave', () => { hoverRow = null; restBar(); });
-
-      /* The rows physically move during the console slide, so their boxes are
-         only trustworthy once the transform has settled. */
-      const stage = document.getElementById('console');
-      if (stage) stage.addEventListener('transitionend', (event) => {
-        if (event.propertyName === 'transform') { measure(); restBar(); }
-      });
-      window.addEventListener('resize', () => { measure(); restBar(); });
-
       // fires on first layout, on window resize, and when Home is shown again
       new ResizeObserver(build).observe(trail);
       build();
-      measure();
-      restBar();
     })();
   </script>
 </body>
