@@ -37,7 +37,7 @@
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   /* nav column sizing — the home card locks to this so the two stay aligned */
   /* cap height every work title is normalised to */
-  --title-cap: 1.125rem;
+  --title-cap: 1.4rem;
   --tab-width: 13rem;
   --tab-gap: 0.75rem;
   --nav-width: calc(var(--tab-width) * 2 + var(--tab-gap));
@@ -114,7 +114,6 @@ main {
   height: 100%;
 }
 .page.active { display: flex; }
-.page--grid.active { display: grid; }
 
 /* masthead — name left, links right, sitting on one baseline */
 .masthead {
@@ -178,61 +177,148 @@ h1 {
   margin: 0;
 }
 
-/* work */
-#work {
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 1rem;
+/* work — Cover Flow -------------------------------------------------------
+
+   iTunes 7, 2006. The centre cover sits flat and nearest; the rest fan back
+   into a corridor, each turned so its INNER edge comes toward the viewer.
+   Getting that sign backwards is what makes a coverflow read as the inside
+   of a box instead, so it is worth stating plainly.
+
+   The constants (angle 56, perspective 1100, and the x/z steps in the
+   script) were solved by projecting this exact transform chain offline and
+   looking at the result, not by eyeballing it in the browser. */
+.page--flow.active {
+  display: flex;
+  flex-direction: column;
 }
-.work-card {
-  --reveal: 3.5rem;
+.flow {
   position: relative;
-  margin: 0;
-  padding: 0;
-  /* grid items default to min-height:auto, so without this the rows
-     blow out to each image's intrinsic height instead of holding 1fr */
+  flex: 1;
   min-height: 0;
-  min-width: 0;
+  perspective: 1100px;
+  /* matches where the covers actually sit, so the projection stays square */
+  perspective-origin: 50% 40%;
+  outline: none;
 }
-.work-card img {
+.flow-stage {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+/* Cover size is the single knob the whole stage scales from: every offset in
+   the script is expressed as a multiple of it. Capped so the cover plus its
+   reflection (about 1.55x the cover tall) still clears the viewport. */
+.cover {
+  --cover: min(30vh, 27vw, 300px);
+  --cover-aspect: 1;          /* square, like album art. 1.3333 for 4:3. */
+  --tx: 0px;
+  --tz: 0px;
+  --ry: 0deg;
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: var(--cover);
+  height: calc(var(--cover) / var(--cover-aspect));
+  margin-left: calc(var(--cover) / -2);
+  margin-top: calc(var(--cover) / var(--cover-aspect) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform: translateX(var(--tx)) translateZ(var(--tz)) rotateY(var(--ry));
+  transition: transform 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cover-face,
+.cover-reflection {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.cover-face {
+  top: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  /* album art on white needs an edge or it dissolves into the page */
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.07), 0 10px 30px -12px rgb(0 0 0 / 0.35);
+}
+/* The reflection is a second copy of the same src — same cache entry, no
+   extra request. Only the img is flipped, so the mask on the box still
+   fades downward from the join and needs no mirroring of its own. */
+.cover-reflection {
+  top: 100%;
+  opacity: 0.3;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 55%);
+          mask-image: linear-gradient(to bottom, #000, transparent 55%);
+}
+.cover img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* covers the title until the bottom edge rides up off it */
-  position: relative;
-  z-index: 1;
-  /* cover crops the sides; --focal-x picks which part survives, per card */
   object-position: var(--focal-x, 50%) center;
-  /* `round` keeps the corners on the clip box itself, so the bottom
-     edge stays rounded the whole way up instead of squaring off */
-  clip-path: inset(0 0 0 0 round var(--radius-xl));
-  transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.work-card:hover img,
-.work-card:focus-within img {
-  clip-path: inset(0 0 var(--reveal) 0 round var(--radius-xl));
+.cover-reflection img {
+  transform: scaleY(-1);
 }
-/* Vantage's artwork runs 13.4%..83.5% — the right thumbnail has a soft
-   edge that a gradient threshold under-reads by ~40px, which is what made
-   earlier values pin it to the frame. Measured by texture instead, the
-   content centre is 48.45%, so 44% centres the crop window on it and
-   splits the slack evenly (~1.6% a side). Solves to 44.2-44.6% across
-   card shapes, so the single value holds. */
-.work-card--vantage { --focal-x: 44%; }
+.cover:focus-visible .cover-face {
+  box-shadow: 0 0 0 2px var(--foreground), 0 10px 30px -12px rgb(0 0 0 / 0.35);
+}
+/* A square window onto Vantage shows 58.9% of its width, and the artwork is
+   70.1% wide, so it cannot all fit — 46% is the value that centres the
+   window on the content and splits the loss evenly between the two
+   thumbnails. Switching --cover-aspect to 1.3333 would fit it whole. */
+.cover--vantage { --focal-x: 46%; }
 
-/* title sits on the page, not on a surface of its own */
-.work-overlay {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--reveal);
+/* footer — title and scrubber, the two things iTunes put under the stack */
+.flow-footer {
+  flex: none;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 0;
-  color: var(--foreground);
+  gap: 1rem;
+  padding-bottom: 0.25rem;
 }
+.flow-titles {
+  position: relative;
+  width: 100%;
+  height: 2.4rem;
+}
+.flow-titles .work-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.flow-titles .work-title.is-active { opacity: 1; }
+
+.flow-scrub {
+  position: relative;
+  width: min(320px, 55%);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--hairline);
+  cursor: pointer;
+}
+.flow-scrub-thumb {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 34px;
+  margin-left: -17px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--foreground);
+  transition: left 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* Optical sizing. font-size sets the em box, not the letters, and these six
    faces draw their capitals at anywhere from 0.58 to 0.80 of that em — so a
    shared font-size made Filey's caps 1.38x smaller than WSU's. Instead each
@@ -321,7 +407,9 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .page.active .reveal { animation: none; }
   .tab { transition: none; }
-  .work-card img { transition: clip-path 0.15s linear; }
+  .cover,
+  .flow-scrub-thumb,
+  .flow-titles .work-title { transition: none; }
 }
 
 /* pixel trail + goo ------------------------------------------------------ */
