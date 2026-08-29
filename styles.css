@@ -24,8 +24,12 @@
   --radius: 0.625rem;
   --radius-md: calc(var(--radius) - 2px);
   --radius-xl: calc(var(--radius) + 4px);
-  --background: #f4f4f2;
-  --foreground: #0d0d0d;
+  --background: #000000;
+  --foreground: #ffffff;
+  /* the bar is its own little light-mode island, so it carries its own pair
+     rather than flipping --foreground and breaking everything downstream */
+  --bar-bg: #ffffff;
+  --bar-fg: #0a0a0a;
   --gutter: 1.5rem;
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -33,8 +37,9 @@
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --card-border: oklch(0.922 0 0);
-  /* Apple's own hairline grey — the rule that separates their header */
-  --hairline: #d8d8d4;
+  /* rules now sit on black, so the hairline lifts off the ground instead of
+     settling onto it */
+  --hairline: #2b2b2b;
   /* The iPod's selection bar. One flat blue for the trail cells and for the
      cells the row itself is built from — it cannot be a gradient, because a
      gradient would need every trail cell to sample the bar's ramp at its own
@@ -48,13 +53,18 @@
      ramp in feColorMatrix needs opaque input or the blobs never threshold. */
   --trail-ink: #cccccc;
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  /* cap height every work title is normalised to. Bounded by the longest
-     title in the narrowest face: "Typography Posters" in Syne Mono. */
-  --title-cap: 0.8rem;
+  /* Cap height every work title is normalised to. Bounded by the longest
+     title in the narrowest face — "Typography Posters" in Syne Mono, which
+     runs 248px at 1rem. That used to overflow: a 1280x720 window squeezed
+     cards to 237px once the wordmark had taken its cut of the height. With
+     the name dropping out of a section, the smallest card is 330px. */
+  --title-cap: 1rem;
 }
 body {
   margin: 0;
   padding: 0;
+  /* the wordmark is positioned against this */
+  position: relative;
   height: 100vh;
   box-sizing: border-box;
   display: flex;
@@ -85,14 +95,17 @@ body {
 .stage,
 .wordmark { position: relative; z-index: 1; }
 
+/* a pure white bar across the top. The white-to-black edge is the division
+   now, so the hairline that used to do that job is gone. */
 .topbar {
   flex: none;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1rem var(--gutter) 0.7rem;
-  border-bottom: 1px solid var(--hairline);
+  padding: 0.55rem var(--gutter);
+  background: var(--bar-bg);
+  color: var(--bar-fg);
 }
 .brand,
 .nav-link,
@@ -103,27 +116,70 @@ body {
   line-height: 1.3;
   letter-spacing: -0.011em;
 }
+/* The name in the same face as the wordmark, so the identity reads as one
+   thing; the nav stays Inter.
+
+   This was cap-matched to the nav links, and that WAS optically right — the
+   two faces share an x-height/cap ratio of 0.750, so cap- and x-matching
+   agree to within 0.0004rem. It just made the name the same size as the
+   navigation, which is the wrong hierarchy for a name. Deliberately larger
+   now: caps 19.2px against the links' 12.4px. Capped by the bar, not taste —
+   past ~1.75rem the line box outgrows the pill and the whole bar gets taller. */
+.brand {
+  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.5rem;
+}
 .brand,
 .nav-link {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--foreground);
+  /* inherit, so these follow the bar rather than the page */
+  color: inherit;
   cursor: pointer;
 }
-.nav { display: flex; gap: 1.1rem; }
-.nav-link {
-  /* declared transparent so turning it on costs no layout */
-  text-decoration-line: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.25em;
-  transition: text-decoration-color 0.15s ease;
+/* segmented control: a track holding three segments, with one pill that
+   slides between them. The pill is a sibling behind the buttons rather than
+   a background on the active one — a background cannot animate between
+   elements, and that travel is the whole point. */
+.nav {
+  position: relative;
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.06);
 }
-.nav-link:hover,
-.nav-link[aria-current="true"] { text-decoration-color: currentColor; }
+.nav-pill {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  height: calc(100% - 6px);
+  width: 0;
+  border-radius: 999px;
+  background: var(--bar-fg);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+              width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.2s ease;
+}
+/* nothing is selected on the home screen, so the pill has nowhere to be —
+   it fades in on the first pick and slides from then on */
+.nav-pill.is-on { opacity: 1; }
+.nav-link {
+  position: relative;
+  z-index: 1;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: color 0.25s ease, opacity 0.15s ease;
+}
+.nav-link:hover { opacity: 0.6; }
+/* flips to the bar's ground colour once the pill is underneath it */
+.nav-link[aria-current="true"] { color: var(--bar-bg); opacity: 1; }
 .brand:focus-visible,
-.nav-link:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
+.nav-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 .lede {
   flex: none;
@@ -149,23 +205,40 @@ body {
 /* Inter's cap height is 0.727em and its ascent+descent 1.21em, so a 0.85
    line box puts the baseline 0.789em down and leaves ~0.06em under it —
    which is the small gap above the bottom edge, not a guess. */
+/* Out of flow on purpose. In the column it reserved its own height even
+   when it had dropped away, and the section would have been laid out in the
+   gap it left behind — absolute means the stage owns the full height in
+   every state, and dropping the name genuinely hands its room over. */
 .wordmark {
-  flex: none;
-  padding: 0 0 0.5rem var(--gutter);
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
-  /* "Dante Smith" advances 5.8047em in Inter *Medium* — the weight this
-     actually renders at. -0.03em across 11 characters brings it to 5.4747em.
-     5.5 adds ~0.5% headroom so the final h lands just inside the right edge
-     instead of overflowing it. Measuring Regular instead of Medium is what
-     clipped it before: 5.404 vs 5.475 is only 1.4%, and 1.4% of a 260px
-     wordmark is most of a letter. Re-measure if the name or weight changes. */
-  font-size: calc((100vw - var(--gutter)) / 5.5);
-  line-height: 0.85;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* centred between equal gutters rather than hung off the left edge, so the
+     slack sits evenly on both sides instead of all of it on the right */
+  text-align: center;
+  padding: 0 var(--gutter) 0.5rem;
+  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* 400, not 500 — the kit ships one weight, and asking for 500 would get a
+     synthesised bold: wider than measured, and a fake. */
+  font-weight: 400;
+  /* "Dante Smith" advances 5.4670em in Magistral; -0.03em across 11
+     characters brings it to 5.1370em, and 5.17 leaves ~0.5% so the final
+     letter lands just inside the right edge. Every one of these three
+     numbers is face-specific — Inter wanted 5.5 and 0.85. */
+  font-size: calc((100vw - 2 * var(--gutter)) / 5.17);
+  /* Magistral's ascender is 1.0em and descender 0.2em, so 0.85 would leave
+     only 0.025em under the baseline. 0.922 reproduces the 0.061em gap Inter
+     gave at 0.85. */
+  line-height: 0.922;
   letter-spacing: -0.03em;
   white-space: nowrap;
   user-select: none;
+  transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* the name is the home screen's signature; inside a section it drops out of
+   frame and gives the space to the work */
+body.is-open .wordmark { transform: translateY(105%); }
 
 /* prose panes ------------------------------------------------------------ */
 .pane--prose {
@@ -233,13 +306,6 @@ body {
   transition: text-decoration-color 0.15s ease;
 }
 a.contact-val:hover { text-decoration-color: currentColor; }
-/* the slots waiting on real details, marked so they read as unfinished
-   rather than as content */
-.contact-val--todo {
-  color: var(--muted-foreground);
-  font-style: italic;
-  text-decoration: none;
-}
 
 .tech-row {
   display: flex;
@@ -302,14 +368,25 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   flex: none;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  /* 44rem gives 227px cards — the width "Typography Posters" needs at the
-     current --title-cap, with ~29px to spare. Widen one without the other
-     and that title runs out of its card. */
-  width: min(100%, 44rem);
+  gap: 1rem;
+  /* Three 4:3 cards in two rows make the grid exactly half as tall as it is
+     wide, whatever the gap — so the height budget can be spent as a width.
+     With the wordmark dropped the stage is simply the viewport less the top
+     bar and lede, so this no longer has to model the wordmark's vw-driven
+     height: 200vh is the doubled stage, 290px the chrome plus breathing room.
+     Full-bleed to the gutters now; 90rem only stops it getting silly on a
+     large monitor, and on short windows the height term binds first. */
+  width: min(100%, 90rem, calc(200vh - 290px));
+  /* centred in the pane. Invisible at 1440 where the grid already fills the
+     width, but the moment either cap binds — a short window, or anything
+     past ~1488px where 90rem takes over — the leftover was all landing on
+     the right. 216px of it at 1920. */
+  margin-inline: auto;
 }
 .work-card {
-  --reveal: 2rem;
+  /* proportional to the taller card — 2.25rem read as a sliver once these
+     went past 300px tall */
+  --reveal: 2.75rem;
   position: relative;
   margin: 0;
   padding: 0;
@@ -444,8 +521,10 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   .pane.is-active .reveal { animation: none; }
   /* the slide still happens, it just happens instantly */
   .nav-link,
+  .nav-pill,
   .pixel-trail,
   .goo-bar,
+  .wordmark,
   .work-card img { transition: none; }
 }
 
@@ -515,7 +594,13 @@ body.is-open { --trail-ink: #e2e2e2; }
 @media (max-width: 780px) {
   :root { --gutter: 1rem; }
   .brand, .nav-link, .lede { font-size: 0.9375rem; }
-  .nav { gap: 0.85rem; }
-  /* three 4:3 plates across a phone are stamps */
-  .work-grid { grid-template-columns: repeat(2, 1fr); }
+  /* its own size, or the shared rule above would flatten it back to nav size */
+  .brand { font-size: 1.25rem; }
+  .nav-link { padding: 0.3rem 0.6rem; }
+  /* three 4:3 plates across a phone are stamps, and the 2:1 grid ratio the
+     width formula assumes only holds at three columns */
+  .work-grid {
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+  }
 }

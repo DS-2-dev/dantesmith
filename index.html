@@ -32,15 +32,18 @@
   <header class="topbar">
     <button class="brand" type="button" id="home-link">Dante Smith</button>
     <nav class="nav" aria-label="Sections">
+      <!-- the pill is measured off the buttons at runtime, so it never has to
+           be kept in sync with their widths by hand -->
+      <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
       <button class="nav-link" type="button" data-view="work" aria-current="false">Work</button>
       <button class="nav-link" type="button" data-view="about" aria-current="false">About</button>
       <button class="nav-link" type="button" data-view="contact" aria-current="false">Contact</button>
     </nav>
   </header>
 
-  <!-- TODO(dante): both lines are mine, not yours — replace them. Two short
-       lines is the shape the layout wants. -->
-  <p class="lede">Designer and developer<br>building for the web.</p>
+  <!-- broken at the sentence, not to square off the block: the claim on one
+       line, the qualification on the next -->
+  <p class="lede">Modern AI Designer.<br>Leveraging the future, without losing taste.</p>
 
   <main class="stage">
     <section class="pane" data-view="work" tabindex="-1" aria-label="Work">
@@ -94,18 +97,14 @@
 
     <section class="pane pane--prose" data-view="contact" tabindex="-1" aria-label="Contact">
       <ul class="contact-list reveal">
-        <!-- TODO(dante): your address goes here. Left blank on purpose. -->
         <li class="contact-row">
           <span class="contact-key">Email</span>
-          <span class="contact-val contact-val--todo">add your address</span>
-        </li>
-        <li class="contact-row">
-          <span class="contact-key">GitHub</span>
-          <a class="contact-val" href="https://github.com/DS-2-dev">DS-2-dev</a>
+          <a class="contact-val" href="mailto:dantesmith@weber.edu">dantesmith@weber.edu</a>
         </li>
         <li class="contact-row">
           <span class="contact-key">LinkedIn</span>
-          <span class="contact-val contact-val--todo">add your profile</span>
+          <a class="contact-val" href="https://www.linkedin.com/in/dante-smith-/"
+             target="_blank" rel="noopener noreferrer">dante-smith-</a>
         </li>
       </ul>
     </section>
@@ -125,18 +124,37 @@
       const panes = Array.from(document.querySelectorAll('.pane'));
       if (!links.length) return;
       let openView = null;
+      let movePillRef = null;
 
       function select(view) {
         openView = view;
         document.body.classList.toggle('is-open', view !== null);
         links.forEach((l) => l.setAttribute('aria-current', String(l.dataset.view === view)));
         panes.forEach((p) => p.classList.toggle('is-active', p.dataset.view === view));
+        if (movePillRef) movePillRef();
         if (!view) return;
         const pane = panes.find((p) => p.dataset.view === view);
         if (pane) pane.focus({ preventScroll: true });
       }
 
       links.forEach((l) => l.addEventListener('click', () => select(l.dataset.view)));
+
+      /* Pill. Measured from the live buttons rather than hard-coded, because
+         their widths depend on a webfont that arrives after first paint —
+         hence the fonts.ready pass, without which it lands on Inter-width
+         positions and never corrects. */
+      const pill = document.getElementById('nav-pill');
+      function movePill() {
+        if (!pill) return;
+        const active = links.find((l) => l.dataset.view === openView);
+        if (!active) { pill.classList.remove('is-on'); return; }
+        pill.style.transform = 'translateX(' + active.offsetLeft + 'px)';
+        pill.style.width = active.offsetWidth + 'px';
+        pill.classList.add('is-on');
+      }
+      movePillRef = movePill;
+      window.addEventListener('resize', movePill);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(movePill);
 
       document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !openView) return;
