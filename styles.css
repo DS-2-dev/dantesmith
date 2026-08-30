@@ -27,6 +27,11 @@
      rather than flipping --foreground and breaking everything downstream. */
   --bar-bg: #ffffff;
   --bar-fg: #0a0a0a;
+  /* The detail view's picture frame. 1.6 because the screenshots are 3056x1886
+     and land at 1.62 — the shots that fill the frame are the ones that should
+     fit it, and the card images letterbox into it instead of the other way
+     round. Raising it makes every shot shorter and lifts the strip. */
+  --shot-aspect: 16 / 10;
   --gutter: 1.5rem;
   --muted-foreground: #808080;
   /* rules sit on black now, so the hairline lifts off the ground rather than
@@ -174,7 +179,13 @@ body {
 .pane {
   display: none;
   flex-direction: column;
-  justify-content: center;
+  /* `safe` matters once the work grid runs to a second row: a plain centre
+     overflows equally in both directions and puts the first row above the top
+     of the scroll box, where it cannot be reached. safe centre gives up on
+     centring the moment the content is taller than the pane and aligns to the
+     start instead, so the overflow all falls to the bottom where scrolling can
+     reach it. One row still centres exactly as before. */
+  justify-content: safe center;
   height: 100%;
   outline: none;
 }
@@ -324,6 +335,86 @@ a.contact-val:hover { text-decoration-color: currentColor; }
      the right. 216px of it at 1920. */
   margin-inline: auto;
 }
+/* Two pieces, one row. The three-column width formula above solves for a grid
+   half as tall as it is wide, which only holds at three columns and two rows —
+   left alone it would put the pair in one row of three and leave a hole where
+   the third card was. Two 4:3 cards side by side make a grid 0.375 as tall as
+   it is wide, so the height budget converts at 1/0.375: 266vh for the same
+   stage, less the same chrome. 72rem stops a pair of cards becoming posters on
+   a wide monitor. */
+/* A single row of cards, however many. The three-column formula above solves
+   for a grid half as tall as it is wide, which only holds at three columns and
+   two rows; one row is a different shape per count, so each count states its
+   own. In every case the width is bought out of the same height budget — the
+   stage, being the viewport less the top bar and the lede — converted at that
+   row's height-to-width ratio, less the step it has to make room for. */
+.work-grid--pair,
+.work-grid--trio,
+.work-grid--cluster {
+  --step: 5rem;
+  align-items: start;
+}
+/* two 4:3 cards in a row stand 0.375 as tall as they are wide; 1/0.375 = 2.667 */
+.work-grid--pair {
+  grid-template-columns: repeat(2, 1fr);
+  width: min(100%, 72rem, calc(266vh - 760px - var(--step) * 2.667));
+}
+/* Three across, and the row is as tall as its tallest card. That is the
+   portrait one at 3:4, so the row stands 0.444 of its own width and not the
+   0.25 three landscape cards would — solving off the short cards would have
+   let the tall one run out of the pane. 1/0.4444 = 2.25. */
+.work-grid--trio {
+  grid-template-columns: repeat(3, 1fr);
+  /* 660 and not the 620 the algebra gives: solved exactly, the row lands on
+     the stage to the pixel, and the 290px chrome term it is solved against is
+     an estimate. The extra buys a little slack rather than sitting on the line. */
+  width: min(100%, 84rem, calc(225vh - 660px - var(--step) * 2.25));
+}
+/* Four columns, and four is the line. Past that a piece goes into a column
+   rather than making a fifth one, so the cards never get narrower as the
+   cluster grows — they just stack. Columns and not grid rows because in a grid
+   every card is pushed down by the tallest one in its row: Vantage is
+   landscape among portraits, so it left a void under itself and anything on
+   the next row started below that. A column only answers to its own cards. */
+.work-grid--cluster {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  /* The tall column is Vantage over Jack's: 0.75 + 1.4133 of a column width
+     plus the gap between them, so the cluster stands 2.163 columns tall and
+     the height budget converts at 1/2.163 = 1.849. Solved so that column
+     clears the stage with about 95px to spare rather than filling it — a
+     cluster pressed against the top and bottom of its own pane reads as
+     something that did not fit. */
+  width: min(100%, 96rem, calc(185vh - 555px - var(--step) * 1.85));
+}
+.work-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* wider than the gap between columns: two cards stacked in one column want
+     more air between them than two sitting side by side, or the stack reads
+     as one tall object rather than two pieces */
+  gap: 1.25rem;
+}
+/* Only the work pane scrolls, and only when the cluster outgrows one row. */
+.pane[data-view="work"] { overflow-y: auto; }
+/* the detail view is a single screen by construction and manages its own
+   scrolling inside, so it should not also scroll the pane behind it */
+.pane[data-view="work"].is-detail { overflow-y: hidden; }
+/* Stepped, not aligned. Cards squared off against each other read as the top
+   row of a grid whose second row is missing; offsetting them says the row is
+   the whole set. Odd up, even down, so the zigzag holds however many there
+   are. Margins rather than a transform, so the row actually reserves the
+   height and the lower cards cannot run out of the pane. */
+.work-grid--pair .work-card:nth-of-type(odd),
+.work-grid--trio .work-card:nth-of-type(odd) { margin-bottom: var(--step); }
+.work-grid--pair .work-card:nth-of-type(even),
+.work-grid--trio .work-card:nth-of-type(even) { margin-top: var(--step); }
+/* the cluster steps whole columns rather than single cards, so a column and
+   everything stacked in it move together and the zigzag survives the stack */
+.work-grid--cluster .work-col:nth-child(even) { margin-top: var(--step); }
 .work-card {
   /* proportional to the taller card — 2.25rem read as a sliver once these
      went past 300px tall */
@@ -350,8 +441,149 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   clip-path: inset(0 0 0 0 round var(--radius-md));
   transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.work-card:hover img,
-.work-card:focus-within img {
+.work-card:hover img {
+  clip-path: inset(0 0 var(--reveal) 0 round var(--radius-md));
+}
+/* Centred on the cover, above the photograph and under the hit target so it
+   never eats a click. Sized off the card and not in pixels, so it holds its
+   proportion of the cover at every breakpoint. Rides the same clip-path
+   transition as the image, so on hover it lifts with the picture rather than
+   hanging in place while the cover slides out from under it. */
+.work-mark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: var(--foreground);
+  clip-path: inset(0 0 0 0 round var(--radius-md));
+  transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.work-card:hover .work-mark {
+  clip-path: inset(0 0 var(--reveal) 0 round var(--radius-md));
+}
+/* Tooltip beside the cursor, behaving like the one on a chart: the words and
+   the box change the instant you reach a new card, and the only thing that
+   eases is where the panel sits. Cross-fading the sentences and animating the
+   box between two sizes both read as wrong — one caught the text halfway
+   between two things, the other resized under text that was moving anyway.
+   A glide is one property, on the compositor, and cannot fight anything.
+
+   It lives at the end of <body> and is fixed rather than absolute, and both of
+   those are for the glass: backdrop-filter can only sample its backdrop root,
+   and the nearest ancestor carrying a transform bounds it. .reveal leaves a
+   transform on every card, so a tip inside one could only blur that card's own
+   pixels and went flat the moment it hung past an edge. At body level its
+   backdrop is the whole page. */
+.work-tip-panel {
+  position: fixed;
+  z-index: 60;
+  /* Positioned by translate, not by left/top: a translate is animated on the
+     compositor without laying the page out again, which is what lets it follow
+     a pointer at 60fps. The script writes the two numbers in viewport pixels. */
+  left: 0;
+  top: 0;
+  translate: var(--tip-x, 0px) var(--tip-y, 0px);
+  /* sized to its text, capped in rem — a percentage would resolve against the
+     viewport it is fixed to rather than anything meaningful */
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  /* Tinted glass: the fill is thin enough to read what is behind it and the
+     blur is what keeps the text legible over a photograph. Saturation is
+     lifted because blurring a backdrop washes its colour out. */
+  background: rgb(10 10 10 / 0.55);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 10px 34px rgb(0 0 0 / 0.55);
+  color: var(--foreground);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  letter-spacing: -0.011em;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  /* opacity and not display, so it can fade; visibility keeps it out of the
+     way of hit-testing and of a screen reader's cursor while it is down */
+  visibility: hidden;
+  /* 0.14s is the whole trick: long enough that moving between cards is a glide
+     rather than a jump, short enough that it still reads as attached to the
+     pointer. Past about 0.2 it starts to feel dragged along behind. */
+  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.16s ease,
+              visibility 0s linear 0.16s;
+}
+.work-tip-panel.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.16s ease,
+              visibility 0s;
+}
+/* One frame with the glide off, so the first appearance is already in place
+   instead of sliding in from wherever the last card left it. */
+.work-tip-panel.is-placing { transition: opacity 0.16s ease, visibility 0s; }
+.work-tip-panel > span { display: block; }
+/* the glide is decoration; the tip itself is not */
+@media (prefers-reduced-motion: reduce) {
+  .work-tip-panel,
+  .work-tip-panel.is-on { transition: opacity 0.16s ease, visibility 0s; }
+}
+/* Without a blur behind it a 55% fill is just a dim window onto the picture,
+   and the text stops holding. Those browsers get an opaque panel instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .work-tip-panel { background: rgb(10 10 10 / 0.93); }
+}
+
+/* The per-card spans are the accessible description aria-describedby points
+   at, not the thing on screen — one shared panel draws them all, so these are
+   taken out of the picture without being taken out of the accessibility tree.
+   Not display:none, which would remove them from it. */
+.work-tip {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* Without a blur behind it a 55% fill is just a dim window onto the picture,
+   and the text stops holding. Those browsers get an opaque panel instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .work-tip-panel { background: rgb(10 10 10 / 0.93); }
+}
+/* a locked card does not offer to open, so it should not present the hand
+   that says it will */
+.work-card[data-locked] .work-open { cursor: default; }
+/* and the cover stays put. The slide is there to reveal the piece's name on
+   the way to opening it; on a card that does not open it is a second thing
+   moving under the tip for no reason, so the locked card keeps its full crop
+   and the tip does the talking. */
+.work-card[data-locked]:hover img,
+.work-card[data-locked]:has(.work-open:focus-visible) img {
+  clip-path: inset(0 0 0 0 round var(--radius-md));
+}
+
+.work-mark svg {
+  width: 22%;
+  height: auto;
+  display: block;
+  /* the covers are photographs, so the mark needs its own separation from
+     whatever happens to be behind it rather than trusting the crop */
+  filter: drop-shadow(0 2px 12px rgb(0 0 0 / 0.45));
+}
+/* Keyboard focus reveals the title the same way hover does. Deliberately
+   :focus-visible and not :focus-within: closing a piece hands focus back to
+   the card that opened it, and plain focus would leave that one card sitting
+   peeled open with the pointer nowhere near it — reading as still selected.
+   Its own rule, so a browser without :has() drops this and keeps hover. */
+.work-card:has(.work-open:focus-visible) img {
   clip-path: inset(0 0 var(--reveal) 0 round var(--radius-md));
 }
 /* At 4:3 the window shows 78.6% of this image's width and the artwork is
@@ -360,9 +592,31 @@ a.contact-val:hover { text-decoration-color: currentColor; }
    (a squarer aspect) would put it back to splitting the loss. */
 .work-card--vantage { --focal-x: 43%; }
 
+/* A portrait card. The sign is 1400x1867 — 0.7499, which is 3:4 to within a
+   rounding error — so at this aspect cover crops nothing at all: the card is
+   the picture's own shape. Squeezed into the 4:3 the other cards use, the top
+   and bottom of the sign were the parts being thrown away, which on a piece
+   that is a tall object on a pole is the piece. */
+.work-card--tall { aspect-ratio: 3 / 4; }
+/* The poster is 1122x1402 — 0.8003, so 4:5 to a rounding error. Its own shape
+   again rather than the grid's: a poster cropped is a poster with its margins
+   taken off, which is most of what makes it one. */
+.work-card--poster { aspect-ratio: 4 / 5; }
+/* 1055x1491 — 0.7076, and not a tidy ratio, so it states the pixels rather
+   than rounding to the nearest one. Matched to the 4:5 poster it sits near, it
+   lost about 11% off the top and bottom, and on a piece whose whole subject is
+   type on a field that margin is the design. Same column width as everything
+   else; taller, because it is. */
+.work-card--lyric { aspect-ratio: 1055 / 1491; }
+/* 1107x1421 — 0.779. Its own ratio again rather than the nearest tidy one:
+   the garment is shot on an angle against a wall, and a crop takes the corner
+   of the frame that the composition is built on. */
+.work-card--shirt { aspect-ratio: 1107 / 1421; }
+
+
 /* Transparent hit target covering the card. Above the image so it catches
    the click, but it inherits the card's hover, so the title peek still runs
-   exactly as before — and :focus-within means tabbing to it reveals the
+   exactly as before — and its :focus-visible means tabbing to it reveals the
    title too. */
 .work-open {
   position: absolute;
@@ -532,6 +786,14 @@ body.is-open { --trail-ink: #e2e2e2; }
     grid-template-columns: repeat(2, 1fr);
     width: 100%;
   }
+  /* no step on a phone: the cards are already small there, and offsetting them
+     spends height the column has none of to spare */
+  .work-grid--pair,
+  .work-grid--trio,
+  .work-grid--cluster { --step: 0rem; }
+  /* two columns on a phone, each stacking its share */
+  .work-grid--cluster { flex-wrap: wrap; }
+  .work-col { flex: 1 1 calc(50% - 0.5rem); }
 }
 
 /* work detail ------------------------------------------------------------
@@ -583,20 +845,57 @@ body.is-open { --trail-ink: #e2e2e2; }
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* both children hug the top now, so the picture and its strip stay one
+     group instead of being spread down the height of the column */
+  justify-content: flex-start;
   gap: 0.75rem;
 }
-/* Contain, not cover — the work is the content, so cropping it to fill the
-   frame defeats the point of opening it. Centred rather than left, because
-   the set runs 0.72 to 1.78 in aspect: three portrait, three landscape.
-   Hugging one edge leaves lopsided dead space that reads as a misalignment
-   against the full-width thumb strip below; symmetric letterboxing just
-   reads as letterboxing. */
-.detail-main img {
-  flex: 1;
+/* Shrink-to-fit, not flex: 1. Filling the column meant the stack claimed every
+   leftover pixel and parked the thumb strip on the floor of the pane, a band
+   of dead space below the last picture — the same fault the single image had,
+   moved up a level. Sized to its frames, the strip sits under them. */
+.detail-stack {
+  flex: 0 1 auto;
   min-height: 0;
-  width: 100%;
-  object-fit: contain;
-  object-position: center;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* nothing should escape the column if two tall shots are ever paired */
+  overflow: hidden;
+}
+/* One height for every shot. Sized to its own picture, the frame was as tall
+   as whatever was in it — so moving between a portrait card image and a wide
+   screenshot changed the frame's height, and the strip underneath jumped up
+   or down with it on every pick. The set runs 0.72 to 1.78 in aspect and that
+   is not going to stop, so the frame holds still and the pictures vary inside
+   it: the strip has a fixed place on the page, and the only thing that moves
+   when you switch is the picture. */
+/* The frame is the fixed box; it draws nothing itself. Rounding lived here
+   before, which rounded the box rather than the picture — a contained shot
+   sits inside that box with room to spare, so the corners being clipped were
+   the frame's own and the picture kept four square ones. Centring an image
+   that sizes itself instead means the element and the picture are the same
+   rectangle, and a radius on it rounds what you can actually see. */
+.detail-frame {
+  margin: 0;
+  min-height: 0;
+  /* shrinkable, so a viewport too short for the full ratio still fits */
+  flex: 0 1 auto;
+  aspect-ratio: var(--shot-aspect);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Bounded rather than stretched — max-* with auto sizing keeps the picture at
+   its own aspect and no bigger than the frame, so nothing is cropped and what
+   it does not use is left as even margin on either side. */
+.detail-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   border-radius: var(--radius-md);
 }
 .detail-thumbs {
@@ -608,7 +907,9 @@ body.is-open { --trail-ink: #e2e2e2; }
 .detail-thumb {
   aspect-ratio: 4 / 3;
   margin: 0;
-  border-radius: 4px;
+  /* the same radius as the cards and the shot above, not a smaller one of its
+     own — one rounding across every picture on the page */
+  border-radius: var(--radius-md);
   overflow: hidden;
   background: rgb(255 255 255 / 0.05);
   /* an outline rather than a fill, so an empty slot reads as waiting for
@@ -617,23 +918,70 @@ body.is-open { --trail-ink: #e2e2e2; }
 }
 .detail-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
+/* A slot with a shot in it picks that shot. Only those are buttons, so the
+   selector is the affordance: an empty slot cannot be clicked or focused. */
+button.detail-thumb {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+/* Held back until it is the one being shown, so the strip reads as one live
+   frame and a set of alternatives rather than five equal pictures competing
+   with the full-size shot above them. */
+button.detail-thumb img {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+button.detail-thumb:hover img,
+button.detail-thumb:focus-visible img,
+button.detail-thumb[aria-current="true"] img { opacity: 1; }
+/* the ring the empty slots already carry, brought up to full strength — the
+   current shot is marked by the same device rather than a new one */
+button.detail-thumb[aria-current="true"] {
+  box-shadow: inset 0 0 0 2px var(--foreground);
+}
+button.detail-thumb:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 3px;
+}
+
 .detail-side {
   min-width: 0;
-  /* top-aligned, not centred: once there is a real write-up here the block
-     grows downward, and a centred one would drift as it does */
+  /* Back to start. Stretching the column pinned the switcher to the floor of
+     the pane, which on a tall viewport left it stranded a long way under the
+     writing it belongs to — the row reads as a footer to the paragraph, so it
+     should follow the paragraph. */
   align-self: start;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-height: 100%;
+  min-height: 0;
   overflow-y: auto;
 }
-.detail-heading { margin: 0; }
+/* Two lines' worth of room, always. The paragraph and the switcher under this
+   were moving every time you changed piece, for two reasons at once: the six
+   faces derive their font-size from their own cap-ratio, so a proportional
+   line-height gave each title a different line box even on one line; and a
+   long name like Typography Posters wraps where Weave does not. Reserving the
+   taller case fixes both — the block below starts at the same height whichever
+   piece is open. --title-cap lives here rather than on the title so the
+   reservation is derived from the same number the type is. */
+.detail-heading {
+  margin: 0;
+  --title-cap: 1.5rem;
+  --title-line: calc(var(--title-cap) * 1.6);
+  min-height: calc(var(--title-line) * 2);
+}
 /* the title keeps its own display face — the span is given the card's
    work-title classes at open time, and they carry their own cap-ratio */
 .detail-heading .work-title {
-  --title-cap: 1.5rem;
   white-space: normal;
+  /* absolute, not a multiple of font-size: the whole point of cap-ratio is
+     that the six faces run at six different sizes to land one cap height, so
+     a proportional line box would undo that evenness line by line */
+  line-height: var(--title-line);
 }
 .detail-note { color: var(--muted-foreground); max-width: none; }
 
@@ -641,9 +989,14 @@ body.is-open { --trail-ink: #e2e2e2; }
    between them without going back out to the grid first */
 .detail-switch {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
+  /* A row, wrapping. Six names stacked vertically read as a second navigation
+     competing with the nav in the bar; on one line they read as what they are,
+     a footer to the piece you are looking at. */
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  /* row gap first, so a wrapped second line does not crowd the first */
+  gap: 0.4rem 1.1rem;
   margin-top: 0.5rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--hairline);
@@ -666,13 +1019,19 @@ body.is-open { --trail-ink: #e2e2e2; }
 .detail-switch button:focus-visible { opacity: 1; outline: 2px solid var(--foreground); outline-offset: 3px; }
 
 @media (max-width: 900px) {
-  /* one column: the shot, its slots, then the writing under them */
+  /* one column: the shots, their slots, then the writing under them */
   .detail-body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1.4fr) auto;
+    grid-template-rows: auto auto;
     gap: 1.25rem;
     overflow-y: auto;
   }
+  /* the body scrolls here, so the shot keeps its own height rather than being
+     squeezed into a share of one screen */
+  .detail-stack { flex: none; }
   .detail-side { align-self: start; overflow: visible; }
-  .detail-heading .work-title { --title-cap: 1.1rem; }
+  /* on the heading, not the title — the two-line reservation is derived from
+     it, so setting it on the child would size the type down and leave the
+     space above it reserved at the desktop measure */
+  .detail-heading { --title-cap: 1.1rem; }
 }

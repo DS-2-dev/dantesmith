@@ -47,21 +47,107 @@
 
   <main class="stage">
     <section class="pane" data-view="work" tabindex="-1" aria-label="Work">
-      <div class="work-grid">
+      <div class="work-grid work-grid--cluster">
+      <!-- Columns, not grid rows. In a grid every card in a row is pushed down
+           by the tallest one in it, so a landscape card like Vantage left a
+           void under itself and the next row began below that — the fifth card
+           ended up a long way from the one it sits under. A column stacks its
+           own cards against each other and nothing else, which is what puts
+           Jack's directly beneath Vantage.
+           Adding a piece: drop it into whichever column is shortest. -->
+      <div class="work-col reveal">
+        <!-- Locked: the piece is not being shown yet, so the card says why
+             instead of opening onto it. data-locked is the whole switch — the
+             script skips it when wiring the openers and when building the
+             switcher, so there is no route into a detail view for it. -->
+        <figure class="work-card work-card--vantage reveal" data-locked>
+          <img src="images/vantage.webp" alt="" loading="lazy">
+          <figcaption class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></figcaption>
+          <button class="work-open" type="button" aria-describedby="tip-vantage"
+                  aria-label="Vantage — upcoming, not yet shown"></button>
+          <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a secret new fencing event software</span>
+        </figure>
+        <!-- Fifth card, so the first of the second row. -->
+        <figure class="work-card work-card--lyric reveal" data-locked>
+          <img src="images/jacks-poster.webp" alt="" loading="lazy">
+          <figcaption class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></figcaption>
+          <button class="work-open" type="button" aria-describedby="tip-jacks"
+                  aria-label="Jack’s Mannequin — custom made lyric poster"></button>
+          <span class="work-tip" role="tooltip" id="tip-jacks">Custom made poster — lyrics set by hand.</span>
+        </figure>
+      </div>
+      <div class="work-col reveal">
+        <!-- Goes out to the live demo rather than into a detail view. Its shots
+             stay in EXTRA_SHOTS below: drop data-external and swap the anchor
+             back for a button and the six-shot view returns. -->
+        <figure class="work-card reveal" data-external>
+          <img src="images/results.jpg" alt="" loading="lazy">
+          <!-- The client's own mark, centred on the cover. Inline rather than an
+               <img src>: one fewer request, and it inherits currentColor so it
+               cannot fall out of step with the page's foreground. Decorative —
+               the card is already named by its title and its button. -->
+          <span class="work-mark" aria-hidden="true">
+            <svg viewBox="0 0 12 9" xmlns="http://www.w3.org/2000/svg" focusable="false">
+              <path fill="currentColor" d="M2.71555 0.0818261C1.90505 0.237976 1.00533 0.847705 0.559189 1.54666C0.0609961 2.32741 0.00151038 2.60997 0.00151038 4.42429C-0.00592534 5.94861 0.0089461 6.08989 0.165096 6.53603C0.87149 8.49163 2.96093 9.41366 4.79011 8.58086C5.50394 8.25368 5.50394 8.26112 5.07267 7.53985C4.86447 7.19038 4.67114 6.92269 4.64884 6.93756C3.99449 7.29448 3.71193 7.37627 3.25836 7.33909C2.44786 7.2796 1.80839 6.76654 1.60019 6.00066C1.53327 5.78502 1.51096 5.22735 1.53327 4.26814C1.55558 2.69176 1.61506 2.491 2.15043 2.02255C2.56683 1.65076 2.89401 1.54666 3.4963 1.57641C4.09116 1.60615 4.47781 1.79948 4.82729 2.26793C5.18421 2.72894 5.22882 2.97432 5.23626 4.46147C5.23626 6.40219 5.43702 7.0491 6.26982 7.8819C7.54877 9.16828 9.55641 9.19802 10.9023 7.96369C11.393 7.51755 11.8094 6.7591 11.9284 6.10476C12.0251 5.56939 12.0251 3.22714 11.921 2.73638C11.7276 1.79204 10.9543 0.780784 10.1364 0.386691C9.72 0.185926 9.00617 3.31914e-05 8.64925 3.31914e-05C7.98004 3.31914e-05 6.70853 0.431305 6.60443 0.691555C6.58212 0.751041 6.70853 1.0336 6.87955 1.30872C7.32569 2.04486 7.30339 2.02999 7.5339 1.8664C7.98004 1.5541 8.79797 1.46487 9.28873 1.66563C9.68282 1.83666 10.1959 2.34972 10.3446 2.73638C10.5305 3.2197 10.5379 5.76272 10.352 6.17912C10.062 6.8409 9.31847 7.3614 8.66412 7.3614C8.1585 7.3614 7.77927 7.21268 7.39262 6.8632C6.8275 6.35757 6.77545 6.17168 6.7234 4.27557C6.67879 2.81817 6.65648 2.5951 6.50777 2.21588C5.90547 0.676684 4.29192 -0.230474 2.71555 0.0818261Z"/>
+            </svg>
+          </span>
+          <figcaption class="work-overlay"><span class="work-title work-title--orbix">Weave</span></figcaption>
+          <!-- An anchor, not a button: this leaves the page, so it should be a
+               link — middle-click, copy address and open-in-new-tab all work,
+               and it announces itself as a link rather than a control. -->
+          <a class="work-open" href="https://weave2-demo.vercel.app/"
+             target="_blank" rel="noopener noreferrer" aria-describedby="tip-weave"
+             aria-label="Weave — open the live demo (opens in a new tab)"></a>
+          <span class="work-tip" role="tooltip" id="tip-weave">Click to go to the demo site</span>
+        </figure>
+        <figure class="work-card work-card--shirt reveal" data-locked>
+          <img src="images/call-my-bluff.webp" alt="" loading="lazy">
+          <figcaption class="work-overlay"><span class="work-title work-title--fuuld">Call My Bluff</span></figcaption>
+          <button class="work-open" type="button" aria-describedby="tip-bluff"
+                  aria-label="Call My Bluff — garment print mockup"></button>
+          <span class="work-tip" role="tooltip" id="tip-bluff">Garment print mockup — red serif, one phone number, no explanation.</span>
+        </figure>
+      </div>
+      <div class="work-col reveal">
+        <!-- A piece, not a case study: one image and its name, so it is locked
+             like Vantage — the tip carries what there is to say and there is no
+             detail view behind it to open onto. -->
+        <figure class="work-card work-card--tall reveal" data-locked>
+          <img src="images/inconvenience.webp" alt="" loading="lazy">
+          <figcaption class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></figcaption>
+          <button class="work-open" type="button" aria-describedby="tip-inconvenience"
+                  aria-label="Inconvenience — existential parking lot mockup"></button>
+          <span class="work-tip" role="tooltip" id="tip-inconvenience">Existential parking lot mockup.</span>
+        </figure>
+      </div>
+      <div class="work-col reveal">
+        <!-- The poster for the lab's open sessions. Locked like the others in
+             the cluster: it is the piece, not a cover over one. -->
+        <figure class="work-card work-card--poster reveal" data-locked>
+          <img src="images/wsu-lab.webp" alt="" loading="lazy">
+          <figcaption class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></figcaption>
+          <button class="work-open" type="button" aria-describedby="tip-wsu"
+                  aria-label="WSU AI Lab — poster for the lab's Thursday build sessions"></button>
+          <span class="work-tip" role="tooltip" id="tip-wsu">Recruiting poster — local problems in, student builds out, every Thursday.</span>
+        </figure>
+      </div>
+
+      <!-- ==================================================================
+           PARKED — not deleted. Four pieces held back until they are shot out
+           the way Vantage and Weave are; showing a finished pair beats showing
+           six where four open onto a single cover image.
+
+           To bring one back: move its <figure> above this comment. Nothing
+           else needs touching — EXTRA_SHOTS is keyed by the piece's name, not
+           by its position in the grid, and the switcher and the strip are both
+           built from whatever cards are present at load. Their images are all
+           still in images/.
+           ================================================================== -->
+      <!--
       <figure class="work-card reveal">
         <img src="images/anotherone.jpg" alt="" loading="lazy">
         <figcaption class="work-overlay"><span class="work-title work-title--neutron">Citri Software</span></figcaption>
         <button class="work-open" type="button" aria-label="Open Citri Software"></button>
-      </figure>
-      <figure class="work-card work-card--vantage reveal">
-        <img src="images/vantage.webp" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open Vantage"></button>
-      </figure>
-      <figure class="work-card reveal">
-        <img src="images/results.jpg" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--orbix">Weave</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open Weave"></button>
       </figure>
       <figure class="work-card reveal">
         <img src="images/moreflowers.webp" alt="" loading="lazy">
@@ -78,6 +164,7 @@
         <figcaption class="work-overlay"><span class="work-title work-title--carbon">Filey</span></figcaption>
         <button class="work-open" type="button" aria-label="Open Filey"></button>
       </figure>
+      -->
       </div>
 
       <!-- The same section, in its other state. Not a dialog: work is the
@@ -87,7 +174,10 @@
         <button class="work-back" type="button" id="work-back">&larr;&nbsp; All work</button>
         <div class="detail-body">
           <div class="detail-main">
-            <img id="detail-img" alt="">
+            <!-- the shot at full size. Built by script off the project's shot
+                 list rather than written in, so how many the column shows is
+                 one constant and not a markup change. -->
+            <div class="detail-stack" id="detail-stack"></div>
             <!-- six slots: the first holds the real image, the rest wait for
                  more shots per project. Built by script, so adding them is
                  data rather than markup. -->
@@ -110,10 +200,10 @@
         <p class="prose">Hi, I’d repeat my name again, but I think you already
           know it by now. Anyways, I’m currently working on my Bachelors of
           Management Info Systems.</p>
-        <p class="prose">On the side I love to do Web (UI/UX) Design! But… I do
-          it a bit different. I’ll gather inspo, have ideas, draw wireframes,
-          design everything with my own mind, and have AI become the glue of
-          putting it together.</p>
+        <p class="prose">On the side I love to do Typography and Web (UI/UX)
+          Design! But… I do it a bit different. I’ll gather inspo, have ideas,
+          draw wireframes, design everything with my own mind, and have AI
+          solidify it together.</p>
         <p class="prose">Oh, and don’t worry, I understand the code, but now I
           have more time to focus on my craft.</p>
       </div>
@@ -210,53 +300,155 @@
       const detail = document.getElementById('work-detail');
       if (!pane || !detail) return;
       const cards = Array.from(pane.querySelectorAll('.work-card'));
-      const img = document.getElementById('detail-img');
+      const stack = document.getElementById('detail-stack');
       const title = document.getElementById('detail-title');
       const thumbs = document.getElementById('detail-thumbs');
       const switcher = document.getElementById('detail-switch');
       const SLOTS = 6;
+      /* How many full-size frames the column shows at once. One: a pair split
+         the column's height between them and neither shot ended up big enough
+         to be worth opening the piece for. The extra shots still reach the
+         strip below, which is where the rest of a project lives. */
+      const FRAMES = 1;
+      /* Extra shots per project: the piece's name, then the slot the shot
+         sits in. Slot 1 is always the card's own image, so these run 2 upward.
+
+         Keyed by name and not by card index because the grid does not always
+         hold the same six: comment a card out and every index below it shifts,
+         which would quietly repoint one project's shots at another. Keyed by
+         slot rather than listed in order because a project can be shot out of
+         sequence — Vantage had its fourth before its third — and a plain list
+         cannot say which slot a path belongs to. Add a path here and the frame
+         and the strip both pick it up; nothing else to touch. */
+      const EXTRA_SHOTS = {
+        'Vantage': {
+          2: 'images/vantage-2.webp',
+          3: 'images/vantage-referees.webp',
+          4: 'images/vantage-4.webp',
+          5: 'images/vantage-addfencer.webp',
+          6: 'images/vantage-bracket.webp',
+        },
+        'Weave': {
+          2: 'images/weave-2.webp',
+          3: 'images/weave-3.webp',
+          4: 'images/weave-4.webp',
+          5: 'images/weave-5.webp',
+          6: 'images/weave-6.webp',
+        },
+      };
       let at = -1;
+      /* the open piece's shots, and which of them the frame is showing */
+      let shots = [];
+      let shotAt = 0;
+      let shotName = '';
+      let thumbButtons = [];
 
       const labelOf = (card) => card.querySelector('.work-title');
 
+      /* Fills the frame from the shot list. Split out of open_ because the
+         strip needs to drive it too: picking a thumb changes which shot is
+         shown without touching the piece, its title or the switcher. */
+      function showShot(n) {
+        shotAt = Math.max(0, Math.min(n, shots.length - 1));
+        /* Frames are rebuilt rather than reused: swapping the src on a kept
+           <img> leaves the old picture on screen until the new one decodes,
+           which reads as the wrong shot for one you just picked. */
+        stack.replaceChildren();
+        for (let k = 0; k < FRAMES; k++) {
+          const src = shots[shotAt + k];
+          if (!src) break;
+          const frame = document.createElement('figure');
+          frame.className = 'detail-frame';
+          const f = document.createElement('img');
+          f.src = src;
+          /* only the first carries the name — the rest are the same piece,
+             so repeating it would just be noise to a screen reader */
+          f.alt = k === 0 ? shotName : '';
+          frame.appendChild(f);
+          stack.appendChild(frame);
+        }
+        thumbButtons.forEach((b, i) => {
+          if (b) b.setAttribute('aria-current', String(i === shotAt));
+        });
+      }
+
       /* built once — only the aria-current marker changes as you move */
-      cards.forEach((card, i) => {
+      const isLocked = (card) => card.hasAttribute('data-locked');
+      /* A card opens the detail view unless it does something else with a
+         click: data-locked opens nothing, data-external leaves the page. */
+      const opensDetail = (card) =>
+        !card.hasAttribute('data-locked') && !card.hasAttribute('data-external');
+
+      /* Built once — only the aria-current marker changes as you move. A piece
+         with no detail view gets no button and a null in its place, so the
+         array stays index-aligned with cards while the switcher lists only
+         what actually opens. */
+      const switchButtons = cards.map((card, i) => {
+        if (!opensDetail(card)) return null;
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = labelOf(card).textContent;
         b.addEventListener('click', () => open_(i));
         switcher.appendChild(b);
+        return b;
       });
-      const switchButtons = Array.from(switcher.children);
 
       function open_(i) {
         at = (i + cards.length) % cards.length;
+        /* nothing routes here for a locked piece, but the guard means adding a
+           route later cannot open one by accident */
+        if (isLocked(cards[at])) return;
         const card = cards[at];
         const source = card.querySelector('img');
         const label = labelOf(card);
         const src = source.currentSrc || source.src;
 
-        img.src = src;
-        img.alt = label.textContent;
+        /* one entry per slot, with gaps left undefined — the strip draws an
+           empty slot for each of those and the frame skips them */
+        const extra = EXTRA_SHOTS[label.textContent] || {};
+        shots = [];
+        for (let n = 0; n < SLOTS; n++) {
+          shots[n] = n === 0 ? src : extra[n + 1];
+        }
+        shotName = label.textContent;
+
         /* the card's own classes carry the face and its cap-ratio, so the
            detail view inherits the right type with no lookup table */
         title.className = label.className;
         title.textContent = label.textContent;
-        switchButtons.forEach((b, n) => b.setAttribute('aria-current', String(n === at)));
+        switchButtons.forEach((b, n) => {
+          if (b) b.setAttribute('aria-current', String(n === at));
+        });
 
+        /* A slot with a shot in it is a button; an empty one stays a figure.
+           Making the empties focusable too would put four dead stops in the
+           tab order of every project that has not been shot out yet. */
         thumbs.replaceChildren();
-        thumbs.setAttribute('aria-hidden', 'true');
+        thumbButtons = [];
         for (let n = 0; n < SLOTS; n++) {
-          const slot = document.createElement('figure');
-          slot.className = 'detail-thumb';
-          if (n === 0) {
-            const t = document.createElement('img');
-            t.src = src;
-            t.alt = '';
-            slot.appendChild(t);
+          if (!shots[n]) {
+            const slot = document.createElement('figure');
+            slot.className = 'detail-thumb';
+            thumbs.appendChild(slot);
+            thumbButtons.push(null);
+            continue;
           }
+          const slot = document.createElement('button');
+          slot.type = 'button';
+          slot.className = 'detail-thumb';
+          slot.setAttribute('aria-label', 'Show shot ' + (n + 1) + ' of ' + label.textContent);
+          const t = document.createElement('img');
+          t.src = shots[n];
+          t.alt = '';
+          slot.appendChild(t);
+          slot.addEventListener('click', () => showShot(n));
           thumbs.appendChild(slot);
+          thumbButtons.push(slot);
         }
+
+        /* opening a piece always starts at its first shot, never wherever the
+           strip was left on the piece before it */
+        showShot(0);
 
         pane.classList.add('is-detail');
         detail.querySelector('.work-back').focus({ preventScroll: true });
@@ -268,9 +460,147 @@
         if (hit) hit.focus({ preventScroll: true });
       }
 
+      /* ONE panel for every card, rather than one each. Moving from a card to
+         its neighbour should morph — the panel travels with the pointer,
+         resizes to the new sentence and swaps the words — and two separate
+         elements can only cross-fade past each other. The per-card spans stay
+         in the markup as the accessible description that aria-describedby
+         points at; this is what is actually drawn. */
+      /* ONE panel for every card, behaving like a chart tooltip: the words and
+         the box change at once, and the only thing that eases is where it sits.
+         That is the opposite of what a cross-fade does, and it is why this
+         reads smooth where the fade did not — nothing is ever caught halfway
+         between two sentences, and the glide is a single compositor-friendly
+         translate rather than a box resizing under text that is resizing too.
+
+         The per-card spans stay in the markup as the accessible description
+         aria-describedby points at; this is what is actually drawn. */
+      const panel = document.createElement('div');
+      panel.className = 'work-tip-panel';
+      panel.setAttribute('aria-hidden', 'true');
+      const panelText = document.createElement('span');
+      panel.appendChild(panelText);
+      document.body.appendChild(panel);
+
+      let panelHold;
+      let panelSaid = '';
+      /* the panel's own size, kept here rather than read back off the element
+         on every move — a layout read per mousemove is the other thing that
+         makes a tooltip feel heavy */
+      let tipW = 0;
+      let tipH = 0;
+
+      function panelSay(text) {
+        if (text === panelSaid) return;
+        panelSaid = text;
+        panelText.textContent = text;
+        tipW = panel.offsetWidth;
+        tipH = panel.offsetHeight;
+      }
+
+      /* Where the panel wants to be for a given pointer position: beside the
+         cursor, flipped above it near the bottom, and held inside the window. */
+      function panelPlace(x, y) {
+        panel.style.setProperty('--tip-x', x + 'px');
+        panel.style.setProperty('--tip-y', y + 'px');
+      }
+      function panelAt(event) {
+        const pad = 12;
+        const off = 16;
+        let x = event.clientX + off;
+        let y = event.clientY + off;
+        if (y + tipH + pad > window.innerHeight) y = event.clientY - tipH - off;
+        x = Math.min(Math.max(x, pad), Math.max(window.innerWidth - tipW - pad, pad));
+        y = Math.min(Math.max(y, pad), Math.max(window.innerHeight - tipH - pad, pad));
+        return [x, y];
+      }
+
+      /* Follows the pointer from the document, not from each card. The cards
+         have gaps between them, and a per-card listener stops firing the moment
+         you leave one — so the panel froze over the gap and then jumped when the
+         next card picked it up. From here it never stops following. */
+      document.addEventListener('pointermove', (event) => {
+        if (!panel.classList.contains('is-on')) return;
+        const at = panelAt(event);
+        panelPlace(at[0], at[1]);
+      });
+
+      /* Focus has no cursor to sit beside, so it goes to the middle of the card
+         it belongs to — centred by subtracting half its own size rather than by
+         a translate, which is spoken for by the glide. */
+      function panelCentre(card) {
+        const box = card.getBoundingClientRect();
+        panelPlace(box.left + box.width / 2 - tipW / 2,
+                   box.top + box.height / 2 - tipH / 2);
+      }
+
+      /* Placed before it is shown, with the glide suppressed for that one
+         frame — otherwise the first appearance slides in from wherever the
+         last card left it. */
+      function panelShow() {
+        clearTimeout(panelHold);
+        if (!panel.classList.contains('is-on')) {
+          panel.classList.add('is-placing');
+          void panel.offsetWidth;
+          requestAnimationFrame(() => panel.classList.remove('is-placing'));
+        }
+        panel.classList.add('is-on');
+      }
+      /* Held open for a beat rather than dropped the moment the pointer leaves
+         a card. Crossing the gap to the next one is what the glide is for, and
+         hiding on the way there would turn every move into a blink. */
+      function panelHide() {
+        clearTimeout(panelHold);
+        panelHold = setTimeout(() => {
+          panel.classList.remove('is-on');
+          panelSaid = '';
+        }, 140);
+      }
+
       cards.forEach((card, i) => {
         const hit = card.querySelector('.work-open');
-        if (hit) hit.addEventListener('click', () => open_(i));
+        if (!hit) return;
+        if (opensDetail(card)) hit.addEventListener('click', () => open_(i));
+        /* Every card carrying a tip gets the cursor tracking, whatever its
+           click does — Weave follows its link and tips, Vantage only tips. */
+        const tip = card.querySelector('.work-tip');
+        if (!tip) return;
+        const text = tip.textContent.trim();
+
+        /* Enter is the only pointer event a card needs: it says which words to
+           show, and the document-level listener above does the following. On a
+           cold open it has to place the panel too, or the first frame would
+           fade in wherever the last card left it. */
+        hit.addEventListener('pointerenter', (event) => {
+          panelSay(text);
+          const at = panelAt(event);
+          panelPlace(at[0], at[1]);
+          panelShow();
+        });
+        hit.addEventListener('pointerleave', panelHide);
+        hit.addEventListener('focus', () => {
+          panelSay(text);
+          panelCentre(card);
+          panelShow();
+        });
+        hit.addEventListener('blur', panelHide);
+
+        /* For the pointer that has no hover: a tap would otherwise light the
+           tip up and leave it lit, so a timer takes it back down. */
+        let timer;
+        hit.addEventListener('click', (event) => {
+          panelSay(text);
+          /* a real tap carries coordinates; a click from the keyboard does not */
+          if (event.clientX || event.clientY) {
+            const at = panelAt(event);
+            panelPlace(at[0], at[1]);
+          } else {
+            panelCentre(card);
+          }
+          panelShow();
+          clearTimeout(timer);
+          timer = setTimeout(panelHide, 2600);
+        });
       });
       document.getElementById('work-back').addEventListener('click', close_);
 
