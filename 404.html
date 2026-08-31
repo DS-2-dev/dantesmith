@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 — Dante Smith</title>
+<!-- A 404 that ranks is a 404 that got indexed, which is the opposite of what
+     this page is for. GitHub Pages already answers with a 404 status; this
+     says the same thing to the crawlers that read markup instead of headers. -->
+<meta name="robots" content="noindex">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Only the kit, and only for magistral: the name is the one thing on this
+     page that has to be in the right face, or the page stops reading as mine
+     and starts reading as the host's. Everything else falls back to the
+     system stack on purpose — a page nobody should reach has not earned a
+     second blocking origin. -->
+<link rel="preconnect" href="https://use.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
+
+<style>
+  /* Same tokens as styles.css, copied rather than imported: this page needs
+     six of them, and pulling 48 KB of stylesheet to get them would cost more
+     than the whole document. */
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --muted-foreground: #808080;
+    --hairline: #2b2b2b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    /* svh so the address bar collapsing on a phone cannot push the block
+       off-centre mid-scroll */
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .block { max-width: 34rem; }
+
+  /* The face the wordmark is set in, at the weight the kit actually ships —
+     asking for 500 would get a synthesised bold, which is wider than drawn
+     and reads as a fake. */
+  .code {
+    margin: 0;
+    font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    font-size: clamp(4rem, 18vw, 9rem);
+    line-height: 0.922;
+    letter-spacing: -0.03em;
+  }
+
+  .say {
+    margin: 1.25rem 0 0;
+    max-width: 26rem;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: -0.011em;
+    color: var(--muted-foreground);
+  }
+
+  /* Same underline treatment as the contact links on the site: a hairline
+     that comes up to full strength on hover, rather than a link that was
+     already shouting. */
+  .back {
+    display: inline-block;
+    margin-top: 2rem;
+    font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9375rem;
+    letter-spacing: 0.02em;
+    color: var(--foreground);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color 0.15s ease;
+  }
+  .back:hover,
+  .back:focus-visible { text-decoration-color: currentColor; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .back { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <main class="block">
+    <h1 class="code">404</h1>
+    <p class="say">This page doesn’t exist. Everything I’ve actually made is
+      one link away.</p>
+    <a class="back" href="/">Back to the site</a>
+  </main>
+</body>
+</html>
