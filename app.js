@@ -218,6 +218,12 @@ function follower(el, off) {
      the two are independent. Top speed lands about where it was. */
   const SPEED = 6.2;      /* px per frame at the start, at the tuning size */
   const RAMP = 1.15;      /* and how much faster with the last brick left */
+  /* Arrow-key travel, px per frame before the width scaling below. The mouse
+     is instant and the keyboard cannot be, so this is the one number that
+     decides whether the keys feel like a control or like a drag: 13 crosses a
+     1440px window in about a second and a half, which is quicker than the ball
+     can cross it and therefore always recoverable. */
+  const KEY_SPEED = 13;
   /* Both of the numbers above are pixels, and pixels are not the same thing on
      every screen. A ball crossing a 720px window at 6.2px per frame gets there
      in 116 frames; the same ball on a 1080px window takes 174, so the tuned
@@ -242,7 +248,13 @@ function follower(el, off) {
   let ball = { x: 0, y: 0, vx: 0, vy: 0 };
   let total = 0;
   let padX = 0;
+  /* Two ways to drive the paddle, and only one of them can be in charge at a
+     time or they fight: the pointer sets an absolute position every frame, so
+     a held arrow key would be dragged straight back to wherever the mouse was
+     last resting. Whichever device moved last wins, and pressing an arrow
+     drops pointerX to null to hand over. Moving the mouse takes it back. */
   let pointerX = null;
+  const held = new Set();
 
   function size() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -334,7 +346,15 @@ function follower(el, off) {
     raf = requestAnimationFrame(step);
     const padY = innerHeight - PAD_UP - PAD_H;
     const pad = padWidth();
-    if (pointerX !== null) padX = pointerX;
+    if (pointerX !== null) {
+      padX = pointerX;
+    } else if (held.size) {
+      /* Scaled by the same factor as the paddle, so the keys cover the same
+         share of the screen on a laptop as on a monitor. Both keys at once
+         cancel out, which is what holding both should do. */
+      const dir = (held.has('ArrowRight') ? 1 : 0) - (held.has('ArrowLeft') ? 1 : 0);
+      padX += dir * KEY_SPEED * (pad / PAD_W);
+    }
     padX = Math.min(Math.max(padX, pad / 2), innerWidth - pad / 2);
 
     ball.x += ball.vx;
@@ -391,7 +411,9 @@ function follower(el, off) {
   function start() {
     on = true;
     document.body.classList.add('is-playing');
-    toggle.textContent = 'Esc to Stop';
+    /* The keys are worth naming here. Nothing else on the board says they
+       exist, and a control nobody can find is not a control. */
+    toggle.textContent = 'Arrows or mouse — Esc to Stop';
     size();
     collect();
     tally();
@@ -405,6 +427,7 @@ function follower(el, off) {
      until the prize is dismissed. */
   function stop(opts) {
     on = false;
+    held.clear();
     cancelAnimationFrame(raf);
     ctx.clearRect(0, 0, innerWidth, innerHeight);
     document.body.classList.remove('is-playing');
@@ -439,10 +462,24 @@ function follower(el, off) {
     if (on) stop(); else start();
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    if (clearPrize()) return;
-    if (on) stop();
+    if (event.key === 'Escape') {
+      if (clearPrize()) return;
+      if (on) stop();
+      return;
+    }
+    if (!on) return;
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    /* Only while playing. Off the board these are the reader's keys — they
+       scroll a window too narrow to fit the page and step through focus — and
+       taking them would be worse than not offering them at all. */
+    event.preventDefault();
+    held.add(event.key);
+    pointerX = null;
   });
+  document.addEventListener('keyup', (event) => { held.delete(event.key); });
+  /* A key held while the window goes away never sends its keyup, and the
+     paddle would still be travelling when you came back. */
+  window.addEventListener('blur', () => held.clear());
   /* every rect moves when the window does, and a stale set of them is a
      ball bouncing off things that are not there */
   onResize(() => {
