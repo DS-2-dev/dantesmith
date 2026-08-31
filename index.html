@@ -2,52 +2,165 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Dante Smith</title>
-<link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
+<!-- Without this a phone lays the page out at 980px and scales the result
+     down, which means the max-width: 780px rules in styles.css never match
+     and the stacked mobile layout never runs. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- The name alone competes with every other Dante Smith. The trade is the
+     other way round for the tab, where only the first word or two survives the
+     truncation, so the name leads and the qualifier follows it. -->
+<title>Dante Smith — Modern AI Designer</title>
+<meta name="description" content="Dante Smith is an 18-year-old designer in Utah working in typography and web UI/UX, pairing hand-drawn wireframes and his own art direction with AI. Selected posters, brand and product work.">
+<!-- GitHub Pages answers on both the apex and ds-2-dev.github.io, so without
+     this the same page is two documents as far as a crawler is concerned. -->
+<link rel="canonical" href="https://dantesmith.studio/">
+
+<!-- The Warhol the name is knocked out of, cropped to a circle. The touch icon
+     ships square instead, since iOS ignores the alpha and masks the corners
+     itself. -->
+<link rel="icon" href="images/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+
+<!-- Open Graph. Without it a pasted link is a bare blue URL everywhere it
+     lands, which for a portfolio is the worst place to have no design.
+     Absolute URLs are not optional here: every scraper fetches these out of
+     the page's context and a relative path resolves against nothing.
+     og-card.png is PNG rather than webp on purpose — LinkedIn's crawler is
+     unreliable on webp and falls back to no image at all. -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dantesmith.studio/">
+<meta property="og:site_name" content="Dante Smith">
+<meta property="og:title" content="Dante Smith — Modern AI Designer">
+<meta property="og:description" content="18yo designer in Utah. Typography, web UI/UX, and posters — leveraging the future, without losing taste.">
+<meta property="og:image" content="https://dantesmith.studio/images/og-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Dante Smith, Modern AI Designer, over a cluster of poster and brand work.">
+<meta property="og:locale" content="en_US">
+
+<!-- LinkedIn reads the Open Graph tags above and ignores these; they are here
+     for X, which reads its own. Four lines to cover a second network. -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Dante Smith — Modern AI Designer">
+<meta name="twitter:description" content="18yo designer in Utah. Typography, web UI/UX, and posters — leveraging the future, without losing taste.">
+<meta name="twitter:image" content="https://dantesmith.studio/images/og-card.png">
+
+<!-- Ties the site to the LinkedIn profile as one identity rather than two
+     unrelated pages that happen to share a name. sameAs is the property that
+     does that work. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Dante Smith",
+  "url": "https://dantesmith.studio/",
+  "image": "https://dantesmith.studio/images/og-card.png",
+  "jobTitle": "Designer",
+  "description": "Modern AI Designer working in typography and web UI/UX.",
+  "email": "mailto:dantesmith@weber.edu",
+  "address": {
+    "@type": "PostalAddress",
+    "addressRegion": "UT",
+    "addressCountry": "US"
+  },
+  "alumniOf": {
+    "@type": "CollegeOrUniversity",
+    "name": "Weber State University"
+  },
+  "knowsAbout": ["Typography", "UI/UX Design", "Brand Design", "Generative AI"],
+  "sameAs": ["https://www.linkedin.com/in/dante-smith-/"]
+}
+</script>
+<!-- Every preconnect ahead of every stylesheet: each of these sheets is
+     render-blocking and pulls its font files from the same origin it came
+     from, so the handshake is worth opening before the sheet is parsed
+     rather than after. Typekit carries four faces here — argent-pixel-cf,
+     fuuld, magistral, t26-carbon — not just the one label. -->
+<link rel="preconnect" href="https://use.typekit.net" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Syne+Mono&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- Gooey filter, ported from danielpetho/gooey-filter. The alpha ramp in
-       feColorMatrix is what welds neighbouring pixels into blobs. -->
-  <svg class="defs-only" aria-hidden="true" focusable="false">
-    <defs>
-      <filter id="goo-filter">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
-        <feColorMatrix in="blur" type="matrix"
-          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo"/>
-        <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-      </filter>
-    </defs>
-  </svg>
+  <!-- One page, two columns: who I am on the left, the work on the right.
+       Nothing here navigates — there are no other views to reach, so what
+       used to be three panes behind a nav is just the page now. -->
+  <main class="page">
+    <aside class="bio">
+      <!-- Split into four hover targets. No whitespace or line break may
+           appear between the spans: a newline inside the element collapses
+           to a space, which would open a gap in the middle of the name. The
+           one real space between the words sits outside every span on
+           purpose — that gap belongs to neither, and hovering it shows
+           nothing. -->
+      <h1 class="wordmark"><span class="wordmark-part" data-name-card="imac-g3">Da</span><span class="wordmark-part" data-name-card="bmth-amo">nte</span> <span class="wordmark-part" data-name-card="cezanne">Sm</span><span class="wordmark-part" data-name-card="one-tree-hill">ith</span></h1>
+      <!-- broken at the sentence, not to square off the block: the claim on
+           one line, the qualification on the next -->
+      <p class="lede">18yo Modern AI Designer — based in Utah.<br>Leveraging the future, without losing taste.</p>
+      <div class="prose-block reveal">
+        <p class="prose">Hi, I’d repeat my name again, but I think you already
+          know it by now. Anyways, I’m currently working on my Bachelor’s of
+          Management Info Systems.</p>
+        <p class="prose">On the side, I love to do Typography and Web (UI/UX)
+          Design! But… I do it a bit different: I’ll gather inspo, have ideas,
+          draw wireframes, design everything with my own mind, and have AI
+          solidify it together.</p>
+        <p class="prose">Oh, and don’t worry — I understand the code, but now I
+          have more time to focus on my craft.</p>
+      </div>
+      <div class="prose-block card reveal">
+        <p class="prose-caption">Tools</p>
+        <div class="tech-row">
+          <svg class="tech-icon tech-icon--wide" role="img" viewBox="0 0 150.38 88.986"><title>Are.na</title><path d="M148.93 62.356l-20.847-16.384c-1.276-1-1.276-2.642 0-3.645l20.848-16.38c1.28-1.002 1.815-2.695 1.19-3.76-.626-1.062-2.374-1.44-3.88-.84l-24.79 9.874c-1.507.606-2.927-.22-3.153-1.83L114.57 2.926C114.34 1.317 113.13 0 111.877 0c-1.247 0-2.456 1.317-2.68 2.925l-3.73 26.467c-.228 1.61-1.646 2.434-3.155 1.83l-24.38-9.71c-1.512-.602-3.975-.602-5.483 0l-24.384 9.71c-1.508.604-2.928-.22-3.154-1.83L41.186 2.925C40.956 1.317 39.748 0 38.5 0c-1.252 0-2.463 1.317-2.688 2.925l-3.73 26.467c-.226 1.61-1.645 2.434-3.153 1.83L4.14 21.35c-1.507-.603-3.252-.223-3.878.838-.625 1.066-.092 2.76 1.184 3.76l20.85 16.38c1.277 1.003 1.277 2.645 0 3.646L1.446 62.356C.166 63.358-.364 65.152.26 66.34c.627 1.19 2.372 1.668 3.877 1.064l24.567-9.866c1.51-.603 2.914.218 3.125 1.828l3.544 26.696c.214 1.607 1.618 2.923 3.12 2.923 1.5 0 2.905-1.315 3.12-2.923l3.55-26.696c.21-1.61 1.62-2.43 3.122-1.828l24.164 9.698c1.506.606 3.97.606 5.477 0l24.16-9.698c1.504-.603 2.91.218 3.125 1.828l3.55 26.696c.212 1.607 1.617 2.923 3.115 2.923 1.502 0 2.907-1.315 3.12-2.923l3.55-26.696c.216-1.61 1.62-2.43 3.124-1.828l24.57 9.866c1.5.604 3.25.125 3.876-1.063.627-1.186.094-2.98-1.185-3.982zM95.89 46.18L77.53 60.315c-1.285.99-3.393.99-4.674 0L54.49 46.18c-1.284-.99-1.294-2.62-.02-3.625l18.4-14.493c1.274-1.005 3.363-1.005 4.638 0l18.4 14.493c1.277 1.004 1.267 2.634-.02 3.626z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="40.27 42.30 155.81 155.81"><title>Affinity</title><path d="M112.908,165.979c-10.413,0 -17.037,-6.317 -17.037,-14.329c0,-34.287 90.164,-41.151 90.164,-77.563c0,-22.213 -25.731,-31.787 -58.577,-31.787c-19.98,0 -42.571,3.698 -63.552,10.315l0,43.438c30.919,-22.52 65.272,-32.16 87.4,-32.16c13.914,0 23.355,3.882 23.355,10.838c0,28.658 -124.353,24.117 -124.353,86.042c0,23.736 16.321,37.335 39.283,37.335c34.732,0 61.003,-33.753 80.657,-74.897l3.982,1.43c-10.351,25.143 -31.771,52.712 -35.943,70.434l44.715,0l0,-91.685l-10.327,0c-14.99,32.574 -36.957,62.59 -59.767,62.59"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Figma</title><path d="M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.014-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8.98zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117V8.981H8.148zM8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539zm-.024-7.51a3.023 3.023 0 0 0-3.019 3.019c0 1.665 1.365 3.019 3.044 3.019 1.705 0 3.093-1.376 3.093-3.068v-2.97H8.148zm7.704 0h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49zm-.097-7.509c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h.098c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-.098z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Cursor</title><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Claude</title><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Blender</title><path d="M12.51 13.214c.046-.8.438-1.506 1.03-2.006a3.424 3.424 0 0 1 2.212-.79c.85 0 1.631.3 2.211.79.592.5.983 1.206 1.028 2.005.045.823-.285 1.586-.865 2.153a3.389 3.389 0 0 1-2.374.938 3.393 3.393 0 0 1-2.376-.938c-.58-.567-.91-1.33-.865-2.152M7.35 14.831c.006.314.106.922.256 1.398a7.372 7.372 0 0 0 1.593 2.757 8.227 8.227 0 0 0 2.787 2.001 8.947 8.947 0 0 0 3.66.76 8.964 8.964 0 0 0 3.657-.772 8.285 8.285 0 0 0 2.785-2.01 7.428 7.428 0 0 0 1.592-2.762 6.964 6.964 0 0 0 .25-3.074 7.123 7.123 0 0 0-1.016-2.779 7.764 7.764 0 0 0-1.852-2.043h.002L13.566 2.55l-.02-.015c-.492-.378-1.319-.376-1.86.002-.547.382-.609 1.015-.123 1.415l-.001.001 3.126 2.543-9.53.01h-.013c-.788.001-1.545.518-1.695 1.172-.154.665.38 1.217 1.2 1.22V8.9l4.83-.01-8.62 6.617-.034.025c-.813.622-1.075 1.658-.563 2.313.52.667 1.625.668 2.447.004L7.414 14s-.069.52-.063.831zm12.09 1.741c-.97.988-2.326 1.548-3.795 1.55-1.47.004-2.827-.552-3.797-1.538a4.51 4.51 0 0 1-1.036-1.622 4.282 4.282 0 0 1 .282-3.519 4.702 4.702 0 0 1 1.153-1.371c.942-.768 2.141-1.183 3.396-1.185 1.256-.002 2.455.41 3.398 1.175.48.391.87.854 1.152 1.367a4.28 4.28 0 0 1 .522 1.706 4.236 4.236 0 0 1-.239 1.811 4.54 4.54 0 0 1-1.035 1.626"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>DaVinci Resolve</title><path d="M17.621 0 5.977.004c-1.37 0-2.756.345-3.762 1.11a4.925 4.925 0 0 0-1.61 2.003C.233 3.93 0 5.02 0 5.951l.012 12.2c.002 1.604.479 3.057 1.461 4.112.984 1.056 2.462 1.683 4.331 1.691L16.856 24c1.26.005 3.095-.036 4.303-.714 1.075-.605 2.025-1.556 2.497-2.984.278-.84.345-2.084.344-3.147l-.021-11.13c-.002-.888-.15-2.023-.547-2.934-.425-.976-1.181-1.815-2.322-2.425C20.353.26 19.123 0 17.622 0zm0 .93c1.378 0 2.538.295 3.04.565.977.523 1.544 1.166 1.889 1.96.315.721.47 1.793.473 2.572l.018 11.13c.002 1.013-.097 2.257-.298 2.86-.396 1.202-1.146 1.946-2.063 2.462-.814.457-2.612.593-3.82.588l-11.05-.044c-1.657-.007-2.832-.534-3.626-1.386-.792-.851-1.212-2.06-1.212-3.485L.999 5.95c0-.829.196-1.827.474-2.437.345-.757.75-1.207 1.365-1.674C3.585 1.27 4.868.97 6.08.97zm-5.66 3.423c-1.976.089-3.204 1.658-3.214 3.29.019 1.443 1.635 3.481 2.884 4.53.12.099.154.109.33.18.062.025.198-.047.327-.135.36-.245.993-.947 1.648-1.738a7.67 7.67 0 0 0 1.031-1.683c.409-.89.261-1.599.235-1.888a3.983 3.983 0 0 0-.99-1.692 3.36 3.36 0 0 0-2.251-.864zm4.172 7.922a10.185 10.185 0 0 0-3.244.61c-.15.058-.26.1-.374.17-.57.036-.11.135-.105.292.017.433.29 1.278.624 2.27.384 1.135 1.066 2.27 1.844 2.74a3.23 3.23 0 0 0 2.53.342c.832-.243 1.595-.868 1.962-1.546.986-1.818.19-3.548-1.121-4.417-.447-.296-1.133-.445-1.89-.46-.074 0-.15-.002-.226-.001zm-8.432.038a6.201 6.201 0 0 0-.752.047c-.596.078-.932.273-1.29.51a3.177 3.177 0 0 0-1.365 1.979c-.75.552-.086 1.053.033 1.507.433 1.389 1.326 2.222 2.847 2.452.636.028 1.37-.063 1.99-.45 1.269-.782 2.08-3.17 2.412-4.742.053-.176.035-.357-.013-.42-.005-.067-.044-.113-.19-.183-.398-.192-1.32-.417-2.375-.6a7.68 7.68 0 0 0-1.297-.1z"/></svg>
+        </div>
+      </div>
+      <div class="prose-block card reveal">
+        <p class="prose-caption">Languages</p>
+        <div class="tech-row">
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Python</title><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Rust</title><path d="M23.8346 11.7033l-1.0073-.6236a13.7268 13.7268 0 00-.0283-.2936l.8656-.8069a.3483.3483 0 00-.1154-.578l-1.1066-.414a8.4958 8.4958 0 00-.087-.2856l.6904-.9587a.3462.3462 0 00-.2257-.5446l-1.1663-.1894a9.3574 9.3574 0 00-.1407-.2622l.49-1.0761a.3437.3437 0 00-.0274-.3361.3486.3486 0 00-.3006-.154l-1.1845.0416a6.7444 6.7444 0 00-.1873-.2268l.2723-1.153a.3472.3472 0 00-.417-.4172l-1.1532.2724a14.0183 14.0183 0 00-.2278-.1873l.0415-1.1845a.3442.3442 0 00-.49-.328l-1.076.491c-.0872-.0476-.1742-.0952-.2623-.1407l-.1903-1.1673A.3483.3483 0 0016.256.955l-.9597.6905a8.4867 8.4867 0 00-.2855-.086l-.414-1.1066a.3483.3483 0 00-.5781-.1154l-.8069.8666a9.2936 9.2936 0 00-.2936-.0284L12.2946.1683a.3462.3462 0 00-.5892 0l-.6236 1.0073a13.7383 13.7383 0 00-.2936.0284L9.9803.3374a.3462.3462 0 00-.578.1154l-.4141 1.1065c-.0962.0274-.1903.0567-.2855.086L7.744.955a.3483.3483 0 00-.5447.2258L7.009 2.348a9.3574 9.3574 0 00-.2622.1407l-1.0762-.491a.3462.3462 0 00-.49.328l.0416 1.1845a7.9826 7.9826 0 00-.2278.1873L3.8413 3.425a.3472.3472 0 00-.4171.4171l.2713 1.1531c-.0628.075-.1255.1509-.1863.2268l-1.1845-.0415a.3462.3462 0 00-.328.49l.491 1.0761a9.167 9.167 0 00-.1407.2622l-1.1662.1894a.3483.3483 0 00-.2258.5446l.6904.9587a13.303 13.303 0 00-.087.2855l-1.1065.414a.3483.3483 0 00-.1155.5781l.8656.807a9.2936 9.2936 0 00-.0283.2935l-1.0073.6236a.3442.3442 0 000 .5892l1.0073.6236c.008.0982.0182.1964.0283.2936l-.8656.8079a.3462.3462 0 00.1155.578l1.1065.4141c.0273.0962.0567.1914.087.2855l-.6904.9587a.3452.3452 0 00.2268.5447l1.1662.1893c.0456.088.0922.1751.1408.2622l-.491 1.0762a.3462.3462 0 00.328.49l1.1834-.0415c.0618.0769.1235.1528.1873.2277l-.2713 1.1541a.3462.3462 0 00.4171.4161l1.153-.2713c.075.0638.151.1255.2279.1863l-.0415 1.1845a.3442.3442 0 00.49.327l1.0761-.49c.087.0486.1741.0951.2622.1407l.1903 1.1662a.3483.3483 0 00.5447.2268l.9587-.6904a9.299 9.299 0 00.2855.087l.414 1.1066a.3452.3452 0 00.5781.1154l.8079-.8656c.0972.0111.1954.0203.2936.0294l.6236 1.0073a.3472.3472 0 00.5892 0l.6236-1.0073c.0982-.0091.1964-.0183.2936-.0294l.8069.8656a.3483.3483 0 00.578-.1154l.4141-1.1066a8.4626 8.4626 0 00.2855-.087l.9587.6904a.3452.3452 0 00.5447-.2268l.1903-1.1662c.088-.0456.1751-.0931.2622-.1407l1.0762.49a.3472.3472 0 00.49-.327l-.0415-1.1845a6.7267 6.7267 0 00.2267-.1863l1.1531.2713a.3472.3472 0 00.4171-.416l-.2713-1.1542c.0628-.0749.1255-.1508.1863-.2278l1.1845.0415a.3442.3442 0 00.328-.49l-.49-1.076c.0475-.0872.0951-.1742.1407-.2623l1.1662-.1893a.3483.3483 0 00.2258-.5447l-.6904-.9587.087-.2855 1.1066-.414a.3462.3462 0 00.1154-.5781l-.8656-.8079c.0101-.0972.0202-.1954.0283-.2936l1.0073-.6236a.3442.3442 0 000-.5892zm-6.7413 8.3551a.7138.7138 0 01.2986-1.396.714.714 0 11-.2997 1.396zm-.3422-2.3142a.649.649 0 00-.7715.5l-.3573 1.6685c-1.1035.501-2.3285.7795-3.6193.7795a8.7368 8.7368 0 01-3.6951-.814l-.3574-1.6684a.648.648 0 00-.7714-.499l-1.473.3158a8.7216 8.7216 0 01-.7613-.898h7.1676c.081 0 .1356-.0141.1356-.088v-2.536c0-.074-.0536-.0881-.1356-.0881h-2.0966v-1.6077h2.2677c.2065 0 1.1065.0587 1.394 1.2088.0901.3533.2875 1.5044.4232 1.8729.1346.413.6833 1.2381 1.2685 1.2381h3.5716a.7492.7492 0 00.1296-.0131 8.7874 8.7874 0 01-.8119.9526zM6.8369 20.024a.714.714 0 11-.2997-1.396.714.714 0 01.2997 1.396zM4.1177 8.9972a.7137.7137 0 11-1.304.5791.7137.7137 0 011.304-.579zm-.8352 1.9813l1.5347-.6824a.65.65 0 00.33-.8585l-.3158-.7147h1.2432v5.6025H3.5669a8.7753 8.7753 0 01-.2834-3.348zm6.7343-.5437V8.7836h2.9601c.153 0 1.0792.1772 1.0792.8697 0 .575-.7107.7815-1.2948.7815zm10.7574 1.4862c0 .2187-.008.4363-.0243.651h-.9c-.09 0-.1265.0586-.1265.1477v.413c0 .973-.5487 1.1846-1.0296 1.2382-.4576.0517-.9648-.1913-1.0275-.4717-.2704-1.5186-.7198-1.8436-1.4305-2.4034.8817-.5599 1.799-1.386 1.799-2.4915 0-1.1936-.819-1.9458-1.3769-2.3153-.7825-.5163-1.6491-.6195-1.883-.6195H5.4682a8.7651 8.7651 0 014.907-2.7699l1.0974 1.151a.648.648 0 00.9182.0213l1.227-1.1743a8.7753 8.7753 0 016.0044 4.2762l-.8403 1.8982a.652.652 0 00.33.8585l1.6178.7188c.0283.2875.0425.577.0425.8717zm-9.3006-9.5993a.7128.7128 0 11.984 1.0316.7137.7137 0 01-.984-1.0316zm8.3389 6.71a.7107.7107 0 01.9395-.3625.7137.7137 0 11-.9405.3635z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>HTML</title><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>CSS</title><path d="M0 0v20.16A3.84 3.84 0 0 0 3.84 24h16.32A3.84 3.84 0 0 0 24 20.16V3.84A3.84 3.84 0 0 0 20.16 0Zm14.256 13.08c1.56 0 2.28 1.08 2.304 2.64h-1.608c.024-.288-.048-.6-.144-.84-.096-.192-.288-.264-.552-.264-.456 0-.696.264-.696.84-.024.576.288.888.768 1.08.72.288 1.608.744 1.92 1.296q.432.648.432 1.656c0 1.608-.912 2.592-2.496 2.592-1.656 0-2.4-1.032-2.424-2.688h1.68c0 .792.264 1.176.792 1.176.264 0 .456-.072.552-.24.192-.312.24-1.176-.048-1.512-.312-.408-.912-.6-1.32-.816q-.828-.396-1.224-.936c-.24-.36-.36-.888-.36-1.536 0-1.44.936-2.472 2.424-2.448m5.4 0c1.584 0 2.304 1.08 2.328 2.64h-1.608c0-.288-.048-.6-.168-.84-.096-.192-.264-.264-.528-.264-.48 0-.72.264-.72.84s.288.888.792 1.08c.696.288 1.608.744 1.92 1.296.264.432.408.984.408 1.656.024 1.608-.888 2.592-2.472 2.592-1.68 0-2.424-1.056-2.448-2.688h1.68c0 .744.264 1.176.792 1.176.264 0 .456-.072.552-.24.216-.312.264-1.176-.048-1.512-.288-.408-.888-.6-1.32-.816-.552-.264-.96-.576-1.2-.936s-.36-.888-.36-1.536c-.024-1.44.912-2.472 2.4-2.448m-11.031.018c.711-.006 1.419.198 1.839.63.432.432.672 1.128.648 1.992H9.336c.024-.456-.096-.792-.432-.96-.312-.144-.768-.048-.888.24-.12.264-.192.576-.168.864v3.504c0 .744.264 1.128.768 1.128a.65.65 0 0 0 .552-.264c.168-.24.192-.552.168-.84h1.776c.096 1.632-.984 2.712-2.568 2.688-1.536 0-2.496-.864-2.472-2.472v-4.032c0-.816.24-1.44.696-1.848.432-.408 1.146-.624 1.857-.63"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>JavaScript</title><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.888-2.015-3.003-2.873-.736-.345-1.554-.585-1.797-1.14-.091-.33-.105-.51-.046-.705.15-.646.915-.84 1.515-.66.39.12.75.42.976.9 1.034-.676 1.034-.676 1.755-1.125-.27-.42-.404-.601-.586-.78-.63-.705-1.469-1.065-2.834-1.034l-.705.089c-.676.165-1.32.525-1.71 1.005-1.14 1.291-.811 3.541.569 4.471 1.365 1.02 3.361 1.244 3.616 2.205.24 1.17-.87 1.545-1.966 1.41-.811-.18-1.26-.586-1.755-1.336l-1.83 1.051c.21.48.45.689.81 1.109 1.74 1.756 6.09 1.666 6.871-1.004.029-.09.24-.705.074-1.65l.046.067zm-8.983-7.245h-2.248c0 1.938-.009 3.864-.009 5.805 0 1.232.063 2.363-.138 2.711-.33.689-1.18.601-1.566.48-.396-.196-.597-.466-.83-.855-.063-.105-.11-.196-.127-.196l-1.825 1.125c.305.63.75 1.172 1.324 1.517.855.51 2.004.675 3.207.405.783-.226 1.458-.691 1.811-1.411.51-.93.402-2.07.397-3.346.012-2.054 0-4.109 0-6.179l.004-.056z"/></svg>
+          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>SQL</title><path d="M12 1.5c-4.28 0-7.75 1.34-7.75 3v15c0 1.66 3.47 3 7.75 3s7.75-1.34 7.75-3v-15c0-1.66-3.47-3-7.75-3zm0 1.5c3.73 0 6.25 1.1 6.25 1.5S15.73 6 12 6 5.75 4.9 5.75 4.5 8.27 3 12 3zm6.25 16.5c0 .4-2.52 1.5-6.25 1.5s-6.25-1.1-6.25-1.5v-2.72c1.4.76 3.68 1.22 6.25 1.22s4.85-.46 6.25-1.22zm0-5c0 .4-2.52 1.5-6.25 1.5s-6.25-1.1-6.25-1.5v-2.72c1.4.76 3.68 1.22 6.25 1.22s4.85-.46 6.25-1.22zm0-5c0 .4-2.52 1.5-6.25 1.5S5.75 9.9 5.75 9.5V6.78C7.15 7.54 9.43 8 12 8s4.85-.46 6.25-1.22z"/></svg>
+        </div>
+      </div>
+      <div class="prose-block card reveal">
+        <p class="prose-caption">Notable Happenings</p>
+        <ul class="note-list">
+          <li>Attended AI Summit Extensive at CMU</li>
+          <li>Currently brought on to help redesign Canvas LMS</li>
+        </ul>
+      </div>
+      <div class="prose-block reveal">
+        <p class="prose">If you have a spare 15 min — I’d be more than willing
+          to meet with you and share some insight on your current UI/projects.</p>
+        <p class="prose">Reach out to me if you want to talk!</p>
+        <p class="prose">
+          <!-- The arrow sits inside the anchor, with no space before it, so it
+               can never wrap onto a line of its own away from the word it
+               belongs to. Decorative: "opens in a new tab" is already said in
+               the label, and the mark is the visual half of that. -->
+          <a class="contact-val" href="https://www.linkedin.com/in/dante-smith-/"
+             target="_blank" rel="noopener noreferrer"
+             aria-label="LinkedIn (opens in a new tab)">LinkedIn<svg class="link-out" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M3.5 8.5 8.5 3.5M4.25 3.5h4.25v4.25" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></a><br>
+          Email: <a class="contact-val" href="mailto:dantesmith@weber.edu">dantesmith@weber.edu</a>
+        </p>
+      </div>
+    </aside>
 
-  <!-- The trail used to live inside the home page. It is the landing
-       screen's texture now, so it sits behind everything and recedes once a
-       section is open. -->
-  <div class="pixel-trail" id="pixel-trail" aria-hidden="true"></div>
-
-  <header class="topbar">
-    <button class="brand" type="button" id="home-link">Dante Smith</button>
-    <nav class="nav" aria-label="Sections">
-      <!-- the pill is measured off the buttons at runtime, so it never has to
-           be kept in sync with their widths by hand -->
-      <span class="nav-pill" id="nav-pill" aria-hidden="true"></span>
-      <button class="nav-link" type="button" data-view="work" aria-current="false">Work</button>
-      <button class="nav-link" type="button" data-view="about" aria-current="false">About</button>
-      <button class="nav-link" type="button" data-view="contact" aria-current="false">Contact</button>
-    </nav>
-  </header>
-
-  <!-- broken at the sentence, not to square off the block: the claim on one
-       line, the qualification on the next -->
-  <p class="lede">18yo Modern AI Designer<br>Leveraging the future, without losing taste.</p>
-
-  <main class="stage">
-    <section class="pane" data-view="work" tabindex="-1" aria-label="Work">
-      <div class="work-grid work-grid--cluster">
+    <section class="work" aria-label="Work">
+      <div class="work-grid--cluster">
       <!-- Columns, not grid rows. In a grid every card in a row is pushed down
            by the tallest one in it, so a landscape card like Vantage left a
            void under itself and the next row began below that — the fifth card
@@ -57,31 +170,56 @@
            Adding a piece: drop it into whichever column is shortest. -->
       <div class="work-col reveal">
         <!-- Locked: the piece is not being shown yet, so the card says why
-             instead of opening onto it. data-locked is the whole switch — the
-             script skips it when wiring the openers and when building the
-             switcher, so there is no route into a detail view for it. -->
-        <figure class="work-card work-card--vantage reveal" data-locked>
-          <img src="images/vantage.webp" alt="" loading="lazy">
-          <figcaption class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></figcaption>
+             on its back instead of going anywhere, which is every card here
+             but Weave. The .work-open button over it deliberately does
+             nothing; only [data-external] carries a destination. -->
+        <!-- No loading="lazy" on any card here, deliberately. The page is one
+             screen with no scroll, so all eight are in the viewport at load;
+             lazy would only take them out of the preload scanner's reach and
+             make them wait on layout. -->
+        <figure class="work-card work-card--vantage reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it.">
+              <div class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Vantage</span>
+              <p class="work-back-text">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
+            </div>
+          </div>
           <button class="work-open" type="button" aria-describedby="tip-vantage"
                   aria-label="Vantage — upcoming, not yet shown"></button>
-          <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a secret new fencing event software</span>
+          <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</span>
         </figure>
         <!-- Fifth card, so the first of the second row. -->
-        <figure class="work-card work-card--lyric reveal" data-locked>
-          <img src="images/jacks-poster.webp" alt="" loading="lazy">
-          <figcaption class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></figcaption>
+        <figure class="work-card work-card--sheet reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/jacks-mannequin-poster.webp" alt="Lyric poster in tall condensed black caps on off-white: “Just think of all the thoughts wasted on you”, with the Jack’s Mannequin logo in a blue box beneath.">
+              <div class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Jack’s Mannequin</span>
+              <p class="work-back-text">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</p>
+            </div>
+          </div>
           <button class="work-open" type="button" aria-describedby="tip-jacks"
-                  aria-label="Jack’s Mannequin — custom made lyric poster"></button>
-          <span class="work-tip" role="tooltip" id="tip-jacks">Custom made poster — lyrics set by hand.</span>
+                  aria-label="Jack’s Mannequin — lyric poster"></button>
+          <span class="work-tip" role="tooltip" id="tip-jacks">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</span>
         </figure>
       </div>
       <div class="work-col reveal">
-        <!-- Goes out to the live demo rather than into a detail view. Its shots
-             stay in EXTRA_SHOTS below: drop data-external and swap the anchor
-             back for a button and the six-shot view returns. -->
+        <!-- The one card that goes somewhere: an anchor, not a button, so
+             middle-click and copy-address work. data-external marks it, and it
+             does not flip — a card that leaves the page should show what you
+             are clicking, not turn over. -->
         <figure class="work-card reveal" data-external>
-          <img src="images/results.jpg" alt="" loading="lazy">
+          <img src="images/weave-cover.webp" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field.">
           <!-- The client's own mark, centred on the cover. Inline rather than an
                <img src>: one fewer request, and it inherits currentColor so it
                cannot fall out of step with the page's foreground. Decorative —
@@ -100,607 +238,167 @@
              aria-label="Weave — open the live demo (opens in a new tab)"></a>
           <span class="work-tip" role="tooltip" id="tip-weave">Click to go to the demo site</span>
         </figure>
-        <figure class="work-card work-card--shirt reveal" data-locked>
-          <img src="images/call-my-bluff.webp" alt="" loading="lazy">
-          <figcaption class="work-overlay"><span class="work-title work-title--fuuld">Call My Bluff</span></figcaption>
+        <figure class="work-card work-card--shirt reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/call-my-bluff-shirt.webp" alt="Call My Bluff apparel draft: a black shirt laid over a white stucco wall, printed on the diagonal in red serif caps with “Call My Bluff” and a toll-free number.">
+              <div class="work-overlay"><span class="work-title work-title--fuuld">Call My Bluff</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Call My Bluff</span>
+              <p class="work-back-text">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
+            </div>
+          </div>
           <button class="work-open" type="button" aria-describedby="tip-bluff"
                   aria-label="Call My Bluff — garment print mockup"></button>
-          <span class="work-tip" role="tooltip" id="tip-bluff">Garment print mockup — red serif, one phone number, no explanation.</span>
+          <span class="work-tip" role="tooltip" id="tip-bluff">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</span>
         </figure>
       </div>
       <div class="work-col reveal">
         <!-- A piece, not a case study: one image and its name, so it is locked
-             like Vantage — the tip carries what there is to say and there is no
-             detail view behind it to open onto. -->
-        <figure class="work-card work-card--tall reveal" data-locked>
-          <img src="images/inconvenience.webp" alt="" loading="lazy">
-          <figcaption class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></figcaption>
+             like Vantage and the back carries what there is to say. -->
+        <figure class="work-card work-card--tall reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/inconvenience-sign.webp" alt="Inconvenience: a blue and white parking-lot sign on a steel pole against clear sky, numbered 04 above the single word “Inconvenience”.">
+              <div class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Inconvenience</span>
+              <p class="work-back-text">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</p>
+            </div>
+          </div>
           <button class="work-open" type="button" aria-describedby="tip-inconvenience"
                   aria-label="Inconvenience — existential parking lot mockup"></button>
-          <span class="work-tip" role="tooltip" id="tip-inconvenience">Existential parking lot mockup.</span>
+          <span class="work-tip" role="tooltip" id="tip-inconvenience">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</span>
+        </figure>
+        <!-- Same sheet size as Jack's, which is why they share a class rather
+             than each stating 1055x1491 for itself. -->
+        <figure class="work-card work-card--sheet reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/find-collect-repeat-poster.webp" alt="Find Collect Repeat poster for Are.na: a white eight-pointed star over blurred green and blue flowers, with “FIND” in heavy rounded letters along the foot and “collect” and “repeat” stacked at the corner.">
+              <div class="work-overlay"><span class="work-title work-title--carbon">Find Collect Repeat</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Find Collect Repeat</span>
+              <p class="work-back-text">Are.na poster I whipped up in my spare time.</p>
+            </div>
+          </div>
+          <button class="work-open" type="button" aria-describedby="tip-find"
+                  aria-label="Find Collect Repeat — poster"></button>
+          <span class="work-tip" role="tooltip" id="tip-find">Are.na poster I whipped up in my spare time.</span>
         </figure>
       </div>
       <div class="work-col reveal">
         <!-- The poster for the lab's open sessions. Locked like the others in
              the cluster: it is the piece, not a cover over one. -->
-        <figure class="work-card work-card--poster reveal" data-locked>
-          <img src="images/wsu-lab.webp" alt="" loading="lazy">
-          <figcaption class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></figcaption>
+        <figure class="work-card work-card--poster reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot.">
+              <div class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">WSU AI Lab</span>
+              <p class="work-back-text">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
+            </div>
+          </div>
           <button class="work-open" type="button" aria-describedby="tip-wsu"
                   aria-label="WSU AI Lab — poster for the lab's Thursday build sessions"></button>
-          <span class="work-tip" role="tooltip" id="tip-wsu">Recruiting poster — local problems in, student builds out, every Thursday.</span>
+          <span class="work-tip" role="tooltip" id="tip-wsu">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</span>
+        </figure>
+        <!-- Third piece on the same 1055x1491 sheet as Jack's and Find Collect
+             Repeat, hence the shared class. -->
+        <figure class="work-card work-card--sheet reveal">
+          <div class="work-flip">
+            <div class="work-face work-face--front">
+              <img src="images/filey-poster.webp" alt="Filey poster: the name in a wide monospace over a red form smeared into grey by motion blur, above the line “All of your files. On the go.”">
+              <div class="work-overlay"><span class="work-title work-title--carbon">Filey</span></div>
+            </div>
+            <!-- Says what the description already says, so it is hidden from
+                 assistive tech rather than read out a second time. -->
+            <div class="work-face work-face--back" aria-hidden="true">
+              <span class="work-back-title">Filey</span>
+              <p class="work-back-text">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</p>
+            </div>
+          </div>
+          <button class="work-open" type="button" aria-describedby="tip-filey"
+                  aria-label="Filey — poster"></button>
+          <span class="work-tip" role="tooltip" id="tip-filey">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</span>
         </figure>
       </div>
 
-      <!-- ==================================================================
-           PARKED — not deleted. Four pieces held back until they are shot out
-           the way Vantage and Weave are; showing a finished pair beats showing
-           six where four open onto a single cover image.
-
-           To bring one back: move its <figure> above this comment. Nothing
-           else needs touching — EXTRA_SHOTS is keyed by the piece's name, not
-           by its position in the grid, and the switcher and the strip are both
-           built from whatever cards are present at load. Their images are all
-           still in images/.
-           ================================================================== -->
-      <!--
-      <figure class="work-card reveal">
-        <img src="images/anotherone.jpg" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--neutron">Citri Software</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open Citri Software"></button>
-      </figure>
-      <figure class="work-card reveal">
-        <img src="images/moreflowers.webp" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open WSU AI Lab"></button>
-      </figure>
-      <figure class="work-card reveal">
-        <img src="images/yeha.jpg" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--syne-mono">Typography Posters</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open Typography Posters"></button>
-      </figure>
-      <figure class="work-card reveal">
-        <img src="images/yesss.webp" alt="" loading="lazy">
-        <figcaption class="work-overlay"><span class="work-title work-title--carbon">Filey</span></figcaption>
-        <button class="work-open" type="button" aria-label="Open Filey"></button>
-      </figure>
-      -->
-      </div>
-
-      <!-- The same section, in its other state. Not a dialog: work is the
-           page's actual content, so opening a piece should be somewhere you
-           ARE, not a layer over where you were. -->
-      <div class="work-detail" id="work-detail">
-        <button class="work-back" type="button" id="work-back">&larr;&nbsp; All work</button>
-        <div class="detail-body">
-          <div class="detail-main">
-            <!-- the shot at full size. Built by script off the project's shot
-                 list rather than written in, so how many the column shows is
-                 one constant and not a markup change. -->
-            <div class="detail-stack" id="detail-stack"></div>
-            <!-- six slots: the first holds the real image, the rest wait for
-                 more shots per project. Built by script, so adding them is
-                 data rather than markup. -->
-            <div class="detail-thumbs" id="detail-thumbs"></div>
-          </div>
-          <div class="detail-side">
-            <h2 class="detail-heading"><span id="detail-title"></span></h2>
-            <!-- TODO(dante): a paragraph or two per project goes here. -->
-            <p class="prose detail-note">Room for a write-up — what the project
-              was, what you made, what you'd point at. Send me the copy and it
-              slots in per project.</p>
-            <nav class="detail-switch" id="detail-switch" aria-label="Switch project"></nav>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="pane pane--prose" data-view="about" tabindex="-1" aria-label="About">
-      <div class="prose-block reveal">
-        <p class="prose">Hi, I’d repeat my name again, but I think you already
-          know it by now. Anyways, I’m currently working on my Bachelors of
-          Management Info Systems.</p>
-        <p class="prose">On the side I love to do Typography and Web (UI/UX)
-          Design! But… I do it a bit different. I’ll gather inspo, have ideas,
-          draw wireframes, design everything with my own mind, and have AI
-          solidify it together.</p>
-        <p class="prose">Oh, and don’t worry, I understand the code, but now I
-          have more time to focus on my craft.</p>
-      </div>
-      <div class="prose-block reveal">
-        <p class="prose-caption">Tools</p>
-        <div class="tech-row">
-          <svg class="tech-icon tech-icon--wide" role="img" viewBox="0 0 150.38 88.986"><title>Are.na</title><path d="M148.93 62.356l-20.847-16.384c-1.276-1-1.276-2.642 0-3.645l20.848-16.38c1.28-1.002 1.815-2.695 1.19-3.76-.626-1.062-2.374-1.44-3.88-.84l-24.79 9.874c-1.507.606-2.927-.22-3.153-1.83L114.57 2.926C114.34 1.317 113.13 0 111.877 0c-1.247 0-2.456 1.317-2.68 2.925l-3.73 26.467c-.228 1.61-1.646 2.434-3.155 1.83l-24.38-9.71c-1.512-.602-3.975-.602-5.483 0l-24.384 9.71c-1.508.604-2.928-.22-3.154-1.83L41.186 2.925C40.956 1.317 39.748 0 38.5 0c-1.252 0-2.463 1.317-2.688 2.925l-3.73 26.467c-.226 1.61-1.645 2.434-3.153 1.83L4.14 21.35c-1.507-.603-3.252-.223-3.878.838-.625 1.066-.092 2.76 1.184 3.76l20.85 16.38c1.277 1.003 1.277 2.645 0 3.646L1.446 62.356C.166 63.358-.364 65.152.26 66.34c.627 1.19 2.372 1.668 3.877 1.064l24.567-9.866c1.51-.603 2.914.218 3.125 1.828l3.544 26.696c.214 1.607 1.618 2.923 3.12 2.923 1.5 0 2.905-1.315 3.12-2.923l3.55-26.696c.21-1.61 1.62-2.43 3.122-1.828l24.164 9.698c1.506.606 3.97.606 5.477 0l24.16-9.698c1.504-.603 2.91.218 3.125 1.828l3.55 26.696c.212 1.607 1.617 2.923 3.115 2.923 1.502 0 2.907-1.315 3.12-2.923l3.55-26.696c.216-1.61 1.62-2.43 3.124-1.828l24.57 9.866c1.5.604 3.25.125 3.876-1.063.627-1.186.094-2.98-1.185-3.982zM95.89 46.18L77.53 60.315c-1.285.99-3.393.99-4.674 0L54.49 46.18c-1.284-.99-1.294-2.62-.02-3.625l18.4-14.493c1.274-1.005 3.363-1.005 4.638 0l18.4 14.493c1.277 1.004 1.267 2.634-.02 3.626z"/></svg>
-          <svg class="tech-icon" role="img" viewBox="40.27 42.30 155.81 155.81"><title>Affinity</title><path d="M112.908,165.979c-10.413,0 -17.037,-6.317 -17.037,-14.329c0,-34.287 90.164,-41.151 90.164,-77.563c0,-22.213 -25.731,-31.787 -58.577,-31.787c-19.98,0 -42.571,3.698 -63.552,10.315l0,43.438c30.919,-22.52 65.272,-32.16 87.4,-32.16c13.914,0 23.355,3.882 23.355,10.838c0,28.658 -124.353,24.117 -124.353,86.042c0,23.736 16.321,37.335 39.283,37.335c34.732,0 61.003,-33.753 80.657,-74.897l3.982,1.43c-10.351,25.143 -31.771,52.712 -35.943,70.434l44.715,0l0,-91.685l-10.327,0c-14.99,32.574 -36.957,62.59 -59.767,62.59"/></svg>
-          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Figma</title><path d="M15.852 8.981h-4.588V0h4.588c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.491-4.49 4.491zM12.735 7.51h3.117c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-3.117V7.51zm0 1.471H8.148c-2.476 0-4.49-2.014-4.49-4.49S5.672 0 8.148 0h4.588v8.981zm-4.587-7.51c-1.665 0-3.019 1.355-3.019 3.019s1.354 3.02 3.019 3.02h3.117V1.471H8.148zm4.587 15.019H8.148c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h4.588v8.98zM8.148 8.981c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h3.117V8.981H8.148zM8.172 24c-2.489 0-4.515-2.014-4.515-4.49s2.014-4.49 4.49-4.49h4.588v4.441c0 2.503-2.047 4.539-4.563 4.539zm-.024-7.51a3.023 3.023 0 0 0-3.019 3.019c0 1.665 1.365 3.019 3.044 3.019 1.705 0 3.093-1.376 3.093-3.068v-2.97H8.148zm7.704 0h-.098c-2.476 0-4.49-2.014-4.49-4.49s2.014-4.49 4.49-4.49h.098c2.476 0 4.49 2.014 4.49 4.49s-2.014 4.49-4.49 4.49zm-.097-7.509c-1.665 0-3.019 1.355-3.019 3.019s1.355 3.019 3.019 3.019h.098c1.665 0 3.019-1.355 3.019-3.019s-1.355-3.019-3.019-3.019h-.098z"/></svg>
-          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Cursor</title><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>
-          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Claude</title><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
-          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>Blender</title><path d="M12.51 13.214c.046-.8.438-1.506 1.03-2.006a3.424 3.424 0 0 1 2.212-.79c.85 0 1.631.3 2.211.79.592.5.983 1.206 1.028 2.005.045.823-.285 1.586-.865 2.153a3.389 3.389 0 0 1-2.374.938 3.393 3.393 0 0 1-2.376-.938c-.58-.567-.91-1.33-.865-2.152M7.35 14.831c.006.314.106.922.256 1.398a7.372 7.372 0 0 0 1.593 2.757 8.227 8.227 0 0 0 2.787 2.001 8.947 8.947 0 0 0 3.66.76 8.964 8.964 0 0 0 3.657-.772 8.285 8.285 0 0 0 2.785-2.01 7.428 7.428 0 0 0 1.592-2.762 6.964 6.964 0 0 0 .25-3.074 7.123 7.123 0 0 0-1.016-2.779 7.764 7.764 0 0 0-1.852-2.043h.002L13.566 2.55l-.02-.015c-.492-.378-1.319-.376-1.86.002-.547.382-.609 1.015-.123 1.415l-.001.001 3.126 2.543-9.53.01h-.013c-.788.001-1.545.518-1.695 1.172-.154.665.38 1.217 1.2 1.22V8.9l4.83-.01-8.62 6.617-.034.025c-.813.622-1.075 1.658-.563 2.313.52.667 1.625.668 2.447.004L7.414 14s-.069.52-.063.831zm12.09 1.741c-.97.988-2.326 1.548-3.795 1.55-1.47.004-2.827-.552-3.797-1.538a4.51 4.51 0 0 1-1.036-1.622 4.282 4.282 0 0 1 .282-3.519 4.702 4.702 0 0 1 1.153-1.371c.942-.768 2.141-1.183 3.396-1.185 1.256-.002 2.455.41 3.398 1.175.48.391.87.854 1.152 1.367a4.28 4.28 0 0 1 .522 1.706 4.236 4.236 0 0 1-.239 1.811 4.54 4.54 0 0 1-1.035 1.626"/></svg>
-          <svg class="tech-icon" role="img" viewBox="0 0 24 24"><title>DaVinci Resolve</title><path d="M17.621 0 5.977.004c-1.37 0-2.756.345-3.762 1.11a4.925 4.925 0 0 0-1.61 2.003C.233 3.93 0 5.02 0 5.951l.012 12.2c.002 1.604.479 3.057 1.461 4.112.984 1.056 2.462 1.683 4.331 1.691L16.856 24c1.26.005 3.095-.036 4.303-.714 1.075-.605 2.025-1.556 2.497-2.984.278-.84.345-2.084.344-3.147l-.021-11.13c-.002-.888-.15-2.023-.547-2.934-.425-.976-1.181-1.815-2.322-2.425C20.353.26 19.123 0 17.622 0zm0 .93c1.378 0 2.538.295 3.04.565.977.523 1.544 1.166 1.889 1.96.315.721.47 1.793.473 2.572l.018 11.13c.002 1.013-.097 2.257-.298 2.86-.396 1.202-1.146 1.946-2.063 2.462-.814.457-2.612.593-3.82.588l-11.05-.044c-1.657-.007-2.832-.534-3.626-1.386-.792-.851-1.212-2.06-1.212-3.485L.999 5.95c0-.829.196-1.827.474-2.437.345-.757.75-1.207 1.365-1.674C3.585 1.27 4.868.97 6.08.97zm-5.66 3.423c-1.976.089-3.204 1.658-3.214 3.29.019 1.443 1.635 3.481 2.884 4.53.12.099.154.109.33.18.062.025.198-.047.327-.135.36-.245.993-.947 1.648-1.738a7.67 7.67 0 0 0 1.031-1.683c.409-.89.261-1.599.235-1.888a3.983 3.983 0 0 0-.99-1.692 3.36 3.36 0 0 0-2.251-.864zm4.172 7.922a10.185 10.185 0 0 0-3.244.61c-.15.058-.26.1-.374.17-.57.036-.11.135-.105.292.017.433.29 1.278.624 2.27.384 1.135 1.066 2.27 1.844 2.74a3.23 3.23 0 0 0 2.53.342c.832-.243 1.595-.868 1.962-1.546.986-1.818.19-3.548-1.121-4.417-.447-.296-1.133-.445-1.89-.46-.074 0-.15-.002-.226-.001zm-8.432.038a6.201 6.201 0 0 0-.752.047c-.596.078-.932.273-1.29.51a3.177 3.177 0 0 0-1.365 1.979c-.75.552-.086 1.053.033 1.507.433 1.389 1.326 2.222 2.847 2.452.636.028 1.37-.063 1.99-.45 1.269-.782 2.08-3.17 2.412-4.742.053-.176.035-.357-.013-.42-.005-.067-.044-.113-.19-.183-.398-.192-1.32-.417-2.375-.6a7.68 7.68 0 0 0-1.297-.1z"/></svg>
-        </div>
-      </div>
-    </section>
-
-    <section class="pane pane--prose" data-view="contact" tabindex="-1" aria-label="Contact">
-      <div class="prose-block reveal">
-        <p class="prose">Reach out to me if you want to talk.</p>
-        <p class="prose">
-          <a class="contact-val" href="https://www.linkedin.com/in/dante-smith-/"
-             target="_blank" rel="noopener noreferrer">LinkedIn</a><br>
-          Email: <a class="contact-val" href="mailto:dantesmith@weber.edu">dantesmith@weber.edu</a>
-        </p>
       </div>
     </section>
   </main>
 
-  <!-- Anchored to the bottom and running off the right edge on purpose.
-       19vw at -0.03em tracking measures 103% of the viewport for this exact
-       string, which is where the bleed comes from — it is not an overflow
-       accident, and it needs re-measuring if the name ever changes. -->
-  <div class="wordmark" aria-hidden="true">Dante Smith</div>
+  <!-- A real band at the foot of the page, not a corner. The paddle plays in
+       the empty part of it, which is how the bar is kept off the cards: nothing
+       in .page reaches this far down. The row of text sits under the paddle,
+       in the strip a live ball can never enter. -->
+  <footer class="footer">
+    <p class="score" id="score" aria-hidden="true"></p>
+    <button class="play" id="play" type="button">Click to Play</button>
+  </footer>
 
-  <script>
-    /* Nav. One class on <body> plus one active pane — the void in the middle
-       is where a section lands, and the wordmark stays put underneath it. */
-    (function () {
-      const links = Array.from(document.querySelectorAll('.nav-link'));
-      const panes = Array.from(document.querySelectorAll('.pane'));
-      if (!links.length) return;
-      let openView = null;
-      let movePillRef = null;
 
-      function select(view) {
-        openView = view;
-        document.body.classList.toggle('is-open', view !== null);
-        links.forEach((l) => l.setAttribute('aria-current', String(l.dataset.view === view)));
-        panes.forEach((p) => p.classList.toggle('is-active', p.dataset.view === view));
-        if (movePillRef) movePillRef();
-        if (!view) return;
-        const pane = panes.find((p) => p.dataset.view === view);
-        if (pane) pane.focus({ preventScroll: true });
-      }
+  <!-- The four faces the name can show. They live in the markup rather than
+       being built from a list in the script so the copy can be edited here,
+       next to everything else that is written on this page. All four images
+       are in the document from the start, which is what makes the swap
+       instant — a face that had to load on hover would flash its frame empty.
+       The copy is final. -->
+  <div class="name-card" id="name-card" aria-hidden="true">
+    <figure class="name-card-face" data-name-card="imac-g3">
+      <img src="images/imac-g3.webp" alt="" decoding="async">
+      <figcaption>
+        <span class="name-card-title">iMac G3</span>
+        <p class="name-card-text">One of these days I’d like to get mine in blue &mdash; possibly even upgrade it internally to run a Mac mini!</p>
+      </figcaption>
+    </figure>
+    <figure class="name-card-face" data-name-card="bmth-amo">
+      <img src="images/bmth-amo.webp" alt="" decoding="async">
+      <figcaption>
+        <span class="name-card-title">amo — Bring Me The Horizon</span>
+        <p class="name-card-text">One of my favorite albums honestly &mdash; nothing like it on a Friday!</p>
+      </figcaption>
+    </figure>
+    <figure class="name-card-face" data-name-card="cezanne">
+      <img src="images/cezanne-still-life.webp" alt="" decoding="async">
+      <figcaption>
+        <span class="name-card-title">The Basket of Apples — Cézanne</span>
+        <p class="name-card-text">One of my favorite artists &mdash; something about the specifics of still life he captures well!</p>
+      </figcaption>
+    </figure>
+    <figure class="name-card-face" data-name-card="one-tree-hill">
+      <img src="images/one-tree-hill.webp" alt="" decoding="async">
+      <figcaption>
+        <span class="name-card-title">One Tree Hill</span>
+        <p class="name-card-text">Favorite TV show, hands down. Man, they don’t make ’em like they used to.</p>
+      </figcaption>
+    </figure>
+  </div>
 
-      links.forEach((l) => l.addEventListener('click', () => select(l.dataset.view)));
+  <!-- The board is drawn here; the bricks are not. Those are the real cards
+       and the real copy, read off the page with getBoundingClientRect. -->
+  <canvas class="pong" id="pong" aria-hidden="true"></canvas>
+  <!-- Shown once every brick is down. Nothing to collect; the joke is the
+       reward. -->
+  <div class="prize" id="prize">
+    <p class="prize-line">I&rsquo;d give you a prize if I had one&hellip;</p>
+  </div>
 
-      /* Pill. Measured from the live buttons rather than hard-coded, because
-         their widths depend on a webfont that arrives after first paint —
-         hence the fonts.ready pass, without which it lands on Inter-width
-         positions and never corrects. */
-      const pill = document.getElementById('nav-pill');
-      function movePill() {
-        if (!pill) return;
-        const active = links.find((l) => l.dataset.view === openView);
-        if (!active) { pill.classList.remove('is-on'); return; }
-        pill.style.transform = 'translateX(' + active.offsetLeft + 'px)';
-        pill.style.width = active.offsetWidth + 'px';
-        pill.classList.add('is-on');
-      }
-      movePillRef = movePill;
-      window.addEventListener('resize', movePill);
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(movePill);
-
-      document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape' || !openView) return;
-        const active = links.find((l) => l.dataset.view === openView);
-        select(null);
-        if (active) active.focus();
-      });
-
-      const home = document.getElementById('home-link');
-      if (home) home.addEventListener('click', () => select(null));
-    })();
-
-    /* Work detail. A state of the section rather than a layer over it, so
-       the grid and the piece are two faces of the same pane. One shell filled
-       from whichever card was picked: the cards already hold the image and
-       the title with its per-project face, and duplicating that into six
-       static blocks would be two places to keep in sync. */
-    (function () {
-      const pane = document.querySelector('.pane[data-view="work"]');
-      const detail = document.getElementById('work-detail');
-      if (!pane || !detail) return;
-      const cards = Array.from(pane.querySelectorAll('.work-card'));
-      const stack = document.getElementById('detail-stack');
-      const title = document.getElementById('detail-title');
-      const thumbs = document.getElementById('detail-thumbs');
-      const switcher = document.getElementById('detail-switch');
-      const SLOTS = 6;
-      /* How many full-size frames the column shows at once. One: a pair split
-         the column's height between them and neither shot ended up big enough
-         to be worth opening the piece for. The extra shots still reach the
-         strip below, which is where the rest of a project lives. */
-      const FRAMES = 1;
-      /* Extra shots per project: the piece's name, then the slot the shot
-         sits in. Slot 1 is always the card's own image, so these run 2 upward.
-
-         Keyed by name and not by card index because the grid does not always
-         hold the same six: comment a card out and every index below it shifts,
-         which would quietly repoint one project's shots at another. Keyed by
-         slot rather than listed in order because a project can be shot out of
-         sequence — Vantage had its fourth before its third — and a plain list
-         cannot say which slot a path belongs to. Add a path here and the frame
-         and the strip both pick it up; nothing else to touch. */
-      const EXTRA_SHOTS = {
-        'Vantage': {
-          2: 'images/vantage-2.webp',
-          3: 'images/vantage-referees.webp',
-          4: 'images/vantage-4.webp',
-          5: 'images/vantage-addfencer.webp',
-          6: 'images/vantage-bracket.webp',
-        },
-        'Weave': {
-          2: 'images/weave-2.webp',
-          3: 'images/weave-3.webp',
-          4: 'images/weave-4.webp',
-          5: 'images/weave-5.webp',
-          6: 'images/weave-6.webp',
-        },
-      };
-      let at = -1;
-      /* the open piece's shots, and which of them the frame is showing */
-      let shots = [];
-      let shotAt = 0;
-      let shotName = '';
-      let thumbButtons = [];
-
-      const labelOf = (card) => card.querySelector('.work-title');
-
-      /* Fills the frame from the shot list. Split out of open_ because the
-         strip needs to drive it too: picking a thumb changes which shot is
-         shown without touching the piece, its title or the switcher. */
-      function showShot(n) {
-        shotAt = Math.max(0, Math.min(n, shots.length - 1));
-        /* Frames are rebuilt rather than reused: swapping the src on a kept
-           <img> leaves the old picture on screen until the new one decodes,
-           which reads as the wrong shot for one you just picked. */
-        stack.replaceChildren();
-        for (let k = 0; k < FRAMES; k++) {
-          const src = shots[shotAt + k];
-          if (!src) break;
-          const frame = document.createElement('figure');
-          frame.className = 'detail-frame';
-          const f = document.createElement('img');
-          f.src = src;
-          /* only the first carries the name — the rest are the same piece,
-             so repeating it would just be noise to a screen reader */
-          f.alt = k === 0 ? shotName : '';
-          frame.appendChild(f);
-          stack.appendChild(frame);
-        }
-        thumbButtons.forEach((b, i) => {
-          if (b) b.setAttribute('aria-current', String(i === shotAt));
-        });
-      }
-
-      /* built once — only the aria-current marker changes as you move */
-      const isLocked = (card) => card.hasAttribute('data-locked');
-      /* A card opens the detail view unless it does something else with a
-         click: data-locked opens nothing, data-external leaves the page. */
-      const opensDetail = (card) =>
-        !card.hasAttribute('data-locked') && !card.hasAttribute('data-external');
-
-      /* Built once — only the aria-current marker changes as you move. A piece
-         with no detail view gets no button and a null in its place, so the
-         array stays index-aligned with cards while the switcher lists only
-         what actually opens. */
-      const switchButtons = cards.map((card, i) => {
-        if (!opensDetail(card)) return null;
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = labelOf(card).textContent;
-        b.addEventListener('click', () => open_(i));
-        switcher.appendChild(b);
-        return b;
-      });
-
-      function open_(i) {
-        at = (i + cards.length) % cards.length;
-        /* nothing routes here for a locked piece, but the guard means adding a
-           route later cannot open one by accident */
-        if (isLocked(cards[at])) return;
-        const card = cards[at];
-        const source = card.querySelector('img');
-        const label = labelOf(card);
-        const src = source.currentSrc || source.src;
-
-        /* one entry per slot, with gaps left undefined — the strip draws an
-           empty slot for each of those and the frame skips them */
-        const extra = EXTRA_SHOTS[label.textContent] || {};
-        shots = [];
-        for (let n = 0; n < SLOTS; n++) {
-          shots[n] = n === 0 ? src : extra[n + 1];
-        }
-        shotName = label.textContent;
-
-        /* the card's own classes carry the face and its cap-ratio, so the
-           detail view inherits the right type with no lookup table */
-        title.className = label.className;
-        title.textContent = label.textContent;
-        switchButtons.forEach((b, n) => {
-          if (b) b.setAttribute('aria-current', String(n === at));
-        });
-
-        /* A slot with a shot in it is a button; an empty one stays a figure.
-           Making the empties focusable too would put four dead stops in the
-           tab order of every project that has not been shot out yet. */
-        thumbs.replaceChildren();
-        thumbButtons = [];
-        for (let n = 0; n < SLOTS; n++) {
-          if (!shots[n]) {
-            const slot = document.createElement('figure');
-            slot.className = 'detail-thumb';
-            thumbs.appendChild(slot);
-            thumbButtons.push(null);
-            continue;
-          }
-          const slot = document.createElement('button');
-          slot.type = 'button';
-          slot.className = 'detail-thumb';
-          slot.setAttribute('aria-label', 'Show shot ' + (n + 1) + ' of ' + label.textContent);
-          const t = document.createElement('img');
-          t.src = shots[n];
-          t.alt = '';
-          slot.appendChild(t);
-          slot.addEventListener('click', () => showShot(n));
-          thumbs.appendChild(slot);
-          thumbButtons.push(slot);
-        }
-
-        /* opening a piece always starts at its first shot, never wherever the
-           strip was left on the piece before it */
-        showShot(0);
-
-        pane.classList.add('is-detail');
-        detail.querySelector('.work-back').focus({ preventScroll: true });
-      }
-
-      function close_() {
-        pane.classList.remove('is-detail');
-        const hit = at >= 0 && cards[at].querySelector('.work-open');
-        if (hit) hit.focus({ preventScroll: true });
-      }
-
-      /* ONE panel for every card, rather than one each. Moving from a card to
-         its neighbour should morph — the panel travels with the pointer,
-         resizes to the new sentence and swaps the words — and two separate
-         elements can only cross-fade past each other. The per-card spans stay
-         in the markup as the accessible description that aria-describedby
-         points at; this is what is actually drawn. */
-      /* ONE panel for every card, behaving like a chart tooltip: the words and
-         the box change at once, and the only thing that eases is where it sits.
-         That is the opposite of what a cross-fade does, and it is why this
-         reads smooth where the fade did not — nothing is ever caught halfway
-         between two sentences, and the glide is a single compositor-friendly
-         translate rather than a box resizing under text that is resizing too.
-
-         The per-card spans stay in the markup as the accessible description
-         aria-describedby points at; this is what is actually drawn. */
-      const panel = document.createElement('div');
-      panel.className = 'work-tip-panel';
-      panel.setAttribute('aria-hidden', 'true');
-      const panelText = document.createElement('span');
-      panel.appendChild(panelText);
-      document.body.appendChild(panel);
-
-      let panelHold;
-      let panelSaid = '';
-      /* the panel's own size, kept here rather than read back off the element
-         on every move — a layout read per mousemove is the other thing that
-         makes a tooltip feel heavy */
-      let tipW = 0;
-      let tipH = 0;
-
-      function panelSay(text) {
-        if (text === panelSaid) return;
-        panelSaid = text;
-        panelText.textContent = text;
-        tipW = panel.offsetWidth;
-        tipH = panel.offsetHeight;
-      }
-
-      /* Where the panel wants to be for a given pointer position: beside the
-         cursor, flipped above it near the bottom, and held inside the window. */
-      function panelPlace(x, y) {
-        panel.style.setProperty('--tip-x', x + 'px');
-        panel.style.setProperty('--tip-y', y + 'px');
-      }
-      function panelAt(event) {
-        const pad = 12;
-        const off = 16;
-        let x = event.clientX + off;
-        let y = event.clientY + off;
-        if (y + tipH + pad > window.innerHeight) y = event.clientY - tipH - off;
-        x = Math.min(Math.max(x, pad), Math.max(window.innerWidth - tipW - pad, pad));
-        y = Math.min(Math.max(y, pad), Math.max(window.innerHeight - tipH - pad, pad));
-        return [x, y];
-      }
-
-      /* Follows the pointer from the document, not from each card. The cards
-         have gaps between them, and a per-card listener stops firing the moment
-         you leave one — so the panel froze over the gap and then jumped when the
-         next card picked it up. From here it never stops following. */
-      document.addEventListener('pointermove', (event) => {
-        if (!panel.classList.contains('is-on')) return;
-        const at = panelAt(event);
-        panelPlace(at[0], at[1]);
-      });
-
-      /* Focus has no cursor to sit beside, so it goes to the middle of the card
-         it belongs to — centred by subtracting half its own size rather than by
-         a translate, which is spoken for by the glide. */
-      function panelCentre(card) {
-        const box = card.getBoundingClientRect();
-        panelPlace(box.left + box.width / 2 - tipW / 2,
-                   box.top + box.height / 2 - tipH / 2);
-      }
-
-      /* Placed before it is shown, with the glide suppressed for that one
-         frame — otherwise the first appearance slides in from wherever the
-         last card left it. */
-      function panelShow() {
-        clearTimeout(panelHold);
-        if (!panel.classList.contains('is-on')) {
-          panel.classList.add('is-placing');
-          void panel.offsetWidth;
-          requestAnimationFrame(() => panel.classList.remove('is-placing'));
-        }
-        panel.classList.add('is-on');
-      }
-      /* Held open for a beat rather than dropped the moment the pointer leaves
-         a card. Crossing the gap to the next one is what the glide is for, and
-         hiding on the way there would turn every move into a blink. */
-      function panelHide() {
-        clearTimeout(panelHold);
-        panelHold = setTimeout(() => {
-          panel.classList.remove('is-on');
-          panelSaid = '';
-        }, 140);
-      }
-
-      cards.forEach((card, i) => {
-        const hit = card.querySelector('.work-open');
-        if (!hit) return;
-        if (opensDetail(card)) hit.addEventListener('click', () => open_(i));
-        /* Every card carrying a tip gets the cursor tracking, whatever its
-           click does — Weave follows its link and tips, Vantage only tips. */
-        const tip = card.querySelector('.work-tip');
-        if (!tip) return;
-        const text = tip.textContent.trim();
-
-        /* Enter is the only pointer event a card needs: it says which words to
-           show, and the document-level listener above does the following. On a
-           cold open it has to place the panel too, or the first frame would
-           fade in wherever the last card left it. */
-        hit.addEventListener('pointerenter', (event) => {
-          panelSay(text);
-          const at = panelAt(event);
-          panelPlace(at[0], at[1]);
-          panelShow();
-        });
-        hit.addEventListener('pointerleave', panelHide);
-        hit.addEventListener('focus', () => {
-          panelSay(text);
-          panelCentre(card);
-          panelShow();
-        });
-        hit.addEventListener('blur', panelHide);
-
-        /* For the pointer that has no hover: a tap would otherwise light the
-           tip up and leave it lit, so a timer takes it back down. */
-        let timer;
-        hit.addEventListener('click', (event) => {
-          panelSay(text);
-          /* a real tap carries coordinates; a click from the keyboard does not */
-          if (event.clientX || event.clientY) {
-            const at = panelAt(event);
-            panelPlace(at[0], at[1]);
-          } else {
-            panelCentre(card);
-          }
-          panelShow();
-          clearTimeout(timer);
-          timer = setTimeout(panelHide, 2600);
-        });
-      });
-      document.getElementById('work-back').addEventListener('click', close_);
-
-      /* Escape steps back one level — to the grid first, and only then out of
-         the section, which the nav's own handler takes care of. Capture, so
-         this runs before that one and can stop it when there is a detail
-         open to close. */
-      document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape' || !pane.classList.contains('is-detail')) return;
-        event.stopPropagation();
-        close_();
-      }, true);
-
-      /* leaving Work entirely should not leave it parked on one piece */
-      document.querySelectorAll('.nav-link, .brand').forEach((el) => {
-        el.addEventListener('click', () => pane.classList.remove('is-detail'));
-      });
-    })();
-
-    /* Pixel trail — vanilla port of danielpetho/pixel-trail. Cells light up
-       instantly under the cursor, hold, then fade; the goo filter on the
-       parent welds neighbours into blobs while they overlap. */
-    (function () {
-      const trail = document.getElementById('pixel-trail');
-      if (!trail) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-      /* Off for visitors. The whole thing stays wired — add ?goo to the URL
-         to switch it on and look at it. Nothing below this line runs
-         otherwise, so the menu falls back to its own CSS hover, which is
-         exactly why the rows kept a real background of their own. */
-      if (!new URLSearchParams(location.search).has('goo')) return;
-
-      const SIZE = window.matchMedia('(max-width: 767px)').matches ? 24 : 32;
-      const HOLD = 500;
-      let cols = 0;
-      let rows = 0;
-      let cells = [];
-      const timers = new WeakMap();
-
-      function build() {
-        const w = trail.clientWidth;
-        const h = trail.clientHeight;
-        // belt and braces: a zero-sized layer would build a zero-cell grid
-        if (!w || !h) return;
-
-        const nextCols = Math.ceil(w / SIZE);
-        const nextRows = Math.ceil(h / SIZE);
-        if (nextCols === cols && nextRows === rows) return;
-
-        cols = nextCols;
-        rows = nextRows;
-        trail.style.gridTemplateColumns = 'repeat(' + cols + ', ' + SIZE + 'px)';
-        trail.style.gridAutoRows = SIZE + 'px';
-
-        const frag = document.createDocumentFragment();
-        cells = [];
-        for (let i = 0; i < cols * rows; i++) {
-          const cell = document.createElement('div');
-          cell.className = 'px';
-          cells.push(cell);
-          frag.appendChild(cell);
-        }
-        trail.replaceChildren(frag);
-      }
-
-      let queued = false;
-      let pointerX = 0;
-      let pointerY = 0;
-
-      function paint() {
-        queued = false;
-        if (!cells.length) return;
-
-        const box = trail.getBoundingClientRect();
-        const col = Math.floor((pointerX - box.left) / SIZE);
-        const row = Math.floor((pointerY - box.top) / SIZE);
-        if (col < 0 || row < 0 || col >= cols || row >= rows) return;
-
-        const cell = cells[row * cols + col];
-        if (!cell) return;
-
-        cell.classList.add('lit');
-        // plain property, not dataset — dataset stringifies the timer id
-        clearTimeout(timers.get(cell));
-        timers.set(cell, setTimeout(() => cell.classList.remove('lit'), HOLD));
-      }
-
-      window.addEventListener('pointermove', (event) => {
-        pointerX = event.clientX;
-        pointerY = event.clientY;
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(paint);
-      }, { passive: true });
-
-      // fires on first layout, on window resize, and when Home is shown again
-      new ResizeObserver(build).observe(trail);
-      build();
-    })();
-  </script>
+  <!-- A module: its own scope, deferred by definition, and the one file the
+       page loads. -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>

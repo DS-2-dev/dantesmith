@@ -1,12 +1,8 @@
-# Source font kept local — only the licensed-scope subset in fonts/ ships
-neutrond.ttf
-
-# Full-resolution sources for the images in images/. Kept so a shot can be
-# re-cropped or re-encoded later, ignored because only the webp derivatives
-# ship — the originals are ~14 MB against 400 KB of what the site serves.
-images/originals/
-
-# macOS screenshots land here before they are filed into images/originals/.
-# The name carries a narrow no-break space before AM/PM, hence the wildcard.
+# macOS screenshots land in the repo root when they are taken here. The name
+# carries a narrow no-break space before AM/PM, hence the wildcard.
 Screenshot *.png
 .DS_Store
+
+# Per-machine tool permissions, not site content. The file says local in its
+# own name; it has no business in a repo that is also the deployed site.
+.claude/

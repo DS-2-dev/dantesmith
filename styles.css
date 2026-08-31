@@ -1,14 +1,3 @@
-/* Neutron Demo — Andreas Nylin, 2001. Demo cut, all rights reserved, so
-   only the glyphs that spell one title are subset in; the full TTF stays
-   out of the repo. Check the designer's terms before this ships for real. */
-@font-face {
-  font-family: "Neutron Demo";
-  src: url("fonts/NeutronDemo-subset.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* Orbix — Barry Shawn / Besign Foundry, SIL OFL 1.1, self-hosted.
    License text ships alongside the file at fonts/Orbix-OFL.txt */
 @font-face {
@@ -23,37 +12,33 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
-  /* The bar is its own little light-mode island, so it carries its own pair
-     rather than flipping --foreground and breaking everything downstream. */
-  --bar-bg: #ffffff;
-  --bar-fg: #0a0a0a;
-  /* The detail view's picture frame. 1.6 because the screenshots are 3056x1886
-     and land at 1.62 — the shots that fill the frame are the ones that should
-     fit it, and the card images letterbox into it instead of the other way
-     round. Raising it makes every shot shorter and lifts the strip. */
-  --shot-aspect: 16 / 10;
   --gutter: 1.5rem;
+  /* The band at the foot of the page. Nothing in .page reaches into it, which
+     is what keeps the paddle off the cards: the bar plays in the empty upper
+     part of this strip and the row of text sits under it. */
+  --footer: 4.5rem;
   --muted-foreground: #808080;
+  /* the white of the flowers in the Warhol, sampled from the painting */
+  --flower-white: #ebebe9;
   /* rules sit on black now, so the hairline lifts off the ground rather than
      settling onto it */
   --hairline: #2b2b2b;
   --radius: 0.625rem;
   --radius-md: calc(var(--radius) - 2px);
-  /* Trail ink is a flat grey, NOT black at low opacity: nothing in a goo
-     layer can be translucent, because the alpha ramp in feColorMatrix needs
-     opaque input or the blobs never threshold. On white, 20% black IS
-     #cccccc — the knock-back just lives in the colour instead of the layer. */
-  --trail-ink: #cccccc;
   /* Cap height every work title is normalised to. Bounded by the longest
-     title in the narrowest face — "Typography Posters" in Syne Mono, which
-     runs 248px at 1rem against a smallest card of 330px. */
+     title in the narrowest face — "Find Collect Repeat" in Carbon. */
   --title-cap: 1rem;
+  /* Highlight. The Warhol the name was clipped out of is green and white, and
+     its green reads #2a6541 — too dark to mark text with. This is that hue
+     pulled up to where it can carry near-black type: 13.7:1 against the ink,
+     and bright enough to hold against both the black page and the pastel
+     cards, since a selection paints over whatever is under it. */
+  --marker: #7cf0a8;
+  --marker-ink: #0a0f0b;
 }
 body {
   margin: 0;
   padding: 0;
-  /* the wordmark is positioned against this */
-  position: relative;
   height: 100vh;
   box-sizing: border-box;
   display: flex;
@@ -62,160 +47,95 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* An arrow over the copy, not an I-beam. Nothing here is a field to type
+     into, and the caret cursor kept promising one. Text stays selectable —
+     this changes the pointer, not the behaviour. Links and buttons declare
+     their own cursor, and a declared value beats an inherited one, so they
+     are untouched. */
+  cursor: default;
+}
+::selection {
+  background: var(--marker);
+  color: var(--marker-ink);
 }
 
 
-/* Swiss layout: small functional type across the top, a deliberate void,
-   and the name anchored to the bottom running off the right edge. The rule
-   is full-bleed while the text is inset, so the gutter lives on each block
-   rather than on the body. */
-.topbar,
-.lede,
-.stage,
-.wordmark { position: relative; z-index: 1; }
-
-/* a pure white bar across the top. The white-to-black edge is the division
-   now, so the hairline that used to do that job is gone. */
-.topbar {
-  flex: none;
+/* One page, two columns. The bio column is a fixed measure so the copy keeps
+   a readable line length whatever the window does; work takes the rest. The
+   gutter lives on the page rather than on each block now that there is no
+   full-bleed bar for it to work around. */
+.page {
+  /* Measured once here and used twice: it sets the column, and the name is
+     sized off it so the two words always fill that measure exactly. vw and
+     not %, because a percentage cannot be divided into a font-size. */
+  --bio-w: clamp(16rem, 19vw, 21rem);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: clamp(1rem, 2.25vw, 2.25rem);
+  padding: var(--gutter);
+}
+.bio {
+  /* Every size in this column is written against this. The script shrinks it
+     until the column fits its own height, so the copy is never cut and never
+     scrolls — see the fit pass in app.js. 1 unless it has to be less. */
+  --s: var(--bio-scale, 1);
+  flex: 0 0 var(--bio-w);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(1rem * var(--s));
+  /* The fit pass keeps the content inside this, so in practice nothing scrolls.
+     It stays scrollable as the last resort for a window shorter than the scale
+     floor can answer — clipping the contact details would be worse. */
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.bio::-webkit-scrollbar { display: none; }
+/* the work sits centred in whatever the bio leaves, in both directions */
+.work {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 0.55rem var(--gutter);
-  background: var(--bar-bg);
-  color: var(--bar-fg);
+  justify-content: center;
 }
-.brand,
-.nav-link,
+
 .lede {
+  margin: 0;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.0625rem;
+  font-size: calc(0.9375rem * var(--s));
   font-weight: 500;
   line-height: 1.3;
   letter-spacing: -0.011em;
 }
-/* The name in the same face as the wordmark, so the identity reads as one
-   thing; the nav stays Inter.
+/* The name and what it claims are one block, not two of the five the column
+   holds. Pulled up against the column's own gap rather than the gap being
+   dropped, because the other four do want the full measure between them. */
+.wordmark + .lede { margin-top: calc(-0.5rem * var(--s)); }
 
-   This was cap-matched to the nav links, and that WAS optically right — the
-   two faces share an x-height/cap ratio of 0.750, so cap- and x-matching
-   agree to within 0.0004rem. It just made the name the same size as the
-   navigation, which is the wrong hierarchy for a name. Deliberately larger
-   now: caps 19.2px against the links' 12.4px. Capped by the bar, not taste —
-   past ~1.75rem the line box outgrows the pill and the whole bar gets taller. */
-.brand {
-  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
-  font-size: 1.5rem;
-}
-.brand,
-.nav-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  /* inherit, so these follow the bar rather than the page */
-  color: inherit;
-  cursor: pointer;
-}
-/* segmented control: a track holding three segments, with one pill that
-   slides between them. The pill is a sibling behind the buttons rather than
-   a background on the active one — a background cannot animate between
-   elements, and that travel is the whole point. */
-.nav {
-  position: relative;
-  display: flex;
-  padding: 3px;
-  border-radius: 999px;
-  /* a solid black track, not a 6% tint — the tint barely separated from the
-     white bar, so the control had no edge of its own */
-  background: var(--bar-fg);
-}
-.nav-pill {
-  position: absolute;
-  top: 3px;
-  left: 0;
-  height: calc(100% - 6px);
-  width: 0;
-  border-radius: 999px;
-  background: var(--bar-bg);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
-              width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.2s ease;
-}
-/* nothing is selected on the home screen, so the pill has nowhere to be —
-   it fades in on the first pick and slides from then on */
-.nav-pill.is-on { opacity: 1; }
-/* the labels sit on the black track, so they invert too — and flip back to
-   dark as the white thumb arrives under them */
-.nav-link {
-  color: var(--bar-bg);
-  position: relative;
-  z-index: 1;
-  padding: 0.3rem 0.85rem;
-  border-radius: 999px;
-  white-space: nowrap;
-  transition: color 0.25s ease, opacity 0.15s ease;
-}
-.nav-link:hover { opacity: 0.6; }
-.nav-link[aria-current="true"] { color: var(--bar-fg); opacity: 1; }
-.brand:focus-visible,
-.nav-link:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
-.lede {
-  flex: none;
-  margin: 0;
-  padding: 0.7rem var(--gutter) 0;
-}
 
-/* the void, and where a section opens when you pick one */
-.stage {
-  flex: 1;
-  min-height: 0;
-  padding: 0 var(--gutter);
-}
-.pane {
-  display: none;
-  flex-direction: column;
-  /* `safe` matters once the work grid runs to a second row: a plain centre
-     overflows equally in both directions and puts the first row above the top
-     of the scroll box, where it cannot be reached. safe centre gives up on
-     centring the moment the content is taller than the pane and aligns to the
-     start instead, so the overflow all falls to the bottom where scrolling can
-     reach it. One row still centres exactly as before. */
-  justify-content: safe center;
-  height: 100%;
-  outline: none;
-}
-.pane.is-active { display: flex; }
+/* The column's heading. It used to be a full-bleed banner across the bottom of
+   the screen, measured against the viewport; here it is measured against the
+   bio column instead, which is why --bio-w is a variable rather than a number
+   written into two places. Magistral advances 5.4670em for "Dante Smith";
+   -0.03em across 11 characters brings that to 5.1370em, and 5.17 leaves ~0.5%
+   so the last letter lands just inside the column. All three numbers are
+   face-specific — Inter wanted 5.5 and 0.85.
 
-/* Inter's cap height is 0.727em and its ascent+descent 1.21em, so a 0.85
-   line box puts the baseline 0.789em down and leaves ~0.06em under it —
-   which is the small gap above the bottom edge, not a guess. */
-/* Out of flow on purpose. In the column it reserved its own height even
-   when it had dropped away, and the section would have been laid out in the
-   gap it left behind — absolute means the stage owns the full height in
-   every state, and dropping the name genuinely hands its room over. */
+   The vh cap is for short windows: at the column measure alone the name would
+   take a fifth of a 650px screen and push the contact details off the bottom. */
 .wordmark {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* centred between equal gutters rather than hung off the left edge, so the
-     slack sits evenly on both sides instead of all of it on the right */
-  text-align: center;
-  padding: 0 var(--gutter) 0.5rem;
+  margin: 0;
   font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
   /* 400, not 500 — the kit ships one weight, and asking for 500 would get a
      synthesised bold: wider than measured, and a fake. */
   font-weight: 400;
-  /* "Dante Smith" advances 5.4670em in Magistral; -0.03em across 11
-     characters brings it to 5.1370em, and 5.17 leaves ~0.5% so the final
-     letter lands just inside the right edge. Every one of these three
-     numbers is face-specific — Inter wanted 5.5 and 0.85. */
-  font-size: calc((100vw - 2 * var(--gutter)) / 5.17);
+  font-size: calc(min(calc(var(--bio-w) / 5.17), 9vh) * var(--s));
   /* Magistral's ascender is 1.0em and descender 0.2em, so 0.85 would leave
      only 0.025em under the baseline. 0.922 reproduces the 0.061em gap Inter
      gave at 0.85. */
@@ -223,52 +143,152 @@ body {
   letter-spacing: -0.03em;
   white-space: nowrap;
   user-select: none;
-  transition: transform 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+  /* Warhol's flower white, not #fff. Sampled off the painting that used to be
+     clipped into these letters: the flower mass is 48% of that canvas and its
+     modal value is #EBEBE9, a warm off-white that reads as paint on canvas
+     rather than as screen. Against the page's pure-white --foreground it is
+     about 8% down and a shade off neutral. */
+  color: var(--flower-white);
 }
-/* the name is the home screen's signature; inside a section it drops out of
-   frame and gives the space to the work */
-body.is-open .wordmark { transform: translateY(105%); }
 
-/* prose panes ------------------------------------------------------------ */
-.pane--prose {
-  justify-content: center;
-  /* 2.25rem let the tools drift free of the copy; at 1.5rem they read as the
-     end of the same passage rather than a separate module */
-  gap: 1.5rem;
-  /* long copy scrolls inside its own pane; the page itself still never does */
-  overflow-y: auto;
+/* name cards ------------------------------------------------------------- */
+/* Four groups of letters, each holding a picture. The letters carry no styling
+   of their own — the name has to read as one word, not as four buttons — so
+   the only thing that says they can be hovered is what happens when one is. */
+.wordmark-part { cursor: default; }
+/* The cue: hovering one group knocks the rest back, which separates it out of
+   a word that is otherwise deliberately unbroken. Back on opacity now that the
+   letters are painted rather than clipped — it was a part-opaque black fill
+   while the picture was showing through them, because fading a transparent
+   glyph does nothing. Nothing about the name's measured width moves either
+   way. */
+.wordmark-part { transition: opacity 0.25s ease; }
+.wordmark:has(.wordmark-part:hover) .wordmark-part:not(:hover) { opacity: 0.35; }
+
+/* Same behaviour as the work tooltip: the content changes at once and the only
+   thing that eases is where the card sits. See .work-tip-panel for why. */
+.name-card {
+  position: fixed;
+  z-index: 60;
+  left: 0;
+  top: 0;
+  translate: var(--tip-x, 0px) var(--tip-y, 0px);
+  max-width: calc(100vw - 2rem);
+  padding: 0.6rem;
+  border-radius: var(--radius);
+  background: rgb(10 10 10 / 0.55);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 10px 34px rgb(0 0 0 / 0.55);
+  color: var(--foreground);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.16s ease,
+              visibility 0s linear 0.16s;
 }
+.name-card.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.16s ease,
+              visibility 0s;
+}
+/* one frame with the glide off, so the first appearance is already in place */
+.name-card.is-placing { transition: opacity 0.16s ease, visibility 0s; }
+
+.name-card-face { display: none; margin: 0; }
+.name-card-face.is-shown {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+/* Height is fixed and width is left to the picture, so nothing is cropped —
+   the four images run 0.85 to 1.78 and squaring them off would take the sides
+   out of the widest one. The card changes width between faces instead, which
+   is invisible because only one is ever up. */
+.name-card-face img {
+  display: block;
+  height: 7rem;
+  width: auto;
+  border-radius: var(--radius-md);
+  /* The One Tree Hill logo is white type on black, so on a dark glass card its
+     own edges disappear and it reads as type floating loose in the panel
+     rather than as a picture in it. A hairline gives every face a border.
+     outline, not an inset box-shadow: on a replaced element the bitmap paints
+     over an inset shadow, so that ring would never be seen. */
+  outline: 1px solid rgb(255 255 255 / 0.14);
+  outline-offset: -1px;
+}
+.name-card-face figcaption {
+  width: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.name-card-title {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  letter-spacing: -0.011em;
+}
+.name-card-text {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  letter-spacing: -0.011em;
+  color: #b3b3b3;
+}
+/* the glide is decoration; the card itself is not */
+@media (prefers-reduced-motion: reduce) {
+  .name-card,
+  .name-card.is-on { transition: opacity 0.16s ease, visibility 0s; }
+  .wordmark-part { transition: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .name-card { background: rgb(10 10 10 / 0.93); }
+}
+
+/* prose blocks ----------------------------------------------------------- */
 .prose-block {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: calc(1rem * var(--s));
   flex: none;
 }
 .prose {
   margin: 0;
   max-width: 54ch;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.0625rem;
+  font-size: calc(0.9375rem * var(--s));
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 /* Was Source Sans 3, uppercase and letterspaced — the last survivor of the
    Apple-era header and the only third typeface left on the page, which is
    what made this block read as imported from somewhere else. Same face and
-   sentence case as everything around it now; muted colour alone is enough
-   to mark it as a label. */
+   sentence case as everything around it now.
+
+   Every one of these sits on a card, so it takes the card's ink at full
+   strength rather than a muted grey: it is the only piece of type naming what
+   the card is, and knocking it back read as apologising for being there. That
+   is also why the size and weight are here and not in a .card override — there
+   is no other context left to differ from. */
 .prose-caption {
   margin: 0;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 400;
+  font-size: calc(0.875rem * var(--s));
+  font-weight: 500;
   letter-spacing: -0.011em;
-  color: var(--muted-foreground);
+  color: inherit;
 }
 
 .contact-val {
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.0625rem;
+  font-size: calc(0.9375rem * var(--s));
   color: var(--foreground);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
@@ -277,116 +297,118 @@ body.is-open .wordmark { transform: translateY(105%); }
   transition: text-decoration-color 0.15s ease;
 }
 a.contact-val:hover { text-decoration-color: currentColor; }
+/* The mark that says this one leaves the site. inline-block on purpose: an
+   inline child would be caught by the anchor's underline, and a rule running
+   under an arrowhead reads as a strike through it. */
+.link-out {
+  display: inline-block;
+  width: 0.72em;
+  height: 0.72em;
+  margin-left: 0.28em;
+  /* aligned to the cap, not the baseline — at 0.72em a baseline-sat arrow
+     hangs below the x-height of the word it follows */
+  vertical-align: 0.06em;
+  color: var(--muted-foreground);
+  transition: color 0.15s ease, translate 0.15s ease;
+}
+/* leaves in the direction it points */
+a.contact-val:hover .link-out,
+a.contact-val:focus-visible .link-out {
+  color: currentColor;
+  translate: 0.1em -0.1em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-out { transition: color 0.15s ease; }
+  a.contact-val:hover .link-out,
+  a.contact-val:focus-visible .link-out { translate: none; }
+}
 
+/* Wraps, and has to. Seven marks at the old 1.5rem on a 1.25rem gap measured
+   288px against a bio column of about 230 — a nowrap flex row does not shrink,
+   it just runs off the end, so the last two were simply cut. Smaller marks and
+   a tighter gap fit each row in the column at every width the column has; the
+   wrap is the safety net for whatever gets added next. */
 .tech-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.25rem;
+  gap: calc(0.6rem * var(--s)) calc(0.7rem * var(--s));
 }
 /* tech stack icons. Simple Icons (CC0), except Are.na — Simple Icons has
    no entry for it, so that mark comes from are.na's own favicon. */
 .tech-icon {
   /* closer to the text scale beside it — 1.75rem read as its own row of
      objects rather than part of the passage */
-  width: 1.5rem;
-  height: 1.5rem;
+  width: calc(1.25rem * var(--s));
+  height: calc(1.25rem * var(--s));
   flex: none;
-  fill: var(--foreground);
-  /* 0.75 was set against a white page; white ink knocked back that far on
-     black goes properly grey */
-  opacity: 0.85;
+  /* one material per card: drawn in the same ink as the words beside them */
+  fill: currentColor;
+  opacity: 0.88;
   transition: opacity 0.2s ease;
 }
-.tech-icon:hover {
-  opacity: 1;
-}
+.tech-icon:hover { opacity: 1; }
 /* Are.na's mark is a wide logo, not a square glyph like the rest. Left in a
    square box it letterboxes to 24x14 and reads as the runt of the row, so it
    gets a wider box instead — 32x19 once it scales to fit, which matches the
    others by area rather than by bounding box. */
-.tech-icon--wide { width: 2rem; }
+.tech-icon--wide { width: calc(1.667rem * var(--s)); }
 
 
 /* work — contact sheet -----------------------------------------------------
 
-   Six plates, deliberately not stretched to fill the pane: at pane size they
+   Eight plates, deliberately not stretched to fill the column: at that size they
    would read as six big pictures, and the point is a set you take in at once.
 
    The peek is the image clipping its OWN bottom edge upward, uncovering a
-   title that was underneath the whole time — no sliding panel, no second
+   title that was underneath the whole time — no sliding overlay, no second
    surface. `round` on the inset keeps the corners on the clip box, so the
    bottom edge stays rounded all the way up instead of squaring off. */
-.work-grid {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  /* Three 4:3 cards in two rows make the grid exactly half as tall as it is
-     wide, whatever the gap — so the height budget can be spent as a width.
-     With the wordmark dropped the stage is simply the viewport less the top
-     bar and lede, so this no longer has to model the wordmark's vw-driven
-     height: 200vh is the doubled stage, 290px the chrome plus breathing room.
-     Full-bleed to the gutters now; 90rem only stops it getting silly on a
-     large monitor, and on short windows the height term binds first. */
-  width: min(100%, 90rem, calc(200vh - 290px));
-  /* centred in the pane. Invisible at 1440 where the grid already fills the
-     width, but the moment either cap binds — a short window, or anything
-     past ~1488px where 90rem takes over — the leftover was all landing on
-     the right. 216px of it at 1920. */
-  margin-inline: auto;
-}
-/* Two pieces, one row. The three-column width formula above solves for a grid
-   half as tall as it is wide, which only holds at three columns and two rows —
-   left alone it would put the pair in one row of three and leave a hole where
-   the third card was. Two 4:3 cards side by side make a grid 0.375 as tall as
-   it is wide, so the height budget converts at 1/0.375: 266vh for the same
-   stage, less the same chrome. 72rem stops a pair of cards becoming posters on
-   a wide monitor. */
-/* A single row of cards, however many. The three-column formula above solves
-   for a grid half as tall as it is wide, which only holds at three columns and
-   two rows; one row is a different shape per count, so each count states its
-   own. In every case the width is bought out of the same height budget — the
-   stage, being the viewport less the top bar and the lede — converted at that
-   row's height-to-width ratio, less the step it has to make room for. */
-.work-grid--pair,
-.work-grid--trio,
-.work-grid--cluster {
-  --step: 5rem;
-  align-items: start;
-}
-/* two 4:3 cards in a row stand 0.375 as tall as they are wide; 1/0.375 = 2.667 */
-.work-grid--pair {
-  grid-template-columns: repeat(2, 1fr);
-  width: min(100%, 72rem, calc(266vh - 760px - var(--step) * 2.667));
-}
-/* Three across, and the row is as tall as its tallest card. That is the
-   portrait one at 3:4, so the row stands 0.444 of its own width and not the
-   0.25 three landscape cards would — solving off the short cards would have
-   let the tall one run out of the pane. 1/0.4444 = 2.25. */
-.work-grid--trio {
-  grid-template-columns: repeat(3, 1fr);
-  /* 660 and not the 620 the algebra gives: solved exactly, the row lands on
-     the stage to the pixel, and the 290px chrome term it is solved against is
-     an estimate. The extra buys a little slack rather than sitting on the line. */
-  width: min(100%, 84rem, calc(225vh - 660px - var(--step) * 2.25));
-}
 /* Four columns, and four is the line. Past that a piece goes into a column
    rather than making a fifth one, so the cards never get narrower as the
    cluster grows — they just stack. Columns and not grid rows because in a grid
    every card is pushed down by the tallest one in its row: Vantage is
    landscape among portraits, so it left a void under itself and anything on
-   the next row started below that. A column only answers to its own cards. */
+   the next row started below that. A column only answers to its own cards.
+
+   This is the only layout the page has now. Two row-based ones lived here
+   beside it, solved against a stage that was the viewport less a top bar and
+   a lede — neither the bar nor the stage exists any more, so they were stale
+   arithmetic for a shape nothing uses. Their derivations are in ca90529. */
 .work-grid--cluster {
+  --step: 5rem;
+  /* it is a flex item of .work, which centres it — none, so it does not
+     stretch to the column and lose its own width */
+  flex: none;
   display: flex;
-  gap: 1rem;
   align-items: flex-start;
-  /* The tall column is Vantage over Jack's: 0.75 + 1.4133 of a column width
-     plus the gap between them, so the cluster stands 2.163 columns tall and
-     the height budget converts at 1/2.163 = 1.849. Solved so that column
-     clears the stage with about 95px to spare rather than filling it — a
-     cluster pressed against the top and bottom of its own pane reads as
-     something that did not fit. */
-  width: min(100%, 96rem, calc(185vh - 555px - var(--step) * 1.85));
+  gap: 1rem;
+  /* Solved off the TALLEST column, whichever that is. It is column four now:
+     WSU AI Lab at 1.25 of a column width over Filey at 1.4133, so 2.6633
+     columns tall, plus the 20px between the two cards and the 80px of step it
+     carries as an even column. Four columns and three 16px gaps make the
+     cluster 4w + 48 wide, so a height budget converts at 4/2.6633 = 1.5019 —
+     and 100vh less 48px of page gutter and 40px of deliberate slack gives
+     150.19vh - 234. A cluster pressed against the top and bottom of the screen
+     reads as something that did not fit.
+
+     The --step term is back: the binding column is a stepped one again, which
+     it was not when column three was tallest. Column three is the taller pair
+     at 2.7466w but it is unstepped, and the 80px column four carries puts it
+     ahead at any width under 960px per column, which is every window there is.
+
+     Re-derive all of this if a card moves columns, if one is added, or if the
+     page grows chrome above the cluster again. Sum each column as (aspect
+     heights in column widths) + 20px per stacked pair + 80px if it is even,
+     take the largest at a realistic column width, and the coefficient is
+     4 / that column's width multiple. */
+  /* --cluster-cap is measured from the real cards at load and on resize; see
+     app.js. The calc is the fallback for the first frame before the script
+     runs and for a visit with no JavaScript, and it is the hand-solved answer
+     for the cards as they stand today — 150.19vh - 234, from column four at
+     2.6633 column widths plus 20px of card gap and 80px of step. If it drifts
+     from what the script computes, the script is right. */
+  width: min(100%, 104rem, var(--cluster-cap, calc(150vh - 222px - var(--step) * 1.5)));
 }
 .work-col {
   flex: 1;
@@ -398,24 +420,20 @@ a.contact-val:hover { text-decoration-color: currentColor; }
      as one tall object rather than two pieces */
   gap: 1.25rem;
 }
-/* Only the work pane scrolls, and only when the cluster outgrows one row. */
-.pane[data-view="work"] { overflow-y: auto; }
-/* the detail view is a single screen by construction and manages its own
-   scrolling inside, so it should not also scroll the pane behind it */
-.pane[data-view="work"].is-detail { overflow-y: hidden; }
-/* Stepped, not aligned. Cards squared off against each other read as the top
-   row of a grid whose second row is missing; offsetting them says the row is
-   the whole set. Odd up, even down, so the zigzag holds however many there
-   are. Margins rather than a transform, so the row actually reserves the
-   height and the lower cards cannot run out of the pane. */
-.work-grid--pair .work-card:nth-of-type(odd),
-.work-grid--trio .work-card:nth-of-type(odd) { margin-bottom: var(--step); }
-.work-grid--pair .work-card:nth-of-type(even),
-.work-grid--trio .work-card:nth-of-type(even) { margin-top: var(--step); }
-/* the cluster steps whole columns rather than single cards, so a column and
-   everything stacked in it move together and the zigzag survives the stack */
+/* Stepped, not aligned. Columns squared off against each other read as the top
+   row of a grid whose second row is missing; offsetting them says the set IS
+   the whole set. Whole columns rather than single cards, so a column and
+   everything stacked in it move together and the zigzag survives the stack.
+   Margin rather than a transform, so the column actually reserves the height
+   and the lower cards cannot run off the bottom of the screen. */
 .work-grid--cluster .work-col:nth-child(even) { margin-top: var(--step); }
 .work-card {
+  /* So the back's type can be sized off the CARD rather than the window. The
+     backs carry sentences of very different lengths onto cards of very
+     different sizes, and a viewport clamp gets that wrong at both ends: the
+     longest sentence on the shortest card (Vantage, 4:3, the flattest one)
+     clipped at 1024 wide, while the tallest cards had room going spare. */
+  container-type: inline-size;
   /* proportional to the taller card — 2.25rem read as a sliver once these
      went past 300px tall */
   --reveal: 2.75rem;
@@ -428,6 +446,197 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   min-height: 0;
   min-width: 0;
 }
+/* Flip. The inner element turns, not the card, because .reveal already
+   animates a transform on the card itself and the two would overwrite each
+   other. The perspective is a function in .work-flip's OWN transform rather
+   than a `perspective` property on the card, for one reason: written there it
+   can be a cqw, and it has to be.
+
+   Foreshortening is card width over perspective distance. At a flat 1400px
+   across cards that run 170px to 354px wide that ratio went 0.12 to 0.25 — the
+   big posters turned with real depth while the small ones barely bent and read
+   closer to a crossfade than a flip. 350cqw is 3.5x each card's own width, so
+   every card in the cluster turns with the same 0.29 and looks like the same
+   object at every size. Vanishing point is the element's own centre either
+   way, so each card still turns about itself rather than swinging toward the
+   middle of the screen.
+
+   0.52s and not 0.62: this fires on pointer-enter, and sweeping across seven
+   cards at 0.62 each way the cluster feels like it is lagging behind the
+   cursor.
+
+   And ease-in-out rather than the page's usual (0.32, 0.72, 0, 1). That curve
+   is right for a slide and wrong for a turn: it is so front-loaded that the
+   card passed 90deg 83ms into a 520ms transition and spent the remaining 437ms
+   micro-settling from 172deg to 180deg. The 3D was all real and none of it was
+   ever seen. Symmetric, the halfway point is halfway — 260ms — which is where
+   the foreshortening is widest and where the dip below peaks. All three
+   transitions have to share this curve; see the handover note below. */
+.work-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: perspective(350cqw) rotateY(0deg);
+  transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+}
+body:not(.is-playing) .work-card:hover .work-flip,
+.work-card:has(.work-open:focus-visible) .work-flip {
+  transform: perspective(350cqw) rotateY(180deg);
+}
+/* Lifted while it turns, so the shadow it throws is not cast on the card
+   under it in the same column. */
+.work-card:hover,
+.work-card:has(.work-open:focus-visible) { z-index: 2; }
+.work-face {
+  position: absolute;
+  inset: 0;
+  /* the half of the card facing away is not drawn — without this both faces
+     paint and the back shows through the picture as a mirrored ghost */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: transform 0.52s cubic-bezier(0.65, 0, 0.35, 1),
+              box-shadow 0.52s cubic-bezier(0.65, 0, 0.35, 1),
+              opacity 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+}
+/* The recede, and the shadow that makes it legible. A rotation on its own is
+   the card changing shape; a card that also pulls back and throws a shadow is
+   an object leaving the page. Neither can be a transition on one element — a
+   dip starts and ends at the same value, and nothing eases from 1 to 1.
+
+   So the two faces split it. Only one is ever drawn, the front for the first
+   half of the turn and the back for the second, and each runs a plain
+   monotonic transition in opposite directions: the front from rest to the far
+   end, the back from the far end back to rest. What you actually see is the
+   two halves joined, which dips and returns.
+
+   They meet exactly, not approximately. Both faces ease on the same curve as
+   the rotation, so at the instant backface-visibility hands over — rotation
+   90deg, which is progress 0.5 whatever the curve does — the front sits at
+   1 - d/2 and the back at the far end + d/2. The same number. Change the
+   easing on one of the three and the handover shows as a jump.
+
+   The far ends are twice the peak, since the peak IS the halfway point:
+   0.90 scale and a 20px/44px shadow read as 0.95 and 10px/22px on screen.
+
+   Opacity is on the same rail, and it is there for the hairline. A rotateY has
+   no width at all at 90deg, and either side of that the card is a few pixels
+   across — with the back face a pure white fill on a black page, crossing the
+   middle flashed a bright sliver. Fading each face out as it turns away puts
+   the visible face at 0.5 exactly where it is thinnest, so the sliver is grey
+   and a few pixels wide instead of white and a few pixels wide. It costs
+   nothing on the way in or out: the fade is driven by the same easing as the
+   rotation, so at 13deg the face is still at 0.93 and only goes translucent
+   once it is too foreshortened to read anyway. */
+/* The 0.6px is a separation, not a position. The two faces are coplanar, and
+   at exactly 90deg both are edge-on at once — some browsers hand over cleanly,
+   some show both or neither for a frame, which is the other half of the flicker
+   in the middle. Pushing each one off the shared plane by a hair makes the
+   ordering unambiguous. On the back the rotateY has already flipped the Z axis,
+   so the same positive value moves it the opposite way in the scene, and the
+   pair end up 1.2px apart. Under a ~950px perspective that is 0.17px of scale
+   on a 270px card. */
+.work-face--front {
+  transform: scale(1) translateZ(0.6px);
+  box-shadow: 0 0 0 rgb(0 0 0 / 0);
+  opacity: 1;
+}
+.work-card:hover .work-face--front,
+.work-card:has(.work-open:focus-visible) .work-face--front {
+  transform: scale(0.9) translateZ(0.6px);
+  box-shadow: 0 20px 44px rgb(0 0 0 / 0.8);
+  opacity: 0;
+}
+/* pre-turned, so that at 180deg it is the one facing out */
+.work-face--back {
+  transform: rotateY(180deg) scale(0.9) translateZ(0.6px);
+  box-shadow: 0 20px 44px rgb(0 0 0 / 0.8);
+  opacity: 0;
+  background: var(--foreground);
+  color: var(--background);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: clamp(0.85rem, 1.1vw, 1.4rem);
+}
+.work-card:hover .work-face--back,
+.work-card:has(.work-open:focus-visible) .work-face--back {
+  transform: rotateY(180deg) scale(1) translateZ(0.6px);
+  box-shadow: 0 0 0 rgb(0 0 0 / 0);
+  opacity: 1;
+}
+/* One face for every back, not the piece's own. The display faces are how the
+   covers tell themselves apart; repeating them here made a different heading
+   on every one of the identical white backs, which reads as that many designs
+   rather than one back. Inter at the lede's weight and tracking, so the backs sound
+   like the voice the page opens in. */
+.work-back-title {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.95rem, 1.05vw, 1.1875rem);
+  line-height: 1.2;
+  letter-spacing: -0.011em;
+  color: inherit;
+}
+.work-back-text {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(0.72rem, 0.74vw, 0.875rem);
+  line-height: 1.4;
+  letter-spacing: -0.011em;
+  /* not full black on white: the heading is the black, and the sentence under
+     it sits back a step so the two are not shouting at the same volume */
+  color: #3d3d3d;
+}
+/* Sized off the card, where the browser supports it. The clamps above stay as
+   the floor for the ones that do not — @container never matches there, so
+   those keep the viewport-relative sizes and nothing has to be duplicated.
+   The cqw figures are solved against the worst case: 137 characters on a
+   170x128 card, which is Vantage at a 1024-wide window. */
+@container (min-width: 0px) {
+  .work-face--back { padding: clamp(0.6rem, 5cqw, 1.4rem); }
+  .work-back-title { font-size: clamp(0.75rem, 7cqw, 1.1875rem); }
+  .work-back-text {
+    font-size: clamp(0.625rem, 5.2cqw, 0.875rem);
+    line-height: 1.35;
+  }
+}
+/* Turning a card over is decoration; the words on the back are not. Without
+   the rotation the two faces simply cross. */
+@media (prefers-reduced-motion: reduce) {
+  .work-flip { transition: none; }
+  .work-card:hover .work-flip,
+  .work-card:has(.work-open:focus-visible) .work-flip { transform: none; }
+  .work-face {
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+    transition: opacity 0.2s ease;
+  }
+  /* Every transform and shadow the turn uses is unset HERE at the same
+     specificity it was set at, not once on the bare class. The hover rules
+     above are two classes deep; a single-class reset loses to them, and the
+     back would still be face-on to the reader, its text mirrored. */
+  .work-face--front,
+  .work-card:hover .work-face--front,
+  .work-card:has(.work-open:focus-visible) .work-face--front {
+    transform: none;
+    box-shadow: none;
+    /* the front stays put and the back arrives over it; fading the front too
+       would show the page through both of them */
+    opacity: 1;
+  }
+  .work-face--back,
+  .work-card:hover .work-face--back,
+  .work-card:has(.work-open:focus-visible) .work-face--back {
+    transform: none;
+    box-shadow: none;
+  }
+  .work-face--back { opacity: 0; }
+  .work-card:hover .work-face--back,
+  .work-card:has(.work-open:focus-visible) .work-face--back { opacity: 1; }
+}
+
 .work-card img {
   display: block;
   width: 100%;
@@ -553,20 +762,16 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   clip-path: inset(50%);
   white-space: nowrap;
 }
-/* Without a blur behind it a 55% fill is just a dim window onto the picture,
-   and the text stops holding. Those browsers get an opaque panel instead. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .work-tip-panel { background: rgb(10 10 10 / 0.93); }
-}
-/* a locked card does not offer to open, so it should not present the hand
-   that says it will */
-.work-card[data-locked] .work-open { cursor: default; }
+/* Only Weave goes anywhere, so only Weave offers the hand that says so. Put
+   as the exception rather than marking the other seven: one attribute in the
+   markup instead of eight, and a card added later cannot forget to carry it. */
+.work-card:not([data-external]) .work-open { cursor: default; }
 /* and the cover stays put. The slide is there to reveal the piece's name on
    the way to opening it; on a card that does not open it is a second thing
    moving under the tip for no reason, so the locked card keeps its full crop
    and the tip does the talking. */
-.work-card[data-locked]:hover img,
-.work-card[data-locked]:has(.work-open:focus-visible) img {
+.work-card:not([data-external]):hover img,
+.work-card:not([data-external]):has(.work-open:focus-visible) img {
   clip-path: inset(0 0 0 0 round var(--radius-md));
 }
 
@@ -606,8 +811,9 @@ a.contact-val:hover { text-decoration-color: currentColor; }
    than rounding to the nearest one. Matched to the 4:5 poster it sits near, it
    lost about 11% off the top and bottom, and on a piece whose whole subject is
    type on a field that margin is the design. Same column width as everything
-   else; taller, because it is. */
-.work-card--lyric { aspect-ratio: 1055 / 1491; }
+   else; taller, because it is. Two posters are exported at this sheet size,
+   hence a size name rather than either of theirs. */
+.work-card--sheet { aspect-ratio: 1055 / 1491; }
 /* 1107x1421 — 0.779. Its own ratio again rather than the nearest tidy one:
    the garment is shot on an angle against a wall, and a crop takes the corner
    of the frame that the composition is built on. */
@@ -704,334 +910,241 @@ a.contact-val:hover { text-decoration-color: currentColor; }
   --cap-ratio: 0.580;   /* measured cap height of t26-carbon */
   letter-spacing: 0;
 }
-/* Citri Software on Neutron Demo. Single 400 cut, so there is no lighter
-   weight to drop to. Stroking in the page colour instead: the stroke sits
-   centred on the outline and paints over the fill, so it eats inward and
-   trims stem width without touching the size. Inverse of what a matched
-   stroke does. Raise the value to thin further. */
-.work-title--neutron {
-  font-family: "Neutron Demo", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
-  --cap-ratio: 0.700;   /* measured cap height of Neutron Demo */
-  letter-spacing: 0.01em;
-  -webkit-text-stroke: 0.5px var(--background);
-}
 
-/* reveal — replays each time a pane is opened */
-.pane.is-active .reveal {
-  animation: rise 0.4s ease both;
-}
-.pane.is-active .reveal:nth-child(2) { animation-delay: 0.05s; }
-.pane.is-active .reveal:nth-child(3) { animation-delay: 0.10s; }
-.pane.is-active .reveal:nth-child(4) { animation-delay: 0.15s; }
-.pane.is-active .reveal:nth-child(5) { animation-delay: 0.20s; }
-.pane.is-active .reveal:nth-child(6) { animation-delay: 0.25s; }
+/* reveal — once, on load. It used to replay every time a pane was opened;
+   there are no panes to open now, so this is the page arriving. */
+.reveal { animation: rise 0.4s ease both; }
+.reveal:nth-child(2) { animation-delay: 0.05s; }
+.reveal:nth-child(3) { animation-delay: 0.10s; }
+.reveal:nth-child(4) { animation-delay: 0.15s; }
+.reveal:nth-child(5) { animation-delay: 0.20s; }
+.reveal:nth-child(6) { animation-delay: 0.25s; }
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pane.is-active .reveal { animation: none; }
+  .reveal { animation: none; }
   /* the slide still happens, it just happens instantly */
-  .nav-link,
-  .nav-pill,
-  .work-back,
-  .detail-switch button,
-  .pixel-trail,
   .wordmark,
   .work-card img { transition: none; }
 }
 
-/* pixel trail + goo ------------------------------------------------------ */
-.defs-only {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-.pixel-trail {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  display: grid;
-  pointer-events: none;
-  overflow: hidden;
-  filter: url(#goo-filter);
-}
-/* It used to fade out entirely once a section opened. It cannot now — the
-   menu is live in both states, so the goo has to be too, or hovering a row
-   with a section open would do nothing. Knocked back instead of removed. */
-body.is-open { --trail-ink: #e2e2e2; }
-.pixel-trail .px {
-  background: var(--trail-ink);
-  opacity: 0;
-  transition: opacity 0.45s linear;
-}
-.pixel-trail .px.lit {
-  opacity: 1;
-  transition: none;
-}
-
-
 @media (max-width: 780px) {
   :root { --gutter: 1rem; }
-  .brand, .nav-link, .lede { font-size: 0.9375rem; }
-  /* its own size, or the shared rule above would flatten it back to nav size */
-  .brand { font-size: 1.25rem; }
-  .nav-link { padding: 0.3rem 0.6rem; }
-  /* three 4:3 plates across a phone are stamps, and the 2:1 grid ratio the
-     width formula assumes only holds at three columns */
-  .work-grid {
-    grid-template-columns: repeat(2, 1fr);
-    width: 100%;
-  }
+  .lede { font-size: 0.9375rem; }
+  /* Side by side stops working long before this: the bio wants 20rem of its
+     own and the cluster wants four columns out of what is left. Stacked, and
+     this is the one place the page is allowed to scroll — a phone cannot hold
+     a name, three paragraphs, the tools, the contact details and six cards on
+     one screen, and shrinking them until it can would make all of it unusable
+     rather than making it fit. */
+  body { height: auto; min-height: 100vh; overflow: visible; }
+  .page { flex-direction: column; gap: 2rem; }
+  .bio { flex: none; overflow: visible; }
+  .work { display: block; }
   /* no step on a phone: the cards are already small there, and offsetting them
      spends height the column has none of to spare */
-  .work-grid--pair,
-  .work-grid--trio,
-  .work-grid--cluster { --step: 0rem; }
+  .work-grid--cluster { --step: 0rem; width: 100%; }
   /* two columns on a phone, each stacking its share */
   .work-grid--cluster { flex-wrap: wrap; }
   .work-col { flex: 1 1 calc(50% - 0.5rem); }
 }
 
-/* work detail ------------------------------------------------------------
 
-   The Work section's second state, not an overlay. One of the two is shown
-   at a time, so the section keeps its own footprint and the wordmark stays
-   down — nothing about the page's shape changes when you open a piece. */
-.work-detail { display: none; }
-.pane.is-detail .work-grid { display: none; }
-.pane.is-detail .work-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  animation: rise 0.35s ease both;
-}
-
-.work-back {
-  flex: none;
-  align-self: flex-start;
-  padding: 0;
+/* the game ---------------------------------------------------------------
+   Breakout on the portfolio itself. See the script for how the bricks are
+   found; everything here is what it looks like. */
+.play {
+  margin: 0;
+  padding: 0.1rem 0.15rem;
   border: 0;
   background: none;
-  color: var(--foreground);
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 400;
   font-size: 0.9375rem;
-  letter-spacing: -0.011em;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
   cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 0.15s ease;
+  transition: color 0.15s ease;
 }
-.work-back:hover { opacity: 1; }
-.work-back:focus-visible { opacity: 1; outline: 2px solid var(--foreground); outline-offset: 4px; }
+.play:hover,
+.play:focus-visible { color: var(--foreground); }
+.play:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
-.detail-body {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  /* minmax(0,…) on both, or the image's intrinsic width — up to 3046px —
-     blows the left column past the viewport and squeezes the text to nothing */
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  gap: 2.5rem;
+/* Under the tooltip layer at 60 and over everything else, so the ball passes
+   in front of the cards it is knocking out. Never takes the pointer — the
+   pointer is the paddle, and the canvas would swallow the move events the
+   paddle is read from. */
+.pong {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: none;
+  pointer-events: none;
 }
+body.is-playing .pong { display: block; }
+/* the cursor is the paddle; two of them on screen is one too many */
+body.is-playing { cursor: none; }
+body.is-playing .play { cursor: pointer; }
+/* The page is a board right now, not a page. Blanket, and on the whole layout
+   rather than on the pieces that happen to react today: every :hover inside it
+   stops matching at once, so nothing can fade, flip, dim or slide under a
+   paddle that is only passing through — and the one real link in the copy
+   cannot be clicked into by accident either.
 
-.detail-main {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  /* both children hug the top now, so the picture and its strip stay one
-     group instead of being spread down the height of the column */
-  justify-content: flex-start;
-  gap: 0.75rem;
-}
-/* Shrink-to-fit, not flex: 1. Filling the column meant the stack claimed every
-   leftover pixel and parked the thumb strip on the floor of the pane, a band
-   of dead space below the last picture — the same fault the single image had,
-   moved up a level. Sized to its frames, the strip sits under them. */
-.detail-stack {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  /* nothing should escape the column if two tall shots are ever paired */
-  overflow: hidden;
-}
-/* One height for every shot. Sized to its own picture, the frame was as tall
-   as whatever was in it — so moving between a portrait card image and a wide
-   screenshot changed the frame's height, and the strip underneath jumped up
-   or down with it on every pick. The set runs 0.72 to 1.78 in aspect and that
-   is not going to stop, so the frame holds still and the pictures vary inside
-   it: the strip has a fixed place on the page, and the only thing that moves
-   when you switch is the picture. */
-/* The frame is the fixed box; it draws nothing itself. Rounding lived here
-   before, which rounded the box rather than the picture — a contained shot
-   sits inside that box with room to spare, so the corners being clipped were
-   the frame's own and the picture kept four square ones. Centring an image
-   that sizes itself instead means the element and the picture are the same
-   rectangle, and a radius on it rounds what you can actually see. */
-.detail-frame {
-  margin: 0;
-  min-height: 0;
-  /* shrinkable, so a viewport too short for the full ratio still fits */
-  flex: 0 1 auto;
-  aspect-ratio: var(--shot-aspect);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* Bounded rather than stretched — max-* with auto sizing keeps the picture at
-   its own aspect and no bigger than the frame, so nothing is cropped and what
-   it does not use is left as even margin on either side. */
-.detail-frame img {
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  border-radius: var(--radius-md);
-}
-.detail-thumbs {
-  flex: none;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
-}
-.detail-thumb {
-  aspect-ratio: 4 / 3;
-  margin: 0;
-  /* the same radius as the cards and the shot above, not a smaller one of its
-     own — one rounding across every picture on the page */
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: rgb(255 255 255 / 0.05);
-  /* an outline rather than a fill, so an empty slot reads as waiting for
-     something rather than a grey rectangle someone meant to be there */
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
-}
-.detail-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+   This was a bug, not a precaution. The flip was guarded but the two rules that
+   fade the faces were not, so a living card dropped to opacity 0 whenever the
+   pointer crossed it and came back when it left. Guarding each rule would have
+   fixed those two and left the next one to find. The control, the canvas, the
+   score and the prize all sit outside .page and are unaffected. */
+body.is-playing .page { pointer-events: none; }
 
-/* A slot with a shot in it picks that shot. Only those are buttons, so the
-   selector is the affordance: an empty slot cannot be clicked or focused. */
-button.detail-thumb {
-  padding: 0;
-  border: 0;
-  font: inherit;
-  cursor: pointer;
-}
-/* Held back until it is the one being shown, so the strip reads as one live
-   frame and a set of alternatives rather than five equal pictures competing
-   with the full-size shot above them. */
-button.detail-thumb img {
-  opacity: 0.45;
-  transition: opacity 0.15s ease;
-}
-button.detail-thumb:hover img,
-button.detail-thumb:focus-visible img,
-button.detail-thumb[aria-current="true"] img { opacity: 1; }
-/* the ring the empty slots already carry, brought up to full strength — the
-   current shot is marked by the same device rather than a new one */
-button.detail-thumb[aria-current="true"] {
-  box-shadow: inset 0 0 0 2px var(--foreground);
-}
-button.detail-thumb:focus-visible {
-  outline: 2px solid var(--foreground);
-  outline-offset: 3px;
-}
+/* Knocked out, and back.
 
-.detail-side {
-  min-width: 0;
-  /* Back to start. Stretching the column pinned the switcher to the floor of
-     the pane, which on a tall viewport left it stranded a long way under the
-     writing it belongs to — the row reads as a footer to the paragraph, so it
-     should follow the paragraph. */
-  align-self: start;
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  min-height: 0;
-  overflow-y: auto;
-}
-/* Two lines' worth of room, always. The paragraph and the switcher under this
-   were moving every time you changed piece, for two reasons at once: the six
-   faces derive their font-size from their own cap-ratio, so a proportional
-   line-height gave each title a different line box even on one line; and a
-   long name like Typography Posters wraps where Weave does not. Reserving the
-   taller case fixes both — the block below starts at the same height whichever
-   piece is open. --title-cap lives here rather than on the title so the
-   reservation is derived from the same number the type is. */
-.detail-heading {
-  margin: 0;
-  --title-cap: 1.5rem;
-  --title-line: calc(var(--title-cap) * 1.6);
-  min-height: calc(var(--title-line) * 2);
-}
-/* the title keeps its own display face — the span is given the card's
-   work-title classes at open time, and they carry their own cap-ratio */
-.detail-heading .work-title {
-  white-space: normal;
-  /* absolute, not a multiple of font-size: the whole point of cap-ratio is
-     that the six faces run at six different sizes to land one cap height, so
-     a proportional line box would undo that evenness line by line */
-  line-height: var(--title-line);
-}
-.detail-note { color: var(--muted-foreground); max-width: none; }
+   Animations, not transitions, and that is the whole fix. The cards carry
+   .reveal and the copy does not, so knocking a card out used to mean cancelling
+   its finished rise animation and adding a transition in the same frame — and a
+   transition does not reliably start from a value an animation was holding.
+   The text faded and the cards blinked out. As an animation this outranks rise
+   by cascade order alone: nothing has to be removed, and both kinds of brick
+   leave the same way.
 
-/* the switcher: every piece listed, the current one marked, so you can move
-   between them without going back out to the grid first */
-.detail-switch {
-  display: flex;
-  /* A row, wrapping. Six names stacked vertically read as a second navigation
-     competing with the nav in the bar; on one line they read as what they are,
-     a footer to the piece you are looking at. */
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: baseline;
-  /* row gap first, so a wrapped second line does not crowd the first */
-  gap: 0.4rem 1.1rem;
-  margin-top: 0.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--hairline);
+   Opacity and transform only, and no display or visibility: the ball is tested
+   against rects measured once at the start, so a brick that took its layout
+   space with it would move every rect below it. */
+@keyframes knockout {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(20px) scale(0.94); }
 }
-.detail-switch button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--foreground);
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.9375rem;
-  letter-spacing: -0.011em;
-  text-align: left;
-  cursor: pointer;
-  opacity: 0.45;
-  transition: opacity 0.15s ease;
+.is-hit {
+  animation: knockout 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+  pointer-events: none;
 }
-.detail-switch button:hover { opacity: 0.8; }
-.detail-switch button[aria-current="true"] { opacity: 1; }
-.detail-switch button:focus-visible { opacity: 1; outline: 2px solid var(--foreground); outline-offset: 3px; }
-
-@media (max-width: 900px) {
-  /* one column: the shots, their slots, then the writing under them */
-  .detail-body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto;
-    gap: 1.25rem;
-    overflow-y: auto;
+/* the page coming back at the end of a game, on the same curve it arrived on */
+.is-back { animation: rise 0.4s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  @keyframes knockout {
+    from { opacity: 1; }
+    to   { opacity: 0; }
   }
-  /* the body scrolls here, so the shot keeps its own height rather than being
-     squeezed into a share of one screen */
-  .detail-stack { flex: none; }
-  .detail-side { align-self: start; overflow: visible; }
-  /* on the heading, not the title — the two-line reservation is derived from
-     it, so setting it on the child would size the type down and leave the
-     space above it reserved at the desktop measure */
-  .detail-heading { --title-cap: 1.1rem; }
+  .is-hit { animation-duration: 0.2s; }
+  .is-back { animation: none; }
 }
+/* no pointer, no paddle */
+@media (max-width: 780px) {
+  .play { display: none; }
+}
+
+/* Opposite the control, same size and colour, so the two read as one row.
+   Invisible until a game is on; it has nothing to say before then. */
+.score {
+  margin: 0;
+  font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+body.is-playing .score { opacity: 1; }
+
+/* The prize. Centred on the page rather than tucked in a corner, because at
+   this point the page is empty — every brick is down and nothing else is on
+   screen to compete with it. */
+/* Fades rather than appearing, and fades back out on the way to the site — the
+   page is coming back underneath it, and a panel that simply vanished would beat
+   the bricks to it.
+
+   pointer-events: none is not decoration. This is inset:0 at z-index 55, so it
+   lies over the whole page including the control in the corner that dismisses
+   it; without this it swallows the hover and the click meant for that button. */
+.prize {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0s linear 0.35s;
+}
+.prize.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.45s ease, visibility 0s;
+}
+.prize-line {
+  margin: 0;
+  /* rises the last few pixels into place, the way everything else on this page
+     arrives */
+  translate: 0 10px;
+  transition: translate 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+  max-width: 22ch;
+  text-align: center;
+  font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(1.25rem, 3.2vw, 2.5rem);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+}
+.prize.is-on .prize-line { translate: 0 0; }
+@media (prefers-reduced-motion: reduce) {
+  .prize-line { translate: none; transition: none; }
+}
+
+
+/* One card per section, carrying its caption and its contents together.
+
+   Solid, and therefore light: the surface is the same warm off-white the name
+   is knocked out in — not #fff, a white sampled from a painting. So the ink
+   goes dark, the way it does on the backs of the work cards. Near-black rather
+   than #000, which is the page behind them and would read as a hole punched
+   through the card.
+
+   One material, three cards. The card states a surface and an ink; the caption
+   and the marks inside it inherit both, so nothing here needs a descendant
+   rule to undo a colour set for a context that no longer exists. */
+.card {
+  padding: calc(0.75rem * var(--s)) calc(0.85rem * var(--s));
+  border-radius: var(--radius);
+  background: var(--flower-white);
+  color: #16181c;
+  transition: background 0.2s ease;
+}
+.card:hover { background: #f6f6f4; }
+
+
+/* Two lines, not a paragraph, and no bullets — at this measure a marker costs a
+   character of every wrapped line and buys nothing the line break has not
+   already said. */
+.note-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.4rem * var(--s));
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: calc(0.875rem * var(--s));
+  line-height: 1.4;
+  letter-spacing: -0.011em;
+}
+
+/* The foot of the page. Its height is the paddle's playing room; its text sits
+   at the very bottom of it, below where a live ball can go. */
+.footer {
+  flex: none;
+  height: var(--footer);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 var(--gutter) 0.5rem;
+  position: relative;
+  z-index: 50;
+}
+
