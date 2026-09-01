@@ -563,10 +563,12 @@ function follower(el, off) {
     const gridStyle = getComputedStyle(grid);
     const colGap = px(gridStyle.columnGap);
     const step = px(gridStyle.getPropertyValue('--step'));
-    /* 40px of deliberate slack: a cluster pressed against the top and bottom of
-       its own column reads as something that did not fit. clientHeight already
-       excludes the footer band, so nothing here has to know about it. */
-    const budget = work.clientHeight - 40;
+    /* A cluster pressed against the top and bottom of its own column reads as
+       something that did not fit. The stylesheet lowers this allowance in its
+       compact one-screen mode; clientHeight already excludes the footer band,
+       so nothing here has to know about it. */
+    const slack = px(gridStyle.getPropertyValue('--cluster-slack'));
+    const budget = work.clientHeight - slack;
     if (budget <= 0) return;
 
     let worst = 0;
