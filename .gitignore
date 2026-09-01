@@ -6,3 +6,9 @@ Screenshot *.png
 # Per-machine tool permissions, not site content. The file says local in its
 # own name; it has no business in a repo that is also the deployed site.
 .claude/
+
+# The resume export that still carries a home address and phone number in its
+# text layer. Kept out of the repo by name so that a routine `git add -A`
+# cannot publish it; the redacted export tracks normally as
+# dante-smith-resume.pdf.
+*-unredacted.pdf
