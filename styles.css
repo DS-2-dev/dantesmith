@@ -68,7 +68,13 @@ body {
   /* Measured once here and used twice: it sets the column, and the name is
      sized off it so the two words always fill that measure exactly. vw and
      not %, because a percentage cannot be divided into a font-size. */
-  --bio-w: clamp(16rem, 19vw, 21rem);
+  /* The column gets width because width is what makes it short: the same copy
+     in a wider measure needs fewer lines, and lines are the thing that does not
+     fit. 19vw never won against the old 16rem floor anywhere between 780px and
+     1347px, so every laptop in that range got the narrowest column the clamp
+     could give and the cluster got all the rest. The cluster is sized by height
+     and caps itself, so what it gives up here it was not spending. */
+  --bio-w: clamp(17rem, 24vw, 24rem);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -94,6 +100,19 @@ body {
   scrollbar-width: none;
 }
 .bio::-webkit-scrollbar { display: none; }
+/* The fit pass could not get the column inside the window even at its floor.
+
+   Everything here rhymes with the phone layout one breakpoint down: the page
+   stops being one screen and becomes a document. It has to. The column's
+   scrollbar is hidden, so an overflow left inside it is indistinguishable from
+   content that was cut off — which is what it looks like, and the reason this
+   exists. Scrolling is the honest failure. */
+body.is-overflowing {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+body.is-overflowing .bio { overflow: visible; }
 /* the work sits centred in whatever the bio leaves, in both directions */
 .work {
   flex: 1;
@@ -986,6 +1005,11 @@ body:not(.is-playing) .work-card:hover .work-flip,
 }
 body.is-playing .pong { display: block; }
 /* the cursor is the paddle; two of them on screen is one too many */
+/* Whatever the page decided about scrolling, a game does not scroll: the
+   canvas is fixed and the bricks were read in viewport coordinates, so a page
+   that moved under it would leave the two out of step. Later in the file than
+   .is-overflowing on purpose — same specificity, so source order settles it. */
+body.is-playing { overflow: hidden; }
 body.is-playing { cursor: none; }
 body.is-playing .play { cursor: pointer; }
 /* The page is a board right now, not a page. Blanket, and on the whole layout

@@ -606,19 +606,33 @@ function follower(el, off) {
 (function () {
   const bio = document.querySelector('.bio');
   if (!bio) return;
-  const FLOOR = 0.72;
+  /* Was 0.72. The wider column above does most of the work now, so this is a
+     genuine last resort rather than the thing carrying the layout — and the
+     window that needs it is short enough that stopping early would clip. */
+  const FLOOR = 0.58;
   const STEP = 0.02;
 
+  const over = () => bio.scrollHeight > bio.clientHeight + 1;
+
   function fit() {
+    /* Measure in the locked layout, every pass. Releasing it makes the column
+       exactly as tall as its content, which reads as "fits" and would lock it
+       again on the next pass — a flip-flop rather than a measurement. */
+    document.body.classList.remove('is-overflowing');
     let s = 1;
     bio.style.setProperty('--bio-scale', s);
     /* scrollHeight against clientHeight is the overflow, and reading it forces
        the layout each pass — which is the point, and why the caller is behind
        onResize rather than on the event itself */
-    while (s > FLOOR && bio.scrollHeight > bio.clientHeight + 1) {
+    while (s > FLOOR && over()) {
       s = Math.round((s - STEP) * 100) / 100;
       bio.style.setProperty('--bio-scale', s);
     }
+    /* Floor reached and still too tall. The column's scrollbar is hidden, so
+       leaving the overflow in there is content silently cut off — the one
+       outcome worse than scrolling. Hand the scroll to the page instead, which
+       is the same answer the phone layout gives one breakpoint down. */
+    document.body.classList.toggle('is-overflowing', over());
   }
 
   fit();
