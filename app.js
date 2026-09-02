@@ -216,7 +216,13 @@ function follower(el, off) {
      cleared, median 83s. The ramp went UP to 1.15 at the same time — the
      slower start is what you feel, the endgame still needs to be brisk, and
      the two are independent. Top speed lands about where it was. */
-  const SPEED = 6.2;      /* px per frame at the start, at the tuning size */
+  /* Was 6.2, which was tuned against a 118px paddle before the paddle grew to
+     180. At 60Hz that read as 372px a second — a ball taking most of three
+     seconds to cross the screen — and it only ever felt right on a 120Hz panel
+     because the loop was running at the refresh rate. Now that dt has pinned
+     the rate, this is the one number that sets it: multiply by 60 for pixels
+     per second. The wider paddle absorbs the difference. */
+  const SPEED = 9.0;      /* px per 60Hz frame at the start, at the tuning size */
   const RAMP = 1.15;      /* and how much faster with the last brick left */
   /* Arrow-key travel, px per frame before the width scaling below. The mouse
      is instant and the keyboard cannot be, so this is the one number that
@@ -254,6 +260,7 @@ function follower(el, off) {
      last resting. Whichever device moved last wins, and pressing an arrow
      drops pointerX to null to hand over. Moving the mouse takes it back. */
   let pointerX = null;
+  let last = 0;
   const held = new Set();
 
   function size() {
@@ -342,8 +349,19 @@ function follower(el, off) {
     return true;
   }
 
-  function step() {
+  function step(now) {
     raf = requestAnimationFrame(step);
+    /* Everything below is written in pixels per 60Hz frame, which is what it
+       was tuned in. Multiplying by dt makes that a rate rather than a literal
+       per-frame step, so the game plays the same on a 60Hz panel and on a
+       120Hz one — before this it ran at exactly the refresh rate, which meant
+       dropping off ProMotion halved the speed of the game with nothing in the
+       code having changed. Capped at three frames: a tab in the background
+       stops painting, and an uncapped catch-up step would put the ball through
+       a brick instead of into it. */
+    const t = now || performance.now();
+    const dt = Math.min((t - (last || t)) / 16.667, 3);
+    last = t;
     const padY = innerHeight - PAD_UP - PAD_H;
     const pad = padWidth();
     if (pointerX !== null) {
@@ -353,12 +371,12 @@ function follower(el, off) {
          share of the screen on a laptop as on a monitor. Both keys at once
          cancel out, which is what holding both should do. */
       const dir = (held.has('ArrowRight') ? 1 : 0) - (held.has('ArrowLeft') ? 1 : 0);
-      padX += dir * KEY_SPEED * (pad / PAD_W);
+      padX += dir * KEY_SPEED * (pad / PAD_W) * dt;
     }
     padX = Math.min(Math.max(padX, pad / 2), innerWidth - pad / 2);
 
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
 
     if (ball.x < R) { ball.x = R; ball.vx = Math.abs(ball.vx); }
     if (ball.x > innerWidth - R) { ball.x = innerWidth - R; ball.vx = -Math.abs(ball.vx); }
@@ -420,6 +438,7 @@ function follower(el, off) {
     padX = pointerX === null ? innerWidth / 2 : pointerX;
     serve();
     cancelAnimationFrame(raf);
+    last = 0;
     raf = requestAnimationFrame(step);
   }
 

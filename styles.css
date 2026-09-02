@@ -74,10 +74,14 @@ body {
      not %, because a percentage cannot be divided into a font-size. */
   /* The column gets width because width is what makes it short: the same copy
      in a wider measure needs fewer lines, and lines are the thing that does not
-     fit. 19vw never won against the old 16rem floor anywhere between 780px and
-     1347px, so every laptop in that range got the narrowest column the clamp
-     could give and the cluster got all the rest. The cluster is sized by height
-     and caps itself, so what it gives up here it was not spending. */
+     fit. Every addition to this column has been paid for by shrinking all of
+     it, so the width goes up instead — 24vw put 539px of prose into a 346px
+     measure at 1440 and the fit pass answered by taking the type down to 0.84.
+     Width has since saturated. Measured against 27vw and 29vw it lands on the
+     same scale at every size and two steps worse at 1200x700, while the
+     responsive contract holds the work cards to 160px at 1024 wide and 31vw
+     took them to 156. So the column stays here and the height came out of the
+     gaps instead. */
   --bio-w: clamp(17rem, 24vw, 24rem);
   flex: 1;
   min-height: 0;
@@ -96,7 +100,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: calc(1rem * var(--s));
+  gap: calc(0.85rem * var(--s));
   /* The fit pass keeps the content inside this, so in practice nothing scrolls.
      It stays scrollable as the last resort for a window shorter than the scale
      floor can answer — clipping the contact details would be worse. */
@@ -279,7 +283,7 @@ body.is-overflowing .bio { overflow: visible; }
 .prose-block {
   display: flex;
   flex-direction: column;
-  gap: calc(1rem * var(--s));
+  gap: calc(0.85rem * var(--s));
   flex: none;
 }
 .prose {
