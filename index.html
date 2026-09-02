@@ -26,14 +26,17 @@
      lands, which for a portfolio is the worst place to have no design.
      Absolute URLs are not optional here: every scraper fetches these out of
      the page's context and a relative path resolves against nothing.
-     og-card.png is PNG rather than webp on purpose — LinkedIn's crawler is
-     unreliable on webp and falls back to no image at all. -->
+     og-card.jpg is JPEG rather than webp on purpose — LinkedIn's crawler is
+     unreliable on webp and falls back to no image at all. JPEG rather than PNG
+     because the card is a photograph of four printed pieces on black: PNG spent
+     204 KB losslessly encoding sensor grain, and q92 holds the wordmark's edges
+     at a third of that. -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://dantesmith.studio/">
 <meta property="og:site_name" content="Dante Smith">
 <meta property="og:title" content="Dante Smith — Modern AI Designer">
 <meta property="og:description" content="18yo designer in Utah. Typography, web UI/UX, and posters — leveraging the future, without losing taste.">
-<meta property="og:image" content="https://dantesmith.studio/images/og-card.png">
+<meta property="og:image" content="https://dantesmith.studio/images/og-card.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Dante Smith, Modern AI Designer, over a cluster of poster and brand work.">
@@ -44,7 +47,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Dante Smith — Modern AI Designer">
 <meta name="twitter:description" content="18yo designer in Utah. Typography, web UI/UX, and posters — leveraging the future, without losing taste.">
-<meta name="twitter:image" content="https://dantesmith.studio/images/og-card.png">
+<meta name="twitter:image" content="https://dantesmith.studio/images/og-card.jpg">
 
 <!-- Ties the site to the LinkedIn profile as one identity rather than two
      unrelated pages that happen to share a name. sameAs is the property that
@@ -55,7 +58,7 @@
   "@type": "Person",
   "name": "Dante Smith",
   "url": "https://dantesmith.studio/",
-  "image": "https://dantesmith.studio/images/og-card.png",
+  "image": "https://dantesmith.studio/images/og-card.jpg",
   "jobTitle": "Designer",
   "description": "Modern AI Designer working in typography and web UI/UX.",
   "email": "mailto:dantesmith@weber.edu",
