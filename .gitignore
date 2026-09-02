@@ -12,3 +12,8 @@ Screenshot *.png
 # cannot publish it; the redacted export tracks normally as
 # dante-smith-resume.pdf.
 *-unredacted.pdf
+
+# Knowledge-graph output from the graphify skill, including its query log.
+# Tool scratch, and this repo is served as-is — anything committed here is
+# published at dantesmith.studio.
+graphify-out/

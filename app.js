@@ -642,3 +642,59 @@ function follower(el, off) {
   /* the display faces arrive after first paint and change how the copy wraps */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 })();
+
+
+/* The email, copied. Not a mailto — see the markup for why — so the button is
+   the only way the address leaves the page, and it has to actually work rather
+   than fail silently the way a dead mailto does.
+
+   Two ways to do it, because the good one is not always available: the
+   clipboard API needs a secure context and a permission the browser can still
+   refuse, and it rejects rather than throwing synchronously. The old selection
+   dance is the fallback, and it is deprecated rather than gone. */
+(function () {
+  const btn = document.querySelector('.copy');
+  const live = document.querySelector('.sr-only[role="status"]');
+  if (!btn) return;
+  const text = btn.dataset.copy;
+  let timer;
+
+  function legacy() {
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    /* fixed and transparent rather than off-screen: a field positioned past
+       the edge scrolls the page to itself when it takes the selection */
+    field.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(field);
+    field.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    field.remove();
+    return ok;
+  }
+
+  function said(word) {
+    btn.classList.toggle('is-done', word === 'copied');
+    if (live) live.textContent = word === 'copied'
+      ? 'Email address copied'
+      : 'Press could not copy. The address is ' + text;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      btn.classList.remove('is-done');
+      /* emptied so the same word is announced again on a second copy, rather
+         than skipped as an unchanged value */
+      if (live) live.textContent = '';
+    }, 1800);
+  }
+
+  btn.addEventListener('click', () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => said('copied'))
+        .catch(() => said(legacy() ? 'copied' : 'failed'));
+      return;
+    }
+    said(legacy() ? 'copied' : 'failed');
+  });
+})();

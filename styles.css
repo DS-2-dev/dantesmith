@@ -320,6 +320,54 @@ body.is-overflowing .bio { overflow: visible; }
   transition: text-decoration-color 0.15s ease;
 }
 a.contact-val:hover { text-decoration-color: currentColor; }
+
+/* Copy the address. Sized and baselined to the line it sits on rather than to
+   itself: a control in a paragraph that does not share the text's baseline
+   reads as debris rather than as part of the sentence. Muted until wanted,
+   like the play control in the footer. */
+.copy {
+  margin: 0 0 0 calc(0.35rem * var(--s));
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  vertical-align: -0.12em;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.copy:hover,
+.copy:focus-visible { color: var(--foreground); }
+.copy:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 3px; }
+.copy svg {
+  display: block;
+  width: calc(0.8125rem * var(--s));
+  height: calc(0.8125rem * var(--s));
+}
+/* One icon at a time. The confirmation goes to full white rather than a colour
+   the page uses nowhere else — it lands as the same lift every other control
+   here gets on hover, which is the page's own way of saying a thing answered. */
+.copy .copy-done { display: none; }
+.copy.is-done { color: var(--foreground); }
+.copy.is-done .copy-mark { display: none; }
+.copy.is-done .copy-done { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .copy { transition: none; }
+}
+
+/* Said to a screen reader and to nobody else. Not display:none, which would
+   take it out of the accessibility tree along with everything else. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 /* The mark that says this one leaves the site. inline-block on purpose: an
    inline child would be caught by the anchor's underline, and a rule running
    under an arrowhead reads as a strike through it. */
