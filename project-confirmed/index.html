@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project deposit received — Dante Smith</title>
+<!-- A receipt is not a page anyone should arrive at from a search result, and
+     Stripe sends people here by redirect, so nothing is lost by keeping it
+     out of the index. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/images/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Only the kit, and only for magistral, exactly as the 404 does it: the one
+     line that has to be in the site's own face is the one at the top. The rest
+     takes the system stack rather than earning a second blocking origin on a
+     page reached once. -->
+<link rel="preconnect" href="https://use.typekit.net" crossorigin>
+<link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
+
+<style>
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --muted-foreground: #808080;
+    --hairline: #2b2b2b;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .block { max-width: 34rem; }
+
+  .headline {
+    margin: 0;
+    font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 5.5vw, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .say {
+    margin: 1.25rem 0 0;
+    max-width: 30rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+    color: var(--muted-foreground);
+  }
+  .say + .say { margin-top: 0.75rem; }
+
+  /* Same underline treatment as the contact links on the site: a hairline that
+     comes up to full strength on hover. */
+  .back {
+    display: inline-block;
+    margin-top: 2rem;
+    font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9375rem;
+    letter-spacing: 0.02em;
+    color: var(--foreground);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color 0.15s ease;
+  }
+  .back:hover,
+  .back:focus-visible { text-decoration-color: currentColor; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .back { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <main class="block">
+    <h1 class="headline">Project deposit received</h1>
+    <p class="say">Your $250 deposit has been received and will be applied
+      toward your agreed project total.</p>
+    <p class="say">I&rsquo;ll follow up with the next steps, timeline, and
+      project details.</p>
+    <a class="back" href="/">Back to the site</a>
+  </main>
+</body>
+</html>

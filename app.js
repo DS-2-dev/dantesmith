@@ -608,10 +608,12 @@ function follower(el, off) {
 (function () {
   const bio = document.querySelector('.bio');
   if (!bio) return;
-  /* Was 0.72. The wider column above does most of the work now, so this is a
-     genuine last resort rather than the thing carrying the layout — and the
-     window that needs it is short enough that stopping early would clip. */
-  const FLOOR = 0.58;
+  /* Was 0.72, then 0.58. Each step down has been paid for by something added
+     to the column, and this one is the deposit control: at 1024x600 the layout
+     had no slack left and the button put it ten pixels over. The floor is not
+     a budget to keep spending — the next thing added here should come out of
+     the copy instead. */
+  const FLOOR = 0.56;
   const STEP = 0.02;
 
   const over = () => bio.scrollHeight > bio.clientHeight + 1;
