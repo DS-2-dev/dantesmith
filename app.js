@@ -210,18 +210,17 @@ function follower(el, off) {
      label in. Nothing else depends on it. */
   const PAD_UP = 44;      /* paddle's distance off the bottom edge */
   const R = 7;            /* ball radius */
-  /* Tuned by simulation, not by feel: 40 boards x 3 tracking lags, counting
-     how many ended in a miss. At 7.6 with a 118px paddle it was 63% lost,
-     which is a toy nobody finishes. 6.2 over 180px is 19% lost and 79%
-     cleared, median 83s. The ramp went UP to 1.15 at the same time — the
-     slower start is what you feel, the endgame still needs to be brisk, and
-     the two are independent. Top speed lands about where it was. */
-  /* Was 6.2, which was tuned against a 118px paddle before the paddle grew to
-     180. At 60Hz that read as 372px a second — a ball taking most of three
-     seconds to cross the screen — and it only ever felt right on a 120Hz panel
-     because the loop was running at the refresh rate. Now that dt has pinned
-     the rate, this is the one number that sets it: multiply by 60 for pixels
-     per second. The wider paddle absorbs the difference. */
+  /* Speed was originally simulated — 40 boards x 3 tracking lags, counting the
+     misses — and 6.2 was the answer for a 118px paddle. Two things have since
+     made that number a historical one. The paddle grew to 180, and the loop
+     turned out to be running at the refresh rate rather than at a rate, so 6.2
+     only ever felt right on a 120Hz panel and read as 372px a second on
+     anything else.
+
+     Now that the timestep is fixed, this is the single number that sets the
+     pace: multiply by 60 for pixels per second. The wider paddle absorbs the
+     difference. RAMP is independent of it — the slower start is what you feel,
+     the endgame still needs to be brisk. */
   const SPEED = 9.0;      /* px per 60Hz frame at the start, at the tuning size */
   const RAMP = 1.15;      /* and how much faster with the last brick left */
   /* Arrow-key travel, px per frame before the width scaling below. The mouse
@@ -231,10 +230,10 @@ function follower(el, off) {
      can cross it and therefore always recoverable. */
   const KEY_SPEED = 13;
   /* Both of the numbers above are pixels, and pixels are not the same thing on
-     every screen. A ball crossing a 720px window at 6.2px per frame gets there
-     in 116 frames; the same ball on a 1080px window takes 174, so the tuned
-     game felt brisk on a laptop and sluggish on a monitor, and the paddle was a
-     smaller share of a wider screen into the bargain.
+     every screen. A ball crossing a 720px window covers it in two thirds of
+     the time the same ball takes on a 1080px one, so a game tuned on a laptop
+     ran sluggish on a monitor, and the paddle was a smaller share of a wider
+     screen into the bargain.
 
      Both now scale with the window, off 1440x900 where the difficulty was
      simulated. Height drives the ball because the ball's rhythm is the trip
@@ -740,9 +739,10 @@ function follower(el, off) {
 
    Everything in the column is written as a multiple of --bio-scale, so one
    number shrinks all of it together: type, gaps, the marks, the name. This
-   walks that number down until the content stops overflowing. Down to 0.72 —
-   below that the copy stops being copy, and the column keeps its scrollbar as
-   the honest last resort. */
+   walks that number down until the content stops overflowing. There is a floor
+   on it, below which the copy stops being copy — see FLOOR for where that sits
+   and what has moved it — and under that the page takes the scroll as the
+   honest last resort. */
 (function () {
   const bio = document.querySelector('.bio');
   if (!bio) return;

@@ -493,8 +493,10 @@ a.contact-val:focus-visible .link-out {
      columns tall, plus the 20px between the two cards and the 80px of step it
      carries as an even column. Four columns and three 16px gaps make the
      cluster 4w + 48 wide, so a height budget converts at 4/2.6633 = 1.5019 —
-     and 100vh less 48px of page gutter and 40px of deliberate slack gives
-     150.19vh - 234. A cluster pressed against the top and bottom of the screen
+     and 100vh less 48px of page gutter and the 40px --cluster-slack allows
+     gives 150.19vh - 234. That slack is a variable rather than a constant now:
+     the compact mode below drops it to 1rem, and the script reads whichever is
+     in force. A cluster pressed against the top and bottom of the screen
      reads as something that did not fit.
 
      The --step term is back: the binding column is a stepped one again, which
@@ -1111,13 +1113,15 @@ body:not(.is-playing) .work-card:hover .work-flip,
   pointer-events: none;
 }
 body.is-playing .pong { display: block; }
-/* the cursor is the paddle; two of them on screen is one too many */
 /* Whatever the page decided about scrolling, a game does not scroll: the
    canvas is fixed and the bricks were read in viewport coordinates, so a page
    that moved under it would leave the two out of step. Later in the file than
    .is-overflowing on purpose — same specificity, so source order settles it. */
-body.is-playing { overflow: hidden; }
-body.is-playing { cursor: none; }
+body.is-playing {
+  overflow: hidden;
+  /* the cursor is the paddle; two of them on screen is one too many */
+  cursor: none;
+}
 body.is-playing .play { cursor: pointer; }
 /* The page is a board right now, not a page. Blanket, and on the whole layout
    rather than on the pieces that happen to react today: every :hover inside it
