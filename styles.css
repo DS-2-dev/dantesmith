@@ -1162,7 +1162,12 @@ body.is-playing .score { opacity: 1; }
   inset: 0;
   z-index: 55;
   display: grid;
-  place-items: center;
+  /* place-content, not place-items: with two children in the grid, centring
+     each one inside its own row throws them to opposite ends of the screen.
+     This centres the pair of rows together and leaves each one centred across
+     the width, which is what "in the middle" meant. */
+  place-content: center;
+  justify-items: center;
   padding: var(--gutter);
   pointer-events: none;
   opacity: 0;
@@ -1180,7 +1185,10 @@ body.is-playing .score { opacity: 1; }
      arrives */
   translate: 0 10px;
   transition: translate 0.45s cubic-bezier(0.32, 0.72, 0, 1);
-  max-width: 22ch;
+  /* 22ch was the measure for a shorter line and broke this one before
+     "service!", orphaning "any". Wide enough to hold the sentence whole where
+     there is room, and it still wraps on its own where there is not. */
+  max-width: 30ch;
   text-align: center;
   font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: clamp(1.25rem, 3.2vw, 2.5rem);
@@ -1188,9 +1196,36 @@ body.is-playing .score { opacity: 1; }
   letter-spacing: 0.01em;
   color: var(--foreground);
 }
-.prize.is-on .prize-line { translate: 0 0; }
+/* The instruction, not the prize. Muted and a good deal smaller, and it rises
+   a beat behind the line above so the two arrive in the order they are read. */
+.prize-note {
+  margin: 0.7rem 0 0;
+  translate: 0 10px;
+  transition: translate 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.08s;
+  max-width: 30ch;
+  text-align: center;
+  font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: clamp(0.8125rem, 1.15vw, 1rem);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+/* argent-pixel-cf ships a broken dollar — it draws as a tick a few pixels
+   tall, while its euro and pound are both fine, so this is that one glyph and
+   not the face. Borrowed from the same fallback stack the rest of the line
+   already names, at the size that makes a mono dollar sit level with the pixel
+   digits beside it. */
+.dollar {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82em;
+  vertical-align: 0.04em;
+  letter-spacing: 0;
+}
+.prize.is-on .prize-line,
+.prize.is-on .prize-note { translate: 0 0; }
 @media (prefers-reduced-motion: reduce) {
-  .prize-line { translate: none; transition: none; }
+  .prize-line,
+  .prize-note { translate: none; transition: none; }
 }
 
 

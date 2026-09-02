@@ -414,10 +414,13 @@
   <!-- The board is drawn here; the bricks are not. Those are the real cards
        and the real copy, read off the page with getBoundingClientRect. -->
   <canvas class="pong" id="pong" aria-hidden="true"></canvas>
-  <!-- Shown once every brick is down. Nothing to collect; the joke is the
-       reward. -->
+  <!-- Shown once every brick is down. There is something to collect now, so
+       the claim and what to do about it are two lines rather than one wrapped
+       block: the prize reads at full size, the instruction sits under it at
+       the weight an instruction deserves. -->
   <div class="prize" id="prize">
-    <p class="prize-line">I&rsquo;d give you a prize if I had one&hellip;</p>
+    <p class="prize-line">You won <span class="dollar">$</span>10 off any service!</p>
+    <p class="prize-note">Take a screenshot for proof!</p>
   </div>
 
   <!-- A module: its own scope, deferred by definition, and the one file the
