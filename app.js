@@ -261,9 +261,18 @@ function follower(el, off) {
      drops pointerX to null to hand over. Moving the mouse takes it back. */
   let pointerX = null;
   let last = 0;
+  let acc = 0;
+  let prevX = 0;
+  let prevY = 0;
+  let dirtyBall = null;
+  let dirtyPad = null;
   const held = new Set();
 
   function size() {
+    /* setting width or height blanks the canvas, so anything remembered about
+       what is currently painted on it is now wrong */
+    dirtyBall = null;
+    dirtyPad = null;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(innerWidth * dpr);
     canvas.height = Math.round(innerHeight * dpr);
@@ -298,6 +307,9 @@ function follower(el, off) {
     const angle = (Math.random() * 0.5 + 0.25) * Math.PI;
     const sp = SPEED * pace();
     ball = { x: padX, y, vx: Math.cos(angle) * sp, vy: -Math.abs(Math.sin(angle) * sp) };
+    /* or the first frame would draw it streaking in from the last ball's grave */
+    prevX = ball.x;
+    prevY = ball.y;
   }
 
   function tally() {
@@ -349,19 +361,9 @@ function follower(el, off) {
     return true;
   }
 
-  function step(now) {
-    raf = requestAnimationFrame(step);
-    /* Everything below is written in pixels per 60Hz frame, which is what it
-       was tuned in. Multiplying by dt makes that a rate rather than a literal
-       per-frame step, so the game plays the same on a 60Hz panel and on a
-       120Hz one — before this it ran at exactly the refresh rate, which meant
-       dropping off ProMotion halved the speed of the game with nothing in the
-       code having changed. Capped at three frames: a tab in the background
-       stops painting, and an uncapped catch-up step would put the ball through
-       a brick instead of into it. */
-    const t = now || performance.now();
-    const dt = Math.min((t - (last || t)) / 16.667, 3);
-    last = t;
+  /* One physics tick, dt in 60Hz frames — the unit everything above is tuned
+     in. Always called with the same dt, which is the whole point: see step. */
+  function advance(dt) {
     const padY = innerHeight - PAD_UP - PAD_H;
     const pad = padWidth();
     if (pointerX !== null) {
@@ -375,6 +377,10 @@ function follower(el, off) {
     }
     padX = Math.min(Math.max(padX, pad / 2), innerWidth - pad / 2);
 
+    /* Where it was before this tick, so the frame can be drawn between two
+       ticks rather than snapped to whichever one happened last. */
+    prevX = ball.x;
+    prevY = ball.y;
     ball.x += ball.vx * dt;
     ball.y += ball.vy * dt;
 
@@ -413,10 +419,41 @@ function follower(el, off) {
        is empty at this point, which is the whole picture. */
     if (!bricks.length) { stop({ keep: true }); win(); return; }
 
-    ctx.clearRect(0, 0, innerWidth, innerHeight);
+  }
+
+  function draw() {
+    const padY = innerHeight - PAD_UP - PAD_H;
+    const pad = padWidth();
+    /* Drawn between the last tick and the next one, not on the last one.
+
+       A fixed step alone still judders: a frame gets whatever whole number of
+       ticks fitted into it, so one frame advances two ticks and the next
+       three, and the ball moves in uneven jumps even though every tick is
+       identical. acc is the time already banked toward the tick that has not
+       run yet, so acc / TICK is how far between the two the frame actually
+       falls. Drawing there puts the ball where it really is at this instant. */
+    const alpha = acc / TICK;
+    const bx = prevX + (ball.x - prevX) * alpha;
+    const by = prevY + (ball.y - prevY) * alpha;
+
+    /* Clear what was painted, not the window.
+
+       The canvas is the full viewport at up to 2x, which on a 16-inch retina
+       screen is about seven million pixels. Clearing all of them every frame
+       to draw a dot and a bar is most of the frame's work, and it is the kind
+       of cost that does not show up on a fast machine until something else
+       wants the GPU — at which point the ball starts hitching. These two rects
+       are a few thousand pixels between them. 2px of margin because the ball
+       is drawn antialiased and its edge bleeds a fraction past its radius. */
+    const m = 2;
+    if (dirtyBall) ctx.clearRect(dirtyBall[0], dirtyBall[1], dirtyBall[2], dirtyBall[3]);
+    if (dirtyPad) ctx.clearRect(dirtyPad[0], dirtyPad[1], dirtyPad[2], dirtyPad[3]);
+    dirtyBall = [bx - R - m, by - R - m, (R + m) * 2, (R + m) * 2];
+    dirtyPad = [padX - pad / 2 - m, padY - m, pad + m * 2, PAD_H + m * 2];
+
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(ball.x, ball.y, R, 0, Math.PI * 2);
+    ctx.arc(bx, by, R, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     /* roundRect is recent enough that a browser without it is worth a
@@ -424,6 +461,42 @@ function follower(el, off) {
     if (ctx.roundRect) ctx.roundRect(padX - pad / 2, padY, pad, PAD_H, PAD_H / 2);
     else ctx.rect(padX - pad / 2, padY, pad, PAD_H);
     ctx.fill();
+  }
+
+  /* A fixed timestep, and this is what stops the ball looking jittery.
+
+     Feeding the raw frame delta straight into the physics looks wrong even
+     when the average speed is right: rAF deltas wander about 16% either side
+     of their mean, so the ball covers a visibly different distance every
+     frame. Time goes into an accumulator instead and is spent in identical
+     TICK-sized steps, so every step moves the ball exactly as far as the last
+     one. Whatever is left over stays in the accumulator for the next frame.
+
+     240Hz because the leftover is the one error this cannot remove — the ball
+     is drawn wherever the last whole tick left it, up to one tick behind. At
+     240 that is under three pixels at this speed, which is not a thing anyone
+     can see, and the physics is a dozen arithmetic ops so the extra ticks cost
+     nothing. It also stops the ball tunnelling: shorter steps mean it can no
+     longer skip past a thin brick between two frames. */
+  const TICK = 1000 / 240;
+  const TICK_DT = TICK / 16.667;
+
+  function step(now) {
+    raf = requestAnimationFrame(step);
+    const t = now || performance.now();
+    /* Capped at a tenth of a second. A backgrounded tab stops painting and
+       comes back with a huge delta; without the cap the catch-up would run
+       hundreds of ticks in one frame and freeze the page to do it. */
+    acc += Math.min(t - (last || t), 100);
+    last = t;
+    while (acc >= TICK) {
+      acc -= TICK;
+      advance(TICK_DT);
+      /* advance can end the game — stop() has already cancelled the frame and
+         cleared the canvas by then, so there is nothing left to draw. */
+      if (!on) return;
+    }
+    draw();
   }
 
   function start() {
@@ -439,6 +512,7 @@ function follower(el, off) {
     serve();
     cancelAnimationFrame(raf);
     last = 0;
+    acc = 0;
     raf = requestAnimationFrame(step);
   }
 
