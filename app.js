@@ -265,6 +265,9 @@ function follower(el, off) {
   let prevX = 0;
   let prevY = 0;
   let dirtyBall = null;
+  let drawnX = 0;
+  let drawnY = 0;
+  let drawn = false;
   let dirtyPad = null;
   const held = new Set();
 
@@ -273,6 +276,7 @@ function follower(el, off) {
        what is currently painted on it is now wrong */
     dirtyBall = null;
     dirtyPad = null;
+    drawn = false;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(innerWidth * dpr);
     canvas.height = Math.round(innerHeight * dpr);
@@ -310,6 +314,7 @@ function follower(el, off) {
     /* or the first frame would draw it streaking in from the last ball's grave */
     prevX = ball.x;
     prevY = ball.y;
+    drawn = false;
   }
 
   function tally() {
@@ -448,13 +453,53 @@ function follower(el, off) {
     const m = 2;
     if (dirtyBall) ctx.clearRect(dirtyBall[0], dirtyBall[1], dirtyBall[2], dirtyBall[3]);
     if (dirtyPad) ctx.clearRect(dirtyPad[0], dirtyPad[1], dirtyPad[2], dirtyPad[3]);
-    dirtyBall = [bx - R - m, by - R - m, (R + m) * 2, (R + m) * 2];
-    dirtyPad = [padX - pad / 2 - m, padY - m, pad + m * 2, PAD_H + m * 2];
+
+    /* Draw the path it swept this frame, not the point it landed on.
+
+       This is the last thing that reads as stutter once the timing is right,
+       and it is not a timing problem at all. At 600px a second a 60Hz frame
+       moves the ball about ten pixels while the ball is only fourteen across,
+       so two consecutive frames barely overlap and the eye gets a dot being
+       teleported rather than something travelling. A round-capped line from
+       where it was drawn last frame to where it is drawn now covers the whole
+       path it actually took, which is what a camera would have caught and what
+       reads as motion. It costs nothing: at low speed the line collapses to
+       the same circle it would have drawn anyway.
+
+       Skipped over a jump. Nothing should move half the screen in one frame,
+       so a gap that big is a serve or a resize rather than travel, and joining
+       the two ends would paint a bar across the page. */
+    const sx = drawn ? drawnX : bx;
+    const sy = drawn ? drawnY : by;
+    const far = Math.hypot(bx - sx, by - sy);
+    const streak = drawn && far > 0.5 && far < innerWidth / 3;
 
     ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(bx, by, R, 0, Math.PI * 2);
-    ctx.fill();
+    if (streak) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = R * 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(bx, by, R, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* the swept box, so the clear above covers the streak and not just its
+       head — a rect around the ball alone would leave the tail painted */
+    const lo = R + m;
+    dirtyBall = streak
+      ? [Math.min(sx, bx) - lo, Math.min(sy, by) - lo,
+         Math.abs(bx - sx) + lo * 2, Math.abs(by - sy) + lo * 2]
+      : [bx - lo, by - lo, lo * 2, lo * 2];
+    dirtyPad = [padX - pad / 2 - m, padY - m, pad + m * 2, PAD_H + m * 2];
+    drawnX = bx;
+    drawnY = by;
+    drawn = true;
     ctx.beginPath();
     /* roundRect is recent enough that a browser without it is worth a
        square paddle rather than a thrown error and a blank canvas */
