@@ -504,6 +504,10 @@ a.contact-val:focus-visible .link-out {
      at 2.7466w but it is unstepped, and the 80px column four carries puts it
      ahead at any width under 960px per column, which is every window there is.
 
+     Column two is the shortest of the four by some way now that the square
+     apparel card sits in it — 1.75w against column three's 2.7466 — so a
+     ninth piece belongs there and nowhere else.
+
      Re-derive all of this if a card moves columns, if one is added, or if the
      page grows chrome above the cluster again. Sum each column as (aspect
      heights in column widths) + 20px per stacked pair + 80px if it is even,
@@ -921,10 +925,12 @@ body:not(.is-playing) .work-card:hover .work-flip,
    else; taller, because it is. Two posters are exported at this sheet size,
    hence a size name rather than either of theirs. */
 .work-card--sheet { aspect-ratio: 1055 / 1491; }
-/* 1107x1421 — 0.779. Its own ratio again rather than the nearest tidy one:
-   the garment is shot on an angle against a wall, and a crop takes the corner
-   of the frame that the composition is built on. */
-.work-card--shirt { aspect-ratio: 1107 / 1421; }
+/* Square, because the artwork is: it is a print file rather than a photograph
+   of a thing, laid out on a 2500x2500 sheet with the case centred in it. The
+   piece is cut out, so it was flattened onto black at export rather than
+   carrying an alpha channel — the page behind it is black, and the flattened
+   file is a third the size. */
+.work-card--square { aspect-ratio: 1 / 1; }
 
 
 /* Transparent hit target covering the card. Above the image so it catches
