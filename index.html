@@ -440,6 +440,11 @@
   <div class="prize" id="prize">
     <p class="prize-line">You won <span class="dollar">$</span>10 off any service!</p>
     <p class="prize-note">Take a screenshot for proof!</p>
+    <!-- The prize is money off a project, so the way to start one sits under
+         it. Same Payment Link and same plain anchor as the contact block: the
+         discount is settled between us, not by this button. It carries its own
+         pointer-events because the panel around it deliberately has none. -->
+    <a class="prize-go" href="https://buy.stripe.com/00waEY1d52al8Mr9220Jq00">Pay Project Deposit</a>
   </div>
 
   <!-- A module: its own scope, deferred by definition, and the one file the

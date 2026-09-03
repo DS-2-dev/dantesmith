@@ -1265,11 +1265,41 @@ body.is-playing .score { opacity: 1; }
   vertical-align: 0.04em;
   letter-spacing: 0;
 }
+/* The one thing on this overlay that can be clicked, hence the pointer-events:
+   the panel it sits in gives them up so the dismiss control behind it stays
+   reachable. Not .deposit-go — that control scales off --s, which is declared
+   on .bio, and this is a sibling of .bio rather than a child, so every calc()
+   in it would collapse. Fixed sizes here, a beat behind the note. */
+.prize-go {
+  pointer-events: auto;
+  display: inline-block;
+  margin-top: 1.5rem;
+  translate: 0 10px;
+  transition: translate 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.16s,
+              border-color 0.15s ease, background 0.15s ease;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  color: var(--foreground);
+  text-decoration: none;
+}
+.prize-go:hover,
+.prize-go:focus-visible {
+  border-color: var(--foreground);
+  background: rgb(255 255 255 / 0.06);
+}
+.prize-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .prize.is-on .prize-line,
-.prize.is-on .prize-note { translate: 0 0; }
+.prize.is-on .prize-note,
+.prize.is-on .prize-go { translate: 0 0; }
 @media (prefers-reduced-motion: reduce) {
   .prize-line,
   .prize-note { translate: none; transition: none; }
+  .prize-go { translate: none; transition: border-color 0.15s ease, background 0.15s ease; }
 }
 
 
