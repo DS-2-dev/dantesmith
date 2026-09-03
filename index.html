@@ -206,7 +206,11 @@
            ended up a long way from the one it sits under. A column stacks its
            own cards against each other and nothing else, which is what puts
            Jack's directly beneath Vantage.
-           Adding a piece: drop it into whichever column is shortest. -->
+           Adding a piece: drop it into whichever column is shortest.
+
+           Every card's back face is aria-hidden. It repeats the sentence its
+           .work-tip already carries as the accessible description, so leaving
+           it in the accessibility tree would read the same words twice. -->
       <div class="work-col reveal">
         <!-- Locked: the piece is not being shown yet, so the card says why
              on its back instead of going anywhere, which is every card here
@@ -222,8 +226,6 @@
               <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it.">
               <div class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Vantage</span>
               <p class="work-back-text">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
@@ -233,15 +235,12 @@
                   aria-label="Vantage — upcoming, not yet shown"></button>
           <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</span>
         </figure>
-        <!-- Fifth card, so the first of the second row. -->
         <figure class="work-card work-card--sheet reveal">
           <div class="work-flip">
             <div class="work-face work-face--front">
               <img src="images/jacks-mannequin-poster.webp" alt="Lyric poster in tall condensed black caps on off-white: “Just think of all the thoughts wasted on you”, with the Jack’s Mannequin logo in a blue box beneath.">
               <div class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Jack’s Mannequin</span>
               <p class="work-back-text">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</p>
@@ -286,8 +285,6 @@
               <img src="images/mac-os-x-shirt.webp" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid.">
               <div class="work-overlay"><span class="work-title work-title--syne-mono">Mac OS X</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Mac OS X</span>
               <p class="work-back-text">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
@@ -307,8 +304,6 @@
               <img src="images/inconvenience-sign.webp" alt="Inconvenience: a blue and white parking-lot sign on a steel pole against clear sky, numbered 04 above the single word “Inconvenience”.">
               <div class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Inconvenience</span>
               <p class="work-back-text">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</p>
@@ -326,8 +321,6 @@
               <img src="images/find-collect-repeat-poster.webp" alt="Find Collect Repeat poster for Are.na: a white eight-pointed star over blurred green and blue flowers, with “FIND” in heavy rounded letters along the foot and “collect” and “repeat” stacked at the corner.">
               <div class="work-overlay"><span class="work-title work-title--carbon">Find Collect Repeat</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Find Collect Repeat</span>
               <p class="work-back-text">Are.na poster I whipped up in my spare time.</p>
@@ -347,8 +340,6 @@
               <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot.">
               <div class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">WSU AI Lab</span>
               <p class="work-back-text">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
@@ -366,8 +357,6 @@
               <img src="images/filey-poster.webp" alt="Filey poster: the name in a wide monospace over a red form smeared into grey by motion blur, above the line “All of your files. On the go.”">
               <div class="work-overlay"><span class="work-title work-title--carbon">Filey</span></div>
             </div>
-            <!-- Says what the description already says, so it is hidden from
-                 assistive tech rather than read out a second time. -->
             <div class="work-face work-face--back" aria-hidden="true">
               <span class="work-back-title">Filey</span>
               <p class="work-back-text">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</p>

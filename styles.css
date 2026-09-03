@@ -192,17 +192,38 @@ body.is-overflowing .bio { overflow: visible; }
 .wordmark-part { transition: opacity 0.25s ease; }
 .wordmark:has(.wordmark-part:hover) .wordmark-part:not(:hover) { opacity: 0.35; }
 
-/* Same behaviour as the work tooltip: the content changes at once and the only
-   thing that eases is where the card sits. See .work-tip-panel for why. */
+/* The two panels that follow the pointer: the work tooltip and these name
+   cards. The script already shares their behaviour through one follower(); this
+   is the other half of it, and it was written twice until it wasn't. Each one
+   sets its own size, padding and radius below — everything they hold in common
+   is here.
+
+   Tinted glass: the fill is thin enough to read what is behind it and the blur
+   is what keeps the text legible over a photograph. Saturation is lifted
+   because blurring a backdrop washes its colour out.
+
+   Positioned by translate, not by left/top: a translate is animated on the
+   compositor without laying the page out again, which is what lets one follow
+   a pointer at 60fps. The script writes the two numbers in viewport pixels.
+
+   Both live at the end of <body> and are fixed rather than absolute, and both
+   of those are for the glass: backdrop-filter can only sample its backdrop
+   root, and the nearest ancestor carrying a transform bounds it. .reveal
+   leaves a transform on every card, so a panel inside one could only blur that
+   card's own pixels and went flat the moment it hung past an edge. At body
+   level the backdrop is the whole page.
+
+   The glide is 0.14s, which is the whole trick: long enough that moving
+   between two targets is a glide rather than a jump, short enough that it
+   still reads as attached to the pointer. Past about 0.2 it starts to feel
+   dragged along behind. */
+.work-tip-panel,
 .name-card {
   position: fixed;
   z-index: 60;
   left: 0;
   top: 0;
   translate: var(--tip-x, 0px) var(--tip-y, 0px);
-  max-width: calc(100vw - 2rem);
-  padding: 0.6rem;
-  border-radius: var(--radius);
   background: rgb(10 10 10 / 0.55);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
@@ -210,11 +231,14 @@ body.is-overflowing .bio { overflow: visible; }
   color: var(--foreground);
   pointer-events: none;
   opacity: 0;
+  /* opacity and not display, so it can fade; visibility keeps it out of the
+     way of hit-testing and of a screen reader's cursor while it is down */
   visibility: hidden;
   transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
               opacity 0.16s ease,
               visibility 0s linear 0.16s;
 }
+.work-tip-panel.is-on,
 .name-card.is-on {
   opacity: 1;
   visibility: visible;
@@ -222,8 +246,31 @@ body.is-overflowing .bio { overflow: visible; }
               opacity 0.16s ease,
               visibility 0s;
 }
-/* one frame with the glide off, so the first appearance is already in place */
+/* One frame with the glide off, so the first appearance is already in place
+   instead of sliding in from wherever the last target left it. */
+.work-tip-panel.is-placing,
 .name-card.is-placing { transition: opacity 0.16s ease, visibility 0s; }
+/* the glide is decoration; the panels themselves are not */
+@media (prefers-reduced-motion: reduce) {
+  .work-tip-panel,
+  .work-tip-panel.is-on,
+  .name-card,
+  .name-card.is-on { transition: opacity 0.16s ease, visibility 0s; }
+}
+/* Without a blur behind it a 55% fill is just a dim window onto the picture,
+   and the text stops holding. Those browsers get an opaque panel instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .work-tip-panel,
+  .name-card { background: rgb(10 10 10 / 0.93); }
+}
+
+/* Behaves like the work tooltip: the content changes at once and the only
+   thing that eases is where the card sits. */
+.name-card {
+  max-width: calc(100vw - 2rem);
+  padding: 0.6rem;
+  border-radius: var(--radius);
+}
 
 .name-card-face { display: none; margin: 0; }
 .name-card-face.is-shown {
@@ -269,14 +316,8 @@ body.is-overflowing .bio { overflow: visible; }
   letter-spacing: -0.011em;
   color: #b3b3b3;
 }
-/* the glide is decoration; the card itself is not */
 @media (prefers-reduced-motion: reduce) {
-  .name-card,
-  .name-card.is-on { transition: opacity 0.16s ease, visibility 0s; }
   .wordmark-part { transition: none; }
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .name-card { background: rgb(10 10 10 / 0.93); }
 }
 
 /* prose blocks ----------------------------------------------------------- */
@@ -366,25 +407,37 @@ a.contact-val:hover { text-decoration-color: currentColor; }
 .deposit {
   margin: calc(0.85rem * var(--s)) 0 0;
 }
-.deposit-go {
+/* The outlined control. There are two of them — this one and the same offer at
+   the end of the game — and they are the only things on the site drawn as a
+   control rather than as a link, so what makes them one is written once. They
+   size themselves differently and nothing else about them differs. */
+.deposit-go,
+.prize-go {
   display: inline-block;
-  padding: calc(0.4rem * var(--s)) calc(0.75rem * var(--s));
   border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: calc(0.9375rem * var(--s));
   font-weight: 500;
   letter-spacing: -0.011em;
   color: var(--foreground);
   text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .deposit-go:hover,
-.deposit-go:focus-visible {
+.deposit-go:focus-visible,
+.prize-go:hover,
+.prize-go:focus-visible {
   border-color: var(--foreground);
   background: rgb(255 255 255 / 0.06);
 }
-.deposit-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.deposit-go:focus-visible,
+.prize-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* Everything in the column is a multiple of --s, this included. */
+.deposit-go {
+  padding: calc(0.4rem * var(--s)) calc(0.75rem * var(--s));
+  font-size: calc(0.9375rem * var(--s));
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
 @media (prefers-reduced-motion: reduce) {
   .deposit-go { transition: none; }
 }
@@ -790,73 +843,22 @@ body:not(.is-playing) .work-card:hover .work-flip,
    between two things, the other resized under text that was moving anyway.
    A glide is one property, on the compositor, and cannot fight anything.
 
-   It lives at the end of <body> and is fixed rather than absolute, and both of
-   those are for the glass: backdrop-filter can only sample its backdrop root,
-   and the nearest ancestor carrying a transform bounds it. .reveal leaves a
-   transform on every card, so a tip inside one could only blur that card's own
-   pixels and went flat the moment it hung past an edge. At body level its
-   backdrop is the whole page. */
+   The glass, the glide and the placement are shared with the name cards and
+   live up there with them; this is only what is the tooltip's own. */
 .work-tip-panel {
-  position: fixed;
-  z-index: 60;
-  /* Positioned by translate, not by left/top: a translate is animated on the
-     compositor without laying the page out again, which is what lets it follow
-     a pointer at 60fps. The script writes the two numbers in viewport pixels. */
-  left: 0;
-  top: 0;
-  translate: var(--tip-x, 0px) var(--tip-y, 0px);
   /* sized to its text, capped in rem — a percentage would resolve against the
      viewport it is fixed to rather than anything meaningful */
   width: max-content;
   max-width: min(22rem, calc(100vw - 2rem));
   padding: 0.55rem 0.8rem;
   border-radius: var(--radius-md);
-  /* Tinted glass: the fill is thin enough to read what is behind it and the
-     blur is what keeps the text legible over a photograph. Saturation is
-     lifted because blurring a backdrop washes its colour out. */
-  background: rgb(10 10 10 / 0.55);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 10px 34px rgb(0 0 0 / 0.55);
-  color: var(--foreground);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 0.875rem;
   line-height: 1.35;
   letter-spacing: -0.011em;
   text-align: center;
-  pointer-events: none;
-  opacity: 0;
-  /* opacity and not display, so it can fade; visibility keeps it out of the
-     way of hit-testing and of a screen reader's cursor while it is down */
-  visibility: hidden;
-  /* 0.14s is the whole trick: long enough that moving between cards is a glide
-     rather than a jump, short enough that it still reads as attached to the
-     pointer. Past about 0.2 it starts to feel dragged along behind. */
-  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.16s ease,
-              visibility 0s linear 0.16s;
 }
-.work-tip-panel.is-on {
-  opacity: 1;
-  visibility: visible;
-  transition: translate 0.14s cubic-bezier(0.22, 1, 0.36, 1),
-              opacity 0.16s ease,
-              visibility 0s;
-}
-/* One frame with the glide off, so the first appearance is already in place
-   instead of sliding in from wherever the last card left it. */
-.work-tip-panel.is-placing { transition: opacity 0.16s ease, visibility 0s; }
 .work-tip-panel > span { display: block; }
-/* the glide is decoration; the tip itself is not */
-@media (prefers-reduced-motion: reduce) {
-  .work-tip-panel,
-  .work-tip-panel.is-on { transition: opacity 0.16s ease, visibility 0s; }
-}
-/* Without a blur behind it a 55% fill is just a dim window onto the picture,
-   and the text stops holding. Those browsers get an opaque panel instead. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .work-tip-panel { background: rgb(10 10 10 / 0.93); }
-}
 
 /* The per-card spans are the accessible description aria-describedby points
    at, not the thing on screen — one shared panel draws them all, so these are
@@ -1267,32 +1269,19 @@ body.is-playing .score { opacity: 1; }
 }
 /* The one thing on this overlay that can be clicked, hence the pointer-events:
    the panel it sits in gives them up so the dismiss control behind it stays
-   reachable. Not .deposit-go — that control scales off --s, which is declared
-   on .bio, and this is a sibling of .bio rather than a child, so every calc()
-   in it would collapse. Fixed sizes here, a beat behind the note. */
+   reachable. Sized in rem where the deposit control is sized in --s — that
+   variable is declared on .bio, and this is a sibling of .bio rather than a
+   child, so every calc() in it would collapse here. Rises a beat behind the
+   note. */
 .prize-go {
   pointer-events: auto;
-  display: inline-block;
   margin-top: 1.5rem;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9375rem;
   translate: 0 10px;
   transition: translate 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.16s,
               border-color 0.15s ease, background 0.15s ease;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: -0.011em;
-  color: var(--foreground);
-  text-decoration: none;
 }
-.prize-go:hover,
-.prize-go:focus-visible {
-  border-color: var(--foreground);
-  background: rgb(255 255 255 / 0.06);
-}
-.prize-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 .prize.is-on .prize-line,
 .prize.is-on .prize-note,
 .prize.is-on .prize-go { translate: 0 0; }
