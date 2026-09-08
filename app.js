@@ -5,6 +5,24 @@
    panels and the name cards all live there and can be brought across one block
    at a time. This file is what the page needs today. */
 
+/* Resize, coalesced to one call a frame.
+
+   Anything that re-measures on a resize reads layout and then writes to it.
+   Bound to the event directly that is a forced reflow per listener per event,
+   and resize fires for every frame of a window drag. Folding each listener
+   into a rAF means the work happens once per frame at most, and just before
+   paint, when the layout is being done anyway. Trailing rather than leading:
+   mid-drag the intermediate sizes are not worth measuring, the one the drag
+   stops at is. */
+function onResize(fn) {
+  let queued = 0;
+  window.addEventListener('resize', () => {
+    cancelAnimationFrame(queued);
+    queued = requestAnimationFrame(fn);
+  });
+}
+
+
 /* The views.
 
    One page, no routes: the sections are all in the document and a data-view on
@@ -104,4 +122,94 @@
     }
     said(legacy() ? 'copied' : 'failed');
   });
+})();
+
+
+/* The cluster's width, solved from the height it has to spend.
+
+   The pieces have fixed aspect ratios, so a column's height is a multiple of
+   its own width plus the parts that do not scale — the caption strips, the
+   gaps between stacked cards, and the step an even column carries. That makes
+   a height budget spendable as a width:
+
+       w = (H - fixed) / (sum of the column's height-per-width ratios)
+
+   solved for every column, and the narrowest answer wins because it is the
+   column that would otherwise overflow. Width caps it too: four columns and
+   three gaps cannot exceed the box.
+
+   Nothing here reads a rendered width, so there is no circularity. The ratios
+   and the gaps come from computed styles and the only measured inputs are the
+   box and the caption, which is type and so does not scale with w. */
+(function () {
+  const cluster = document.getElementById('cluster');
+  const view = document.getElementById('work');
+  if (!cluster || !view) return;
+  const cols = Array.from(cluster.children);
+  if (!cols.length) return;
+
+  const px = (v) => parseFloat(v) || 0;
+  /* computed aspect-ratio comes back as "4 / 3" or "auto"; height per unit of
+     width is the inverse of it */
+  function tallness(shot) {
+    const [w, h] = getComputedStyle(shot).aspectRatio.split('/').map(parseFloat);
+    return w > 0 && h > 0 ? h / w : 0;
+  }
+
+  function measure() {
+    /* The section is display:none-adjacent while it is down — visibility
+       hidden still lays out, so this measures correctly either way, but a box
+       of zero means the stylesheet has not settled yet. */
+    const box = getComputedStyle(view);
+    /* A pixel of slack. Every term below is fractional and the answer is
+       floored, but the caption is type and lands on a subpixel, so a solve
+       that spends the box exactly comes out two or three pixels over and the
+       section takes a scrollbar it is not supposed to have. */
+    const height = view.clientHeight - px(box.paddingTop) - px(box.paddingBottom) - 1;
+    const width = view.clientWidth - px(box.paddingLeft) - px(box.paddingRight);
+    if (height <= 0 || width <= 0) return;
+
+    const colGap = px(getComputedStyle(cluster).columnGap);
+
+    let best = Infinity;
+    cols.forEach((col, i) => {
+      const tiles = Array.from(col.children);
+      if (!tiles.length) return;
+      const style = getComputedStyle(col);
+      const rowGap = px(style.rowGap);
+      /* The step off the column's own resolved margin, not off --step.
+         getPropertyValue hands back the custom property as it was authored —
+         "2.5rem" — and parseFloat reads that as 2.5, so the stepped columns
+         were being solved as if they carried two and a half pixels instead of
+         forty, and the cluster came out a few pixels over its box every time. */
+      let ratio = 0;
+      let fixed = rowGap * (tiles.length - 1) + px(style.marginTop);
+      tiles.forEach((tile) => {
+        const shot = tile.querySelector('.tile-shot');
+        const cap = tile.querySelector('.tile-cap');
+        ratio += tallness(shot);
+        /* the strip and the gap above it are type, not a fraction of w */
+        /* the strip and the gap above it are type, not a fraction of w — and
+           the rect rather than offsetHeight, which rounds a fractional line
+           box down and hands the solve height that is not there */
+        fixed += (cap ? cap.getBoundingClientRect().height : 0)
+               + px(getComputedStyle(tile).rowGap);
+      });
+      if (ratio <= 0) return;
+      best = Math.min(best, (height - fixed) / ratio);
+    });
+    if (!isFinite(best)) return;
+
+    /* and it can never be wider than the box it sits in */
+    best = Math.min(best, (width - colGap * (cols.length - 1)) / cols.length);
+    if (best <= 0) return;
+
+    cluster.style.setProperty('--cluster-w',
+      Math.floor(best * cols.length + colGap * (cols.length - 1)) + 'px');
+  }
+
+  measure();
+  onResize(measure);
+  /* the caption is type, and its height is not final until the face is in */
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
 })();
