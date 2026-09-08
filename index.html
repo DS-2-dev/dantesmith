@@ -86,15 +86,40 @@
 <link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Syne+Mono&display=swap">
 
-<style>
-  /* The blank canvas. Everything that was here is still in the repo — the
-     stylesheet, the script, the images, the tests — this page simply does not
-     pull any of it in. Build forward from here; `git checkout makeover --
-     index.html` brings the grid back. */
-  html { background: #ffffff; }
-  body { margin: 0; min-height: 100svh; background: #ffffff; }
-</style>
+<link rel="stylesheet" href="styles.css">
+
+<!-- Before the first paint, not after. The stylesheet's own default follows
+     the machine, so a reader who chose the other one would otherwise get a
+     frame of the wrong ground on every load — which is the whole reason this
+     is inline and blocking rather than in app.js, deferred by being a module.
+     No stored choice falls through to the media query. -->
+<script>
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode: the system preference stands */ }
+</script>
 </head>
 <body>
+
+  <!-- Top right, and on its own for now: there is no bar to put it in yet.
+       Both marks are in the markup and the stylesheet shows whichever one the
+       page is not, so the icon says what the click will do. -->
+  <button class="theme" type="button" aria-label="Switch theme">
+    <svg class="theme-moon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M13.6 10.2A6 6 0 0 1 5.8 2.4a6 6 0 1 0 7.8 7.8Z"/>
+    </svg>
+    <svg class="theme-sun" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <circle cx="8" cy="8" r="3.1" fill="currentColor"/>
+      <g stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+        <path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6"/>
+        <path d="M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/>
+      </g>
+    </svg>
+  </button>
+
+  <!-- A module: its own scope, deferred by definition, and the one file the
+       page loads. -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
