@@ -100,7 +100,7 @@
   } catch (e) { /* private mode: the system preference stands */ }
 </script>
 </head>
-<body>
+<body data-view="home">
 
   <!-- Top right, and on its own for now: there is no bar to put it in yet.
        Both marks are in the markup and the stylesheet shows whichever one the
@@ -118,14 +118,41 @@
     </svg>
   </button>
 
-  <!-- Bottom left, opposite the switch. Magistral, off the Typekit kit the
-       head already pulls in. -->
-  <h1 class="wordmark">Dante Smith</h1>
+  <!-- The name, and the way home. It is one element that moves rather than two
+       that swap: at home it sits large in the bottom left, and in a section it
+       travels to the top left and shrinks, which is the same object in a new
+       place rather than a header appearing over a name that vanished.
+
+       The button is disabled at home. There is nowhere for it to take you from
+       there, and disabled is what keeps it out of the tab order as well as out
+       of reach — a heading that is sometimes a control has to say which it is
+       right now. -->
+  <h1 class="wordmark">
+    <button class="wordmark-go" id="home" type="button" disabled>Dante Smith</button>
+  </h1>
+
+  <!-- Shown when the view is about. Kept in the document rather than built on
+       demand: it is four paragraphs, and a fade needs both states present. -->
+  <main class="view" id="about" aria-labelledby="about-heading">
+    <h2 class="sr-only" id="about-heading">About</h2>
+    <p class="lede">18yo Modern AI Designer — based in Utah.<br>Leveraging the future, without losing taste.</p>
+    <div class="prose-block">
+      <p class="prose">Hi, I&rsquo;d repeat my name again, but I think you already
+        know it by now. Anyways, I&rsquo;m currently working on my Bachelor&rsquo;s of
+        Management Info Systems.</p>
+      <p class="prose">On the side, I love to do Typography and Web (UI/UX)
+        Design! But&hellip; I do it a bit different: I&rsquo;ll gather inspo, have ideas,
+        draw wireframes, design everything with my own mind, and have AI
+        solidify it together.</p>
+      <p class="prose">Oh, and don&rsquo;t worry &mdash; I understand the code, but now I
+        have more time to focus on my craft.</p>
+    </div>
+  </main>
 
   <!-- Bottom right, under the switch. Nothing is wired to these yet — there
        is no about, work or contact on the page to reach. -->
   <nav class="menu" aria-label="Sections">
-    <button class="menu-item" type="button">about</button>
+    <button class="menu-item" type="button" data-view="about">about</button>
     <button class="menu-item" type="button">work</button>
     <button class="menu-item" type="button">contact</button>
   </nav>

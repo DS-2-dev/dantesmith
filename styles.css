@@ -113,31 +113,128 @@ body {
 
 
 /* the name ---------------------------------------------------------------
-   Bottom left, opposite the switch. Fixed rather than in the flow for the
-   same reason it is: there is no layout yet for it to sit in, and when there
-   is, this loses the position and keeps everything else. */
+   One element in two places. At home it sits large in the bottom left; in a
+   section it travels to the top left and shrinks.
+
+   Both of those come off a single custom property. --name-size is the type
+   size AND the term in the translate that pushes it down to the bottom of the
+   window, so setting one number per view moves and resizes it together and
+   the two can never disagree. The element is anchored top-left in both states
+   and translated down for home, because top and bottom are different
+   properties and nothing interpolates between them. */
+:root { --name-size: clamp(2.25rem, 6vw, 5.5rem); }
+body[data-view="about"] { --name-size: clamp(1.5rem, 2.6vw, 2.25rem); }
+
 .wordmark {
   position: fixed;
+  top: 1rem;
   left: 1rem;
-  bottom: 1rem;
   z-index: 10;
   margin: 0;
   font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
   /* 400, not 500 — the kit ships one weight, and asking for more would get a
      synthesised bold: wider than drawn, and a fake. */
   font-weight: 400;
-  font-size: clamp(2.25rem, 6vw, 5.5rem);
+  font-size: var(--name-size);
   /* Magistral's ascender is 1.0em and its descender 0.2em, so 0.85 would leave
-     only 0.025em under the baseline. 0.922 is the gap Inter gave at 0.85. */
+     only 0.025em under the baseline. 0.922 is the gap Inter gave at 0.85 — and
+     because the line box is exactly this multiple of the size, the offset
+     below can be solved from the size alone. */
   line-height: 0.922;
   letter-spacing: -0.03em;
   white-space: nowrap;
   user-select: none;
   color: var(--wordmark-ink);
-  transition: color 0.2s ease;
+  /* 1rem of top inset + 1rem of bottom gap + its own line box */
+  translate: 0 calc(100svh - 2rem - var(--name-size) * 0.922);
+  transition: translate 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+              font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+              color 0.2s ease;
+}
+body:not([data-view="home"]) .wordmark { translate: 0 0; }
+
+/* The control inside it inherits everything, so the name is styled once as a
+   heading and the button is only the hit target and the keyboard stop. */
+.wordmark-go {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.wordmark-go:disabled { cursor: default; }
+.wordmark-go:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark { transition: color 0.2s ease; }
+}
+
+
+/* the sections -----------------------------------------------------------
+   One per menu item, all in the document, one shown at a time. visibility
+   rather than display so the change can be eased, and because visibility
+   takes it out of the tab order and off a screen reader's cursor while it is
+   down — a fade on opacity alone would leave four paragraphs reachable from
+   a page that is not showing them. */
+.view {
+  /* clear of the name in its top-left position, and of the menu below */
+  padding: clamp(5rem, 9vh, 7rem) 1rem 8rem;
+  max-width: 38rem;
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 0.5rem;
+  transition: opacity 0.35s ease,
+              translate 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              visibility 0s linear 0.35s;
+}
+body[data-view="about"] #about {
+  opacity: 1;
+  visibility: visible;
+  translate: 0 0;
+  transition: opacity 0.4s ease 0.12s,
+              translate 0.5s cubic-bezier(0.32, 0.72, 0, 1) 0.12s,
+              visibility 0s;
 }
 @media (prefers-reduced-motion: reduce) {
-  .wordmark { transition: none; }
+  .view { translate: none; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+  body[data-view="about"] #about { translate: none; transition: opacity 0.2s ease, visibility 0s; }
+}
+
+.lede {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.014em;
+}
+.prose-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.prose {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+  color: var(--muted);
+}
+
+/* Said to a screen reader and to nobody else. Not display:none, which would
+   take it out of the accessibility tree along with everything else. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 
@@ -180,3 +277,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .menu-item { transition: none; }
 }
+
+/* the section you are in */
+.menu-item[aria-current="true"] { color: var(--foreground); }

@@ -45,3 +45,45 @@
      overrule that — but the label still has to keep up. */
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label);
 })();
+
+
+/* The views.
+
+   One page, no routes: the sections are all in the document and a data-view on
+   <body> says which one is up. The stylesheet does the rest — it is what moves
+   the name, fades the section in and marks the menu — so nothing here touches
+   a style, only the one attribute everything else reads.
+
+   The name is the way back. It is disabled at home, which keeps it out of the
+   tab order as well as out of reach: a heading that is only sometimes a
+   control has to say which it is at the time. */
+(function () {
+  const body = document.body;
+  const home = document.getElementById('home');
+  const items = Array.from(document.querySelectorAll('.menu-item[data-view]'));
+  if (!home || !items.length) return;
+
+  function go(view) {
+    body.dataset.view = view;
+    home.disabled = view === 'home';
+    items.forEach((item) => {
+      /* "true" and removed, not "true" and "false": aria-current="false" is
+         still an announced state on some readers, and the honest answer for
+         a section you are not in is that the attribute is not there. */
+      if (item.dataset.view === view) item.setAttribute('aria-current', 'true');
+      else item.removeAttribute('aria-current');
+    });
+    /* Coming out of a section leaves the page scrolled where that section
+       ended, and home is one screen with nothing below it. */
+    if (view === 'home') window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  items.forEach((item) => {
+    item.addEventListener('click', () => go(item.dataset.view));
+  });
+  home.addEventListener('click', () => go('home'));
+  /* the same way out as every other layer on this page */
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && body.dataset.view !== 'home') go('home');
+  });
+})();
