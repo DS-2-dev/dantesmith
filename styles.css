@@ -130,10 +130,12 @@ body {
   gap: 0.15rem;
 }
 .menu-item {
+  display: block;
   margin: 0;
   padding: 0.1rem 0;
   border: 0;
   background: none;
+  text-decoration: none;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 500;
@@ -147,6 +149,13 @@ body {
 }
 .menu-item:hover,
 .menu-item:focus-visible { color: var(--foreground); }
+/* The one that leaves the page rather than changing what it shows, set apart
+   by a rule so the three above it still read as one set. */
+.menu-item--go {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--hairline);
+}
 .menu-item:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   .menu-item { transition: none; }
@@ -214,35 +223,11 @@ a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
 .copy.is-done .copy-mark { display: none; }
 .copy.is-done .copy-done { display: inline; }
 
-/* The deposit. An outlined control rather than a filled one, and no terms
-   beneath it: it belongs to a conversation that already happened, and the
-   amount is stated on the Stripe page it opens. A block shouting BUY at the
-   foot of a portfolio would be describing a different business than this. */
-.deposit { margin: 2rem 0 0; }
-.deposit-go {
-  display: inline-block;
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--hairline);
-  border-radius: 0.5rem;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: -0.011em;
-  color: var(--foreground);
-  text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.deposit-go:hover,
-.deposit-go:focus-visible {
-  border-color: var(--foreground);
-  background: var(--surface);
-}
-.deposit-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   .contact-val,
   .link-out,
-  .copy,
-  .deposit-go { transition: none; }
+  .copy { transition: none; }
   a.contact-val:hover .link-out,
   a.contact-val:focus-visible .link-out { translate: none; }
 }
