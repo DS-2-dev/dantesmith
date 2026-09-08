@@ -115,14 +115,12 @@ body {
 .tech {
   margin-top: 1.75rem;
 }
-/* Set in the display face, which is the one the mark is drawn in — these are
-   the only two labels in the copy, so tying them to the identity says they are
-   headings rather than more prose. Sentence case: the markup already reads
+/* Set in the body face, same as the contact copy — every word on the page
+   outside the mark reads in one voice. Sentence case: the markup already reads
    "Tools", and small caps tracked out was shouting a one-word label. At full
    ink, because it is a heading and it was set in the same grey as the nav. */
 .tech-label {
   margin: 0 0 0.65rem;
-  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 0.9375rem;
   font-weight: 400;
   letter-spacing: -0.01em;
