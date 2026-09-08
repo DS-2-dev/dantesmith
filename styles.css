@@ -306,3 +306,77 @@ a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
   a.contact-val:hover .link-out,
   a.contact-val:focus-visible .link-out { translate: none; }
 }
+
+
+/* the monogram ------------------------------------------------------------
+   Home is this and nothing else. The two initials, each followed by a dot the
+   way initials are set, centred in the window.
+
+   Fixed and covering the page rather than placed in the flow, so it is centred
+   against the window itself and not against whatever a section happens to be
+   tall. It takes no pointer events: the name and the menu are underneath it in
+   the corners, and a full-page box would swallow both. */
+.monogram {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  /* A grid, and place-content rather than place-items — the distinction is the
+     whole of it. The four parts flow into one column track each; place-content
+     centres that single row as a block in the window, and align-items: end
+     then sits each part on the bottom of the row, which is the letters'
+     baseline. As flex with align-items: flex-end the container WAS the window,
+     so the whole lockup sat on the bottom edge of the screen. */
+  display: grid;
+  grid-auto-flow: column;
+  place-content: center;
+  align-items: end;
+  /* Height is the one number the whole lockup is written against — the letters
+     take it directly and the dots and the gaps are fractions of it, so the
+     mark scales as one object. */
+  /* Height drives everything, but width is what runs out first on a phone:
+     the lockup measures about 1.9 times its own height, so a mark sized on
+     26vh alone was 420px wide in a 390px window. The vw term is the width
+     talking; it only ever binds on a narrow screen. */
+  --glyph: clamp(4rem, min(26vh, 40vw), 15rem);
+  gap: calc(var(--glyph) * 0.09);
+  padding-inline: 1rem;
+  pointer-events: none;
+  transition: opacity 0.35s ease, visibility 0s;
+}
+/* It is home's, so it goes when a section arrives — and visibility takes it
+   off a screen reader's cursor rather than leaving it there invisible. */
+body:not([data-view="home"]) .monogram {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+
+/* Both traces are tight to their ink, so an equal height is an equal cap
+   height and the two sit as a matched pair. Width follows from each one's own
+   viewBox, which is what keeps the D wide and the S narrow. */
+.glyph {
+  height: var(--glyph);
+  width: auto;
+  display: block;
+  color: var(--foreground);
+}
+
+/* Sized off the letters and sitting on their baseline. Round, against
+   letterforms that are all straight cuts and stepped corners — the dot is
+   punctuation, not another piece of the lettering, and it should not be
+   mistaken for one. */
+.dot {
+  flex: none;
+  width: calc(var(--glyph) * 0.13);
+  height: calc(var(--glyph) * 0.13);
+  border-radius: 50%;
+  background: var(--foreground);
+  /* the gap between a letter and its own dot is tighter than the gap between
+     one initial and the next */
+  margin-left: calc(var(--glyph) * -0.035);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monogram,
+  body:not([data-view="home"]) .monogram { transition: visibility 0s; }
+}
