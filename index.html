@@ -75,13 +75,16 @@
   "sameAs": ["https://www.linkedin.com/in/dante-smith-/"]
 }
 </script>
-<!-- Preconnect ahead of the stylesheet: it is render-blocking and pulls its
-     font files from the same origin it came from, so the handshake is worth
-     opening before the sheet is parsed rather than after. One sheet now — the
-     page is set in magistral throughout, and the Google faces it used to pull
-     (Inter, Michroma, Syne Mono) are not on the page any more. -->
+<!-- Every preconnect ahead of every stylesheet: each of these sheets is
+     render-blocking and pulls its font files from the same origin it came
+     from, so the handshake is worth opening before the sheet is parsed
+     rather than after. Typekit carries four faces here — argent-pixel-cf,
+     fuuld, magistral, t26-carbon — not just the one label. -->
 <link rel="preconnect" href="https://use.typekit.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Syne+Mono&display=swap">
 
 <link rel="stylesheet" href="styles.css">
 </head>
