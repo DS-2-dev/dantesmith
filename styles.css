@@ -149,13 +149,6 @@ body {
 }
 .menu-item:hover,
 .menu-item:focus-visible { color: var(--foreground); }
-/* The one that leaves the page rather than changing what it shows, set apart
-   by a rule so the three above it still read as one set. */
-.menu-item--go {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--hairline);
-}
 .menu-item:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
   .menu-item { transition: none; }
