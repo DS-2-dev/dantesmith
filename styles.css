@@ -412,6 +412,24 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   display: block;
 }
 
+/* The one piece that carries a client's mark, laid over its cover. White in
+   spite of the page being light: what it has to hold against is the artwork
+   under it, not the ground. */
+.work-mark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: #ffffff;
+}
+.work-mark svg {
+  width: 22%;
+  height: auto;
+  display: block;
+}
+
 /* What each piece is, over the picture rather than under it. Eight paragraphs
    stacked down the page would be a document about the work instead of the
    work, and a caption long enough to hold one would set the row height off
