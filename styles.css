@@ -3,15 +3,9 @@
    back — but it described a page that no longer exists, so nothing carries
    over into this one except the parts that get chosen deliberately. */
 
-/* Three states, not two.
-
-   A reader who has never touched the switch gets whatever their machine is
-   set to; one who has touched it gets what they chose, on every visit and on
-   every page. So the light values are the bare default, the dark ones are
-   repeated twice — once for the system preference and once for an explicit
-   choice — and the explicit choice wins because :root[data-theme] is the
-   later, more specific rule. Defining a colour ONLY inside a media query is
-   the trap here: it leaves the other state with nothing. */
+/* One ground. There was a switch here and two sets of these, keyed off
+   prefers-color-scheme and a data-theme attribute; the page is white and only
+   white now, so there is one set and nothing to choose between. */
 :root {
   color-scheme: light;
   --background: #ffffff;
@@ -19,33 +13,10 @@
   --muted: #6f6f6f;
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
-  --surface-hover: rgb(0 0 0 / 0.09);
-  /* The name is set in a white sampled from the painting it used to be
-     knocked out of — #EBEBE9, warm, reads as paint rather than as screen. On
-     the light ground that white disappears, so there it is simply the ink. */
+  /* The name was set in a white sampled from the painting it used to be
+     knocked out of. On this ground that white is invisible, so it is the ink —
+     which is what the light half of the old pair already said. */
   --wordmark-ink: #0b0b0b;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --background: #000000;
-    --foreground: #ffffff;
-    --muted: #808080;
-    --hairline: #2b2b2b;
-    --surface: rgb(255 255 255 / 0.07);
-    --surface-hover: rgb(255 255 255 / 0.13);
-    --wordmark-ink: #ebebe9;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --background: #000000;
-  --foreground: #ffffff;
-  --muted: #808080;
-  --hairline: #2b2b2b;
-  --surface: rgb(255 255 255 / 0.07);
-  --surface-hover: rgb(255 255 255 / 0.13);
-  --wordmark-ink: #ebebe9;
 }
 
 * { box-sizing: border-box; }
@@ -57,59 +28,7 @@ body {
   color: var(--foreground);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* Both grounds are painted, so the switch has nothing to animate through
-     and the change lands in one frame instead of washing between two. */
-  transition: background 0.2s ease, color 0.2s ease;
 }
-@media (prefers-reduced-motion: reduce) {
-  body { transition: none; }
-}
-
-
-/* the theme switch -------------------------------------------------------
-   Fixed rather than in a bar, because there is no bar yet. When the page
-   grows chrome this moves into it and loses the position; nothing else about
-   it should have to change. */
-.theme {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 10;
-  display: grid;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--foreground);
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.theme:hover,
-.theme:focus-visible { background: var(--surface-hover); }
-.theme:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-/* Sized here, but deliberately not given a display: `.theme svg` is a class
-   plus an element and so outranks the plain `.theme-sun` below it, which left
-   both marks painted in the light state. The button is a grid, so whichever
-   one is showing is blockified by its parent anyway. */
-.theme svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* Both marks ship in the markup and CSS shows the one that is not the current
-   theme, so the icon reads as what the button will do rather than as what the
-   page already is. Swapping them in script instead would mean the wrong one
-   is painted for a frame on every load. */
-.theme-sun { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-moon { display: none; }
-  :root:not([data-theme="light"]) .theme-sun { display: block; }
-}
-:root[data-theme="dark"] .theme-moon { display: none; }
-:root[data-theme="dark"] .theme-sun { display: block; }
 
 
 /* the name ---------------------------------------------------------------
@@ -152,8 +71,7 @@ body:not([data-view="home"]) { --name-size: clamp(1.5rem, 2.6vw, 2.25rem); }
   /* 1rem of top inset + 1rem of bottom gap + its own line box */
   translate: 0 calc(100svh - 2rem - var(--name-size) * 0.922);
   transition: translate 0.55s cubic-bezier(0.32, 0.72, 0, 1),
-              font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1),
-              color 0.2s ease;
+              font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1);
 }
 body:not([data-view="home"]) .wordmark { translate: 0 0; }
 
@@ -173,7 +91,7 @@ body:not([data-view="home"]) .wordmark { translate: 0 0; }
 .wordmark-go:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .wordmark { transition: color 0.2s ease; }
+  .wordmark { transition: none; }
 }
 
 
@@ -346,8 +264,8 @@ a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
 .copy:focus-visible { color: var(--foreground); }
 .copy:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 /* Sized, but deliberately given no display: `.copy svg` is a class plus an
-   element and outranks the plain `.copy-done` below, which painted both marks
-   at once. Same trap as the theme switch, and the same answer. */
+   element and would outrank the plain `.copy-done` below, painting both marks
+   at once. The display belongs on the marks, not on the element they are. */
 .copy svg { width: 0.85rem; height: 0.85rem; }
 /* Two marks, one shown. White and not green when it lands: the page has one
    accent and this is not the place to introduce a second. */
