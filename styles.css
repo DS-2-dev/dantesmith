@@ -11,6 +11,13 @@
   --background: #ffffff;
   --foreground: #0b0b0b;
   --muted: #6f6f6f;
+  /* Body copy. It was set in --muted with the nav and the small marks, and at
+     5.3:1 on white a paragraph of it read as washed out rather than as quiet.
+     This is 10.9:1 — still clearly under the lede's near-black, so the two
+     still rank, but it is text you read rather than text you squint at. The
+     chrome keeps --muted, which is the right weight for a thing you glance
+     at. */
+  --ink-2: #3a3a3a;
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
 }
@@ -99,7 +106,7 @@ body {
   font-size: 0.9375rem;
   line-height: 1.5;
   letter-spacing: -0.011em;
-  color: var(--muted);
+  color: var(--ink-2);
 }
 
 /* Said to a screen reader and to nobody else. Not display:none, which would
