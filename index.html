@@ -91,38 +91,32 @@
 <body data-view="home">
 
 
-  <!-- The name, and the way home. It is one element that moves rather than two
-       that swap: at home it sits large in the bottom left, and in a section it
-       travels to the top left and shrinks, which is the same object in a new
-       place rather than a header appearing over a name that vanished.
-
-       The button is disabled at home. There is nowhere for it to take you from
-       there, and disabled is what keeps it out of the tab order as well as out
-       of reach — a heading that is sometimes a control has to say which it is
-       right now. -->
-  <h1 class="wordmark">
-    <button class="wordmark-go" id="home" type="button" disabled>Dante Smith</button>
-  </h1>
-
   <!-- Home, and the only thing on it. The initials traced from my own
        lettering, with a dot after each the way initials are set — D. S. — and
        the pair centred in the window.
 
-       aria-hidden, and that is deliberate: it says "Dante Smith", the h1 above
-       already says "Dante Smith", and a screen reader meeting two letters and
-       two full stops would read them out as neither a name nor a word. It is
-       the picture of the name, not a second copy of it.
+       It is the page's heading and its way home, both. There is no wordmark
+       any more — the mark is the name — so the h1 carries it and the button
+       inside is what returns from a section. Disabled at home: there is
+       nowhere for it to go from there, and disabled keeps it out of the tab
+       order as well as out of reach.
 
        The paths are inlined rather than fetched as two <img>: at this size the
        mark is the page, and inlined it takes the page's ink through
        currentColor instead of the hard #000 the trace shipped. The files they
        came from are kept in images/. -->
-  <div class="monogram">
-    <svg class="glyph glyph--d" viewBox="0 0 923.000000 1022.000000" aria-hidden="true" focusable="false"><g transform="translate(-173.000000,1138.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none"> <path d="M1730 6270 l0 -5110 3968 0 3967 0 120 118 c213 208 1048 1016 1113 1077 l62 58 0 3868 0 3869 -617 615 -618 615 -3997 0 -3998 0 0 -5110z m7870 -35 l0 -3825 -1289 0 -1288 0 -7 2783 c-3 1530 -9 3251 -12 3825 l-7 1042 1302 0 1301 0 0 -3825z"/> </g></svg>
-    <span class="dot"></span>
-    <svg class="glyph glyph--s" viewBox="0 0 758.849880 1155.968828" aria-hidden="true" focusable="false"><g transform="translate(-191.150120,1275.942550) scale(0.100000,-0.100000)" fill="currentColor" stroke="none"> <path d="M4989 12741 c-89 -28 -158 -71 -213 -133 -95 -104 -135 -221 -136 -388 0 -206 -91 -354 -260 -423 -54 -22 -63 -22 -650 -27 -586 -5 -596 -5 -654 -27 -134 -51 -232 -135 -295 -253 -64 -119 -61 -31 -61 -1735 0 -1710 -4 -1603 63 -1729 40 -76 136 -172 208 -208 113 -57 127 -58 699 -58 335 0 548 -4 586 -11 177 -32 321 -174 354 -349 6 -31 10 -283 10 -624 l0 -571 24 -66 c57 -162 198 -292 357 -328 27 -7 262 -11 599 -11 322 0 582 -4 620 -10 149 -23 308 -136 377 -266 73 -140 68 -43 68 -1274 l0 -1105 -23 -65 c-48 -134 -138 -236 -264 -300 -118 -59 -196 -72 -390 -68 -205 5 -252 20 -344 112 -58 58 -72 83 -284 511 -372 752 -1300 2655 -1395 2860 -153 331 -216 448 -272 506 -67 71 -164 122 -263 139 -44 8 -241 10 -615 8 -623 -4 -602 -2 -729 -86 -132 -87 -202 -223 -194 -376 5 -79 8 -87 123 -331 179 -380 253 -539 310 -665 29 -63 136 -299 240 -525 103 -225 240 -529 305 -675 113 -255 353 -792 460 -1030 28 -63 65 -147 81 -186 57 -137 179 -238 318 -264 29 -5 135 -10 235 -10 205 0 282 -12 372 -58 77 -39 134 -89 176 -154 72 -111 71 -105 79 -503 5 -283 10 -371 22 -414 55 -187 202 -328 377 -361 76 -14 1274 -13 1342 1 155 33 299 162 352 314 12 34 20 101 25 205 9 167 23 223 77 302 34 48 108 103 177 132 51 20 68 21 682 26 689 6 670 5 777 67 56 33 133 106 173 162 15 22 39 71 54 108 l26 68 3 1610 c2 1177 0 1626 -8 1670 -18 90 -74 198 -141 265 -64 66 -172 124 -258 140 -31 6 -276 10 -590 10 -572 0 -609 3 -703 51 -53 27 -143 112 -174 164 -61 104 -58 74 -64 755 -7 679 -4 650 -65 771 -60 118 -219 234 -354 259 -32 6 -290 10 -630 10 -621 0 -647 2 -749 54 -124 63 -220 202 -242 351 -7 46 -10 418 -8 1090 3 961 4 1023 22 1075 48 142 137 260 242 321 93 53 195 72 363 68 147 -4 147 -4 223 -41 55 -28 92 -55 134 -101 55 -59 90 -125 552 -1048 270 -542 492 -988 492 -991 0 -3 66 -140 146 -304 351 -718 427 -873 545 -1117 113 -237 129 -264 185 -321 33 -34 87 -76 120 -93 121 -64 108 -63 759 -63 643 0 635 -1 750 57 62 32 172 143 202 203 28 58 53 153 53 205 0 94 -21 143 -380 880 -140 286 -327 676 -420 875 -42 91 -174 365 -293 610 -118 245 -278 579 -355 742 -77 164 -155 316 -173 339 -49 62 -142 126 -217 150 -56 18 -103 23 -282 28 -202 7 -219 9 -279 34 -115 48 -192 120 -249 232 -56 113 -62 160 -62 491 0 332 -5 369 -62 477 -41 76 -129 164 -200 200 -113 57 -106 57 -823 56 -604 0 -665 -2 -716 -18z"/> </g></svg>
-    <span class="dot"></span>
-  </div>
+  <h1 class="monogram">
+    <button class="monogram-go" id="home" type="button" disabled>
+      <!-- The name the mark stands for, said once, for anyone who cannot see
+           it. The glyphs themselves stay out of the accessibility tree: two
+           letters and two full stops are read as neither a name nor a word. -->
+      <span class="sr-only">Dante Smith &mdash; home</span>
+      <svg class="glyph glyph--d" viewBox="0 0 923.000000 1022.000000" aria-hidden="true" focusable="false"><g transform="translate(-173.000000,1138.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none"> <path d="M1730 6270 l0 -5110 3968 0 3967 0 120 118 c213 208 1048 1016 1113 1077 l62 58 0 3868 0 3869 -617 615 -618 615 -3997 0 -3998 0 0 -5110z m7870 -35 l0 -3825 -1289 0 -1288 0 -7 2783 c-3 1530 -9 3251 -12 3825 l-7 1042 1302 0 1301 0 0 -3825z"/> </g></svg>
+      <span class="dot"></span>
+      <svg class="glyph glyph--s" viewBox="0 0 758.849880 1155.968828" aria-hidden="true" focusable="false"><g transform="translate(-191.150120,1275.942550) scale(0.100000,-0.100000)" fill="currentColor" stroke="none"> <path d="M4989 12741 c-89 -28 -158 -71 -213 -133 -95 -104 -135 -221 -136 -388 0 -206 -91 -354 -260 -423 -54 -22 -63 -22 -650 -27 -586 -5 -596 -5 -654 -27 -134 -51 -232 -135 -295 -253 -64 -119 -61 -31 -61 -1735 0 -1710 -4 -1603 63 -1729 40 -76 136 -172 208 -208 113 -57 127 -58 699 -58 335 0 548 -4 586 -11 177 -32 321 -174 354 -349 6 -31 10 -283 10 -624 l0 -571 24 -66 c57 -162 198 -292 357 -328 27 -7 262 -11 599 -11 322 0 582 -4 620 -10 149 -23 308 -136 377 -266 73 -140 68 -43 68 -1274 l0 -1105 -23 -65 c-48 -134 -138 -236 -264 -300 -118 -59 -196 -72 -390 -68 -205 5 -252 20 -344 112 -58 58 -72 83 -284 511 -372 752 -1300 2655 -1395 2860 -153 331 -216 448 -272 506 -67 71 -164 122 -263 139 -44 8 -241 10 -615 8 -623 -4 -602 -2 -729 -86 -132 -87 -202 -223 -194 -376 5 -79 8 -87 123 -331 179 -380 253 -539 310 -665 29 -63 136 -299 240 -525 103 -225 240 -529 305 -675 113 -255 353 -792 460 -1030 28 -63 65 -147 81 -186 57 -137 179 -238 318 -264 29 -5 135 -10 235 -10 205 0 282 -12 372 -58 77 -39 134 -89 176 -154 72 -111 71 -105 79 -503 5 -283 10 -371 22 -414 55 -187 202 -328 377 -361 76 -14 1274 -13 1342 1 155 33 299 162 352 314 12 34 20 101 25 205 9 167 23 223 77 302 34 48 108 103 177 132 51 20 68 21 682 26 689 6 670 5 777 67 56 33 133 106 173 162 15 22 39 71 54 108 l26 68 3 1610 c2 1177 0 1626 -8 1670 -18 90 -74 198 -141 265 -64 66 -172 124 -258 140 -31 6 -276 10 -590 10 -572 0 -609 3 -703 51 -53 27 -143 112 -174 164 -61 104 -58 74 -64 755 -7 679 -4 650 -65 771 -60 118 -219 234 -354 259 -32 6 -290 10 -630 10 -621 0 -647 2 -749 54 -124 63 -220 202 -242 351 -7 46 -10 418 -8 1090 3 961 4 1023 22 1075 48 142 137 260 242 321 93 53 195 72 363 68 147 -4 147 -4 223 -41 55 -28 92 -55 134 -101 55 -59 90 -125 552 -1048 270 -542 492 -988 492 -991 0 -3 66 -140 146 -304 351 -718 427 -873 545 -1117 113 -237 129 -264 185 -321 33 -34 87 -76 120 -93 121 -64 108 -63 759 -63 643 0 635 -1 750 57 62 32 172 143 202 203 28 58 53 153 53 205 0 94 -21 143 -380 880 -140 286 -327 676 -420 875 -42 91 -174 365 -293 610 -118 245 -278 579 -355 742 -77 164 -155 316 -173 339 -49 62 -142 126 -217 150 -56 18 -103 23 -282 28 -202 7 -219 9 -279 34 -115 48 -192 120 -249 232 -56 113 -62 160 -62 491 0 332 -5 369 -62 477 -41 76 -129 164 -200 200 -113 57 -106 57 -823 56 -604 0 -665 -2 -716 -18z"/> </g></svg>
+      <span class="dot"></span>
+    </button>
+  </h1>
 
   <!-- Shown when the view is about. Kept in the document rather than built on
        demand: it is four paragraphs, and a fade needs both states present. -->
@@ -187,11 +181,102 @@
     </p>
   </main>
 
+  <main class="view view--wide" id="work" aria-labelledby="work-heading">
+    <h2 class="sr-only" id="work-heading">Work</h2>
+    <!-- One tile per piece: the picture, and a strip under it with its number
+         and its name. The writing about each one is over the picture on hover
+         rather than under it always — eight paragraphs stacked down the page
+         would be a document about the work instead of the work. -->
+    <div class="tiles">
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it." loading="lazy" decoding="async">
+          <p class="tile-note">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">1</span>
+          <span class="tile-name">Vantage</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/jacks-mannequin-poster.webp" alt="Lyric poster in tall condensed black caps on off-white: “Just think of all the thoughts wasted on you”, with the Jack’s Mannequin logo in a blue box beneath." loading="lazy" decoding="async">
+          <p class="tile-note">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">2</span>
+          <span class="tile-name">Jack’s Mannequin</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <a class="tile-shot" href="https://weave2-demo.vercel.app/" target="_blank" rel="noopener noreferrer"
+           aria-label="Weave — open the live demo (opens in a new tab)">
+          <img src="images/weave-cover.webp" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field." loading="lazy" decoding="async">
+          <p class="tile-note">Click to go to the demo site</p>
+        </a>
+        <figcaption class="tile-cap">
+          <span class="tile-no">3</span>
+          <span class="tile-name">Weave</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/mac-os-x-shirt.webp" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid." loading="lazy" decoding="async">
+          <p class="tile-note">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">4</span>
+          <span class="tile-name">CD T-Shirt Print</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/inconvenience-sign.webp" alt="Inconvenience: a blue and white parking-lot sign on a steel pole against clear sky, numbered 04 above the single word “Inconvenience”." loading="lazy" decoding="async">
+          <p class="tile-note">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">5</span>
+          <span class="tile-name">Inconvenience</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/find-collect-repeat-poster.webp" alt="Find Collect Repeat poster for Are.na: a white eight-pointed star over blurred green and blue flowers, with “FIND” in heavy rounded letters along the foot and “collect” and “repeat” stacked at the corner." loading="lazy" decoding="async">
+          <p class="tile-note">Are.na poster I whipped up in my spare time.</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">6</span>
+          <span class="tile-name">Find Collect Repeat</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot." loading="lazy" decoding="async">
+          <p class="tile-note">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">7</span>
+          <span class="tile-name">WSU AI Lab</span>
+        </figcaption>
+      </figure>
+      <figure class="tile">
+        <div class="tile-shot">
+          <img src="images/filey-poster.webp" alt="Filey poster: the name in a wide monospace over a red form smeared into grey by motion blur, above the line “All of your files. On the go.”" loading="lazy" decoding="async">
+          <p class="tile-note">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</p>
+        </div>
+        <figcaption class="tile-cap">
+          <span class="tile-no">8</span>
+          <span class="tile-name">Filey</span>
+        </figcaption>
+      </figure>
+    </div>
+  </main>
+
   <!-- Bottom right, under the switch. Nothing is wired to these yet — there
        is no about, work or contact on the page to reach. -->
   <nav class="menu" aria-label="Sections">
     <button class="menu-item" type="button" data-view="about">about</button>
-    <button class="menu-item" type="button">work</button>
+    <button class="menu-item" type="button" data-view="work">work</button>
     <button class="menu-item" type="button" data-view="contact">contact</button>
   </nav>
 

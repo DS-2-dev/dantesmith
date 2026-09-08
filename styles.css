@@ -13,10 +13,6 @@
   --muted: #6f6f6f;
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
-  /* The name was set in a white sampled from the painting it used to be
-     knocked out of. On this ground that white is invisible, so it is the ink —
-     which is what the light half of the old pair already said. */
-  --wordmark-ink: #0b0b0b;
 }
 
 * { box-sizing: border-box; }
@@ -31,70 +27,6 @@ body {
 }
 
 
-/* the name ---------------------------------------------------------------
-   One element in two places. At home it sits large in the bottom left; in a
-   section it travels to the top left and shrinks.
-
-   Both of those come off a single custom property. --name-size is the type
-   size AND the term in the translate that pushes it down to the bottom of the
-   window, so setting one number per view moves and resizes it together and
-   the two can never disagree. The element is anchored top-left in both states
-   and translated down for home, because top and bottom are different
-   properties and nothing interpolates between them. */
-:root { --name-size: clamp(2.25rem, 6vw, 5.5rem); }
-/* Any section, not one of them by name: keyed to "about" this shrank the name
-   on that view and left it at full size on every other, while the translate
-   below — which is written against every non-home view — moved it to the
-   corner anyway. The two have to agree about what a section is. */
-body:not([data-view="home"]) { --name-size: clamp(1.5rem, 2.6vw, 2.25rem); }
-
-.wordmark {
-  position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 10;
-  margin: 0;
-  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
-  /* 400, not 500 — the kit ships one weight, and asking for more would get a
-     synthesised bold: wider than drawn, and a fake. */
-  font-weight: 400;
-  font-size: var(--name-size);
-  /* Magistral's ascender is 1.0em and its descender 0.2em, so 0.85 would leave
-     only 0.025em under the baseline. 0.922 is the gap Inter gave at 0.85 — and
-     because the line box is exactly this multiple of the size, the offset
-     below can be solved from the size alone. */
-  line-height: 0.922;
-  letter-spacing: -0.03em;
-  white-space: nowrap;
-  user-select: none;
-  color: var(--wordmark-ink);
-  /* 1rem of top inset + 1rem of bottom gap + its own line box */
-  translate: 0 calc(100svh - 2rem - var(--name-size) * 0.922);
-  transition: translate 0.55s cubic-bezier(0.32, 0.72, 0, 1),
-              font-size 0.55s cubic-bezier(0.32, 0.72, 0, 1);
-}
-body:not([data-view="home"]) .wordmark { translate: 0 0; }
-
-/* The control inside it inherits everything, so the name is styled once as a
-   heading and the button is only the hit target and the keyboard stop. */
-.wordmark-go {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  letter-spacing: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.wordmark-go:disabled { cursor: default; }
-.wordmark-go:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .wordmark { transition: none; }
-}
-
-
 /* the sections -----------------------------------------------------------
    One per menu item, all in the document, one shown at a time. visibility
    rather than display so the change can be eased, and because visibility
@@ -102,17 +34,25 @@ body:not([data-view="home"]) .wordmark { translate: 0 0; }
    down — a fade on opacity alone would leave four paragraphs reachable from
    a page that is not showing them. */
 .view {
-  /* Absolute, so the ones that are down take no space. visibility: hidden
-     keeps a box — left in the flow, each section stacked under the last and
-     the second one opened halfway down the page. Only one is ever up, so they
-     all start at the same corner, and an absolute box still extends the
-     page's scrollable area when its content is long. */
-  position: absolute;
-  top: 0;
+  /* Fixed and inset from the corners the chrome lives in, and it scrolls
+     inside that box rather than scrolling the page. Two things fall out of
+     that. Sections that are down take no space, where in the flow the hidden
+     one still kept its full height — visibility: hidden keeps a box — and the
+     second one opened halfway down the page. And nothing ever travels under
+     the name or the menu: with the page scrolling instead, the tiles slid
+     beneath both and the menu was unreadable over a photograph.
+
+     Top clears the mark at its corner size, bottom clears the three menu
+     items. Left and right are 0 with a max-width, so a text section is a
+     column against the left edge and .view--wide is the whole window. */
+  position: fixed;
+  top: 4.5rem;
+  right: 0;
+  bottom: 6rem;
   left: 0;
-  width: 100%;
-  /* clear of the name in its top-left position, and of the menu below */
-  padding: clamp(5rem, 9vh, 7rem) 1rem 8rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1rem 1rem;
   max-width: 38rem;
   opacity: 0;
   visibility: hidden;
@@ -308,57 +248,64 @@ a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
 }
 
 
-/* the monogram ------------------------------------------------------------
-   Home is this and nothing else. The two initials, each followed by a dot the
-   way initials are set, centred in the window.
+/* the mark ----------------------------------------------------------------
+   The initials, and they are the whole of the identity now — the wordmark that
+   used to be set beside them is gone. One element in two places: centred and
+   large on home, small in the top-left corner in a section, and it is the
+   control that comes back.
 
-   Fixed and covering the page rather than placed in the flow, so it is centred
-   against the window itself and not against whatever a section happens to be
-   tall. It takes no pointer events: the name and the menu are underneath it in
-   the corners, and a full-page box would swallow both. */
+   Anchored to the corner in both states and translated to the middle for home,
+   because top and left are the same properties in both and nothing
+   interpolates between a corner and a centring. The two percentages in that
+   translate are of the mark's OWN size, which is what makes this work without
+   anything here knowing how wide the lockup is — and it changes with --glyph,
+   so the move and the resize stay in step by construction. */
+:root { --glyph: clamp(4rem, min(26vh, 40vw), 15rem); }
+body:not([data-view="home"]) { --glyph: 2.25rem; }
+
 .monogram {
   position: fixed;
-  inset: 0;
-  z-index: 5;
-  /* A grid, and place-content rather than place-items — the distinction is the
-     whole of it. The four parts flow into one column track each; place-content
-     centres that single row as a block in the window, and align-items: end
-     then sits each part on the bottom of the row, which is the letters'
-     baseline. As flex with align-items: flex-end the container WAS the window,
-     so the whole lockup sat on the bottom edge of the screen. */
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  margin: 0;
+  width: max-content;
+  translate: calc(50vw - 1rem - 50%) calc(50svh - 1rem - 50%);
+  transition: translate 0.55s cubic-bezier(0.32, 0.72, 0, 1);
+}
+body:not([data-view="home"]) .monogram { translate: 0 0; }
+
+/* The control is the mark. Everything visual is on the parts inside it; this
+   is the hit target, the keyboard stop, and the row the parts sit in. */
+.monogram-go {
   display: grid;
   grid-auto-flow: column;
-  place-content: center;
+  /* end, so the dots sit on the letters' baseline rather than floating in the
+     middle of the row */
   align-items: end;
-  /* Height is the one number the whole lockup is written against — the letters
-     take it directly and the dots and the gaps are fractions of it, so the
-     mark scales as one object. */
-  /* Height drives everything, but width is what runs out first on a phone:
-     the lockup measures about 1.9 times its own height, so a mark sized on
-     26vh alone was 420px wide in a 390px window. The vw term is the width
-     talking; it only ever binds on a narrow screen. */
-  --glyph: clamp(4rem, min(26vh, 40vw), 15rem);
   gap: calc(var(--glyph) * 0.09);
-  padding-inline: 1rem;
-  pointer-events: none;
-  transition: opacity 0.35s ease, visibility 0s;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  cursor: pointer;
 }
-/* It is home's, so it goes when a section arrives — and visibility takes it
-   off a screen reader's cursor rather than leaving it there invisible. */
-body:not([data-view="home"]) .monogram {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
-}
+.monogram-go:disabled { cursor: default; }
+.monogram-go:focus-visible { outline: 2px solid currentColor; outline-offset: 0.4rem; }
 
 /* Both traces are tight to their ink, so an equal height is an equal cap
    height and the two sit as a matched pair. Width follows from each one's own
-   viewBox, which is what keeps the D wide and the S narrow. */
+   viewBox, which is what keeps the D wide and the S narrow.
+
+   The height is the one number the lockup is written against — the dots and
+   the gaps are fractions of it — so the mark resizes as one object, and the
+   transition on it is what carries the whole thing between the two states. */
 .glyph {
   height: var(--glyph);
   width: auto;
   display: block;
-  color: var(--foreground);
+  transition: height 0.55s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* Sized off the letters and sitting on their baseline. Round, against
@@ -370,13 +317,125 @@ body:not([data-view="home"]) .monogram {
   width: calc(var(--glyph) * 0.13);
   height: calc(var(--glyph) * 0.13);
   border-radius: 50%;
-  background: var(--foreground);
+  background: currentColor;
   /* the gap between a letter and its own dot is tighter than the gap between
      one initial and the next */
   margin-left: calc(var(--glyph) * -0.035);
+  transition: width 0.55s cubic-bezier(0.32, 0.72, 0, 1),
+              height 0.55s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .monogram,
-  body:not([data-view="home"]) .monogram { transition: visibility 0s; }
+  .glyph,
+  .dot { transition: none; }
+}
+
+
+/* work --------------------------------------------------------------------
+   The text sections are a column with a measure; this one is pictures, so it
+   takes the width of the window instead. */
+.view--wide { max-width: none; }
+
+/* Three across where there is room, and the count comes down rather than the
+   tiles getting narrow — a portfolio of thumbnails is not a portfolio. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  min-width: 0;
+}
+
+/* The picture. Square, and the same square for all eight: the grid is regular,
+   so the pieces are sized by the row rather than each carrying its own shape.
+   That does crop the posters, which on a piece whose subject is type on a
+   field takes away part of the design — it is the price of the grid and it is
+   paid deliberately. */
+.tile-shot {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: var(--surface);
+}
+.tile-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* What each piece is, over the picture rather than under it. Eight paragraphs
+   stacked down the page would be a document about the work instead of the
+   work, and a caption long enough to hold one would set the row height off
+   the wordiest piece. */
+.tile-note {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  align-content: end;
+  padding: 1.1rem;
+  /* The ink at nearly full strength, because what is behind it is a different
+     photograph on every tile and a light scrim only works over some of them. */
+  background: rgb(11 11 11 / 0.9);
+  color: #ffffff;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  letter-spacing: -0.006em;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.tile-shot:hover .tile-note,
+.tile-shot:focus-visible .tile-note { opacity: 1; }
+.tile-shot:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* The strip under each piece: its number and its name. */
+.tile-cap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.15rem;
+  font-size: 0.8125rem;
+  letter-spacing: -0.006em;
+}
+/* A counter, not a heading. Tabular so 1 and 8 are the same width and the
+   names all start on the same vertical. */
+.tile-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 0.625rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tile-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+a.tile-shot + .tile-cap .tile-name { text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 0.25em; }
+
+@media (max-width: 1000px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-note { transition: none; }
 }
