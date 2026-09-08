@@ -123,7 +123,11 @@ body {
    and translated down for home, because top and bottom are different
    properties and nothing interpolates between them. */
 :root { --name-size: clamp(2.25rem, 6vw, 5.5rem); }
-body[data-view="about"] { --name-size: clamp(1.5rem, 2.6vw, 2.25rem); }
+/* Any section, not one of them by name: keyed to "about" this shrank the name
+   on that view and left it at full size on every other, while the translate
+   below — which is written against every non-home view — moved it to the
+   corner anyway. The two have to agree about what a section is. */
+body:not([data-view="home"]) { --name-size: clamp(1.5rem, 2.6vw, 2.25rem); }
 
 .wordmark {
   position: fixed;
@@ -180,6 +184,15 @@ body:not([data-view="home"]) .wordmark { translate: 0 0; }
    down — a fade on opacity alone would leave four paragraphs reachable from
    a page that is not showing them. */
 .view {
+  /* Absolute, so the ones that are down take no space. visibility: hidden
+     keeps a box — left in the flow, each section stacked under the last and
+     the second one opened halfway down the page. Only one is ever up, so they
+     all start at the same corner, and an absolute box still extends the
+     page's scrollable area when its content is long. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   /* clear of the name in its top-left position, and of the menu below */
   padding: clamp(5rem, 9vh, 7rem) 1rem 8rem;
   max-width: 38rem;
@@ -190,7 +203,10 @@ body:not([data-view="home"]) .wordmark { translate: 0 0; }
               translate 0.45s cubic-bezier(0.32, 0.72, 0, 1),
               visibility 0s linear 0.35s;
 }
-body[data-view="about"] #about {
+/* The showing one carries a class rather than the stylesheet naming each
+   section by id: a new view should be markup and a menu item, not a rule
+   somebody has to remember to add here too. */
+.view.is-on {
   opacity: 1;
   visibility: visible;
   translate: 0 0;
@@ -200,7 +216,7 @@ body[data-view="about"] #about {
 }
 @media (prefers-reduced-motion: reduce) {
   .view { translate: none; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
-  body[data-view="about"] #about { translate: none; transition: opacity 0.2s ease, visibility 0s; }
+  .view.is-on { translate: none; transition: opacity 0.2s ease, visibility 0s; }
 }
 
 .lede {
@@ -280,3 +296,95 @@ body[data-view="about"] #about {
 
 /* the section you are in */
 .menu-item[aria-current="true"] { color: var(--foreground); }
+
+
+/* contact ----------------------------------------------------------------
+   Three ways to reach me and one control that takes money, and they are
+   deliberately not styled alike: the first three are links in a paragraph and
+   the last is the only thing here drawn as a button. */
+.contact-list { margin-top: 1.25rem; }
+
+/* A hairline that comes up to full strength on hover, rather than a link that
+   was already shouting. */
+.contact-val {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 0.3em;
+  transition: text-decoration-color 0.15s ease;
+}
+.contact-val:hover,
+.contact-val:focus-visible { text-decoration-color: currentColor; }
+
+/* The arrow that says a new tab. Nudged up and out on hover, in the direction
+   it points, which is the whole of the animation. */
+.link-out {
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.12em;
+  vertical-align: 0.02em;
+  transition: translate 0.15s ease;
+}
+a.contact-val:hover .link-out,
+a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
+
+/* The copy button. Sits against the address as a mark rather than beside it as
+   a control, because the address is the content and this is a convenience. */
+.copy {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  vertical-align: -0.1em;
+  transition: color 0.15s ease;
+}
+.copy:hover,
+.copy:focus-visible { color: var(--foreground); }
+.copy:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+/* Sized, but deliberately given no display: `.copy svg` is a class plus an
+   element and outranks the plain `.copy-done` below, which painted both marks
+   at once. Same trap as the theme switch, and the same answer. */
+.copy svg { width: 0.85rem; height: 0.85rem; }
+/* Two marks, one shown. White and not green when it lands: the page has one
+   accent and this is not the place to introduce a second. */
+.copy-done { display: none; }
+.copy.is-done { color: var(--foreground); }
+.copy.is-done .copy-mark { display: none; }
+.copy.is-done .copy-done { display: inline; }
+
+/* The deposit. An outlined control rather than a filled one, and no terms
+   beneath it: it belongs to a conversation that already happened, and the
+   amount is stated on the Stripe page it opens. A block shouting BUY at the
+   foot of a portfolio would be describing a different business than this. */
+.deposit { margin: 2rem 0 0; }
+.deposit-go {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.deposit-go:hover,
+.deposit-go:focus-visible {
+  border-color: var(--foreground);
+  background: var(--surface);
+}
+.deposit-go:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-val,
+  .link-out,
+  .copy,
+  .deposit-go { transition: none; }
+  a.contact-val:hover .link-out,
+  a.contact-val:focus-visible .link-out { translate: none; }
+}
