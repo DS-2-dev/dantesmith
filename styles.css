@@ -178,7 +178,13 @@ body {
 .contact-val:focus-visible { text-decoration-color: currentColor; }
 
 /* The arrow that says a new tab. Nudged up and out on hover, in the direction
-   it points, which is the whole of the animation. */
+   it points, which is the whole of the animation.
+
+   Written against any anchor carrying one rather than against .contact-val:
+   scoped to that class it only moved on the two links in the contact section,
+   and the same arrow in the nav sat still. The mark means one thing wherever
+   it is, so it should behave one way. Sized in em, so it takes the size of
+   whatever line it is set in. */
 .link-out {
   width: 0.7em;
   height: 0.7em;
@@ -186,8 +192,8 @@ body {
   vertical-align: 0.02em;
   transition: translate 0.15s ease;
 }
-a.contact-val:hover .link-out,
-a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
+a:hover .link-out,
+a:focus-visible .link-out { translate: 0.08em -0.08em; }
 
 /* The copy button. Sits against the address as a mark rather than beside it as
    a control, because the address is the content and this is a convenience. */
@@ -221,8 +227,8 @@ a.contact-val:focus-visible .link-out { translate: 0.08em -0.08em; }
   .contact-val,
   .link-out,
   .copy { transition: none; }
-  a.contact-val:hover .link-out,
-  a.contact-val:focus-visible .link-out { translate: none; }
+  a:hover .link-out,
+  a:focus-visible .link-out { translate: none; }
 }
 
 
