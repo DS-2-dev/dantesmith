@@ -442,27 +442,9 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 /* The strip under each piece: its number and its name. */
 .tile-cap {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
   padding: 0 0.15rem;
   font-size: 0.8125rem;
   letter-spacing: -0.006em;
-}
-/* A counter, not a heading. Tabular so 1 and 8 are the same width and the
-   names all start on the same vertical. */
-.tile-no {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 50%;
-  background: var(--foreground);
-  color: var(--background);
-  font-size: 0.625rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
 }
 .tile-name {
   min-width: 0;
