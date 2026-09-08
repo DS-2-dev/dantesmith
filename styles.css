@@ -8,22 +8,37 @@
   font-display: swap;
 }
 
-/* shadcn/ui default tokens (dark surface, light cards) */
+/* Two themes, and dark is the one the site is. The switch in the bar writes
+   data-theme on <html> and remembers it; the inline script in <head> puts it
+   back before the first paint. A reader who has never chosen gets this, not
+   their system setting — the black page is the identity, and prefers-color-
+   scheme would hand half of them a version of it they never asked for. */
 :root {
   --background: #000000;
   --foreground: #ffffff;
-  --gutter: 1.5rem;
-  /* The band at the foot of the page. Nothing in .page reaches into it, which
-     is what keeps the paddle off the cards: the bar plays in the empty upper
-     part of this strip and the row of text sits under it. */
-  --footer: 4.5rem;
-  /* Breathing room around the work cluster after its height is solved. Kept as
-     a variable because compact laptop viewports cannot afford the desktop
-     value; app.js reads the same value when it measures the real cards. */
-  --cluster-slack: 2.5rem;
   --muted-foreground: #808080;
+  /* rules sit on black now, so the hairline lifts off the ground rather than
+     settling onto it */
+  --hairline: #2b2b2b;
+  /* The pills, and the strip under each tile. A tint of the foreground rather
+     than a colour of its own, so it tracks whichever ground it is on. */
+  --surface: rgb(255 255 255 / 0.07);
+  --surface-hover: rgb(255 255 255 / 0.13);
+  /* the glass the two follower panels are made of */
+  --glass: rgb(10 10 10 / 0.55);
+  --glass-solid: rgb(10 10 10 / 0.93);
+  --glass-edge: rgb(255 255 255 / 0.18);
+  --gutter: 1rem;
+  /* Height of the bar, reserved above the grid so the first row of tiles is
+     never behind it. */
+  --bar: 3.25rem;
   /* the white of the flowers in the Warhol, sampled from the painting */
   --flower-white: #ebebe9;
+  /* The name is set in that same white on the black page. On the light one it
+     disappears into the ground, so there it is simply the ink — hence a token
+     of its own rather than two jobs sharing one value, which is exactly how
+     the light theme first came out black-on-black. */
+  --wordmark-ink: var(--flower-white);
   /* rules sit on black now, so the hairline lifts off the ground rather than
      settling onto it */
   --hairline: #2b2b2b;
@@ -40,14 +55,28 @@
   --marker: #7cf0a8;
   --marker-ink: #0a0f0b;
 }
+
+/* Light. Not white — the ground is a grey, so the tiles and the cards read as
+   objects laid on a surface rather than as holes cut in it. The marker stays
+   the same green: it was picked to carry near-black type, which is what sits
+   on it in both themes. */
+:root[data-theme="light"] {
+  --background: #f4f4f2;
+  --foreground: #0b0b0b;
+  --muted-foreground: #6f6f6f;
+  --hairline: #dcdcd8;
+  --surface: rgb(0 0 0 / 0.05);
+  --surface-hover: rgb(0 0 0 / 0.09);
+  --glass: rgb(250 250 248 / 0.72);
+  --glass-solid: rgb(250 250 248 / 0.96);
+  --glass-edge: rgb(0 0 0 / 0.12);
+  --wordmark-ink: var(--foreground);
+}
 body {
   margin: 0;
-  padding: 0;
-  height: 100vh;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  /* The bar is fixed, so the grid has to be told to start below it rather
+     than under it. */
+  padding: var(--bar) 0 0;
   background: var(--background);
   color: var(--foreground);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -58,78 +87,221 @@ body {
      are untouched. */
   cursor: default;
 }
+* { box-sizing: border-box; }
 ::selection {
   background: var(--marker);
   color: var(--marker-ink);
 }
 
 
-/* One page, two columns. The bio column is a fixed measure so the copy keeps
-   a readable line length whatever the window does; work takes the rest. The
-   gutter lives on the page rather than on each block now that there is no
-   full-bleed bar for it to work around. */
-.page {
-  /* Measured once here and used twice: it sets the column, and the name is
-     sized off it so the two words always fill that measure exactly. vw and
-     not %, because a percentage cannot be divided into a font-size. */
-  /* The column gets width because width is what makes it short: the same copy
-     in a wider measure needs fewer lines, and lines are the thing that does not
-     fit. Every addition to this column has been paid for by shrinking all of
-     it, so the width goes up instead — 24vw put 539px of prose into a 346px
-     measure at 1440 and the fit pass answered by taking the type down to 0.84.
-     Width has since saturated. Measured against 27vw and 29vw it lands on the
-     same scale at every size and two steps worse at 1200x700, while the
-     responsive contract holds the work cards to 160px at 1024 wide and 31vw
-     took them to 156. So the column stays here and the height came out of the
-     gaps instead. */
-  --bio-w: clamp(17rem, 24vw, 24rem);
-  flex: 1;
-  min-height: 0;
+/* the bar ----------------------------------------------------------------
+   Everything that is not the work. It floats over the grid rather than
+   sitting above it, so the tiles run under it as they scroll and the page
+   keeps reading as one surface with a control strip laid on top. */
+.bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 40;
+  height: var(--bar);
   display: flex;
-  align-items: stretch;
-  gap: clamp(1rem, 2.25vw, 2.25rem);
-  padding: var(--gutter);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 var(--gutter);
+  /* Three groups on one line: the name takes what it needs at the left, the
+     controls sit dead centre whatever its width, and the switch ends at the
+     right. A plain space-between would let a longer name drag the middle
+     group off centre. */
+  justify-content: space-between;
+  /* The bar has no fill of its own — the blur is what separates it from the
+     tiles passing under it, and a solid band would cut the page in two. */
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
 }
-.bio {
-  /* Every size in this column is written against this. The script shrinks it
-     until the column fits its own height, so the copy is never cut and never
-     scrolls — see the fit pass in app.js. 1 unless it has to be less. */
-  --s: var(--bio-scale, 1);
-  flex: 0 0 var(--bio-w);
+.bar-mid,
+.bar-end {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Centred against the window, not against what is left over between the two
+   end groups — absolute so a long name cannot push it off. */
+.bar-mid {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+}
+
+/* One shape for every control up here. */
+.pill {
+  margin: 0;
+  padding: 0.4rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--foreground);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+button.pill:hover,
+button.pill:focus-visible { background: var(--surface-hover); }
+.pill:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* The switch. Square rather than a pill because it holds a mark and not a
+   word, and the two marks are both in the markup — CSS shows whichever one
+   the current theme is not, so it reads as what it will do. */
+.theme {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.theme:hover,
+.theme:focus-visible { background: var(--surface-hover); }
+.theme:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.theme svg { width: 15px; height: 15px; display: block; }
+.theme-sun { display: none; }
+:root[data-theme="light"] .theme-moon { display: none; }
+:root[data-theme="light"] .theme-sun { display: block; }
+
+
+/* the grid ---------------------------------------------------------------
+   The work, and that is the page. Three across where there is room, and the
+   count comes down rather than the tiles getting narrow. auto-fill and not
+   auto-fit: a row with one piece left in it should leave the other two
+   columns empty rather than stretching that piece across the window. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gutter);
+  padding: var(--gutter);
+  align-content: start;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   min-width: 0;
-  min-height: 0;
+}
+/* The strip under each piece: its number, its name, and the year hard right.
+   Its own surface rather than the tile's, so the picture keeps its edges and
+   the words sit on something. */
+.tile-cap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 0.8125rem;
+  letter-spacing: -0.006em;
+  line-height: 1.3;
+}
+/* A counter, not a heading. Tabular so 1 and 8 are the same width and the
+   names all start on the same vertical. */
+.tile-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  font-size: 0.625rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  /* the digit is centred by the grid; this stops its own line box adding to
+     the circle's height */
+  line-height: 1;
+  translate: 0 0.1em;
+}
+.tile-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Pushed to the right edge by the auto margin rather than by a spacer, so it
+   still sits hard right when there is no year in it to push. */
+.tile-year {
+  margin-left: auto;
+  flex: none;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* about ------------------------------------------------------------------
+   The writing, behind a control. A sheet over the page rather than a route:
+   there is still only one document here, and a second one would mean a second
+   copy of the head, the fonts and the script for four paragraphs of prose. */
+/* display on the element beats the user agent's [hidden] { display: none },
+   so the attribute needs saying again here or the sheet is open on load. */
+.about[hidden] { display: none; }
+.about {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  justify-items: end;
+  background: rgb(0 0 0 / 0.45);
+  animation: about-in 0.2s ease both;
+}
+:root[data-theme="light"] .about { background: rgb(0 0 0 / 0.25); }
+@keyframes about-in { from { opacity: 0; } }
+.about-sheet {
+  /* Everything inside this column was written against --s, which the fit pass
+     used to walk down. The sheet scrolls instead, so nothing has to shrink and
+     the scale is simply 1 — the calcs stay where they are and resolve. */
+  --s: 1;
+  width: min(26rem, 100%);
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: calc(0.85rem * var(--s));
-  /* The fit pass keeps the content inside this, so in practice nothing scrolls.
-     It stays scrollable as the last resort for a window shorter than the scale
-     floor can answer — clipping the contact details would be worse. */
-  overflow-y: auto;
-  scrollbar-width: none;
+  padding: calc(var(--gutter) * 1.5);
+  background: var(--background);
+  border-left: 1px solid var(--hairline);
+  animation: sheet-in 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
-.bio::-webkit-scrollbar { display: none; }
-/* The fit pass could not get the column inside the window even at its floor.
-
-   Everything here rhymes with the phone layout one breakpoint down: the page
-   stops being one screen and becomes a document. It has to. The column's
-   scrollbar is hidden, so an overflow left inside it is indistinguishable from
-   content that was cut off — which is what it looks like, and the reason this
-   exists. Scrolling is the honest failure. */
-body.is-overflowing {
-  height: auto;
-  min-height: 100vh;
-  overflow: visible;
+@keyframes sheet-in { from { translate: 1.5rem 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .about,
+  .about-sheet { animation: none; }
 }
-body.is-overflowing .bio { overflow: visible; }
-/* the work sits centred in whatever the bio leaves, in both directions */
-.work {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.about-close {
+  align-self: flex-end;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.15s ease;
 }
+.about-close:hover,
+.about-close:focus-visible { background: var(--surface-hover); }
+.about-close svg { width: 13px; height: 13px; display: block; }
 
 .lede {
   margin: 0;
@@ -142,27 +314,27 @@ body.is-overflowing .bio { overflow: visible; }
 /* The name and what it claims are one block, not two of the five the column
    holds. Pulled up against the column's own gap rather than the gap being
    dropped, because the other four do want the full measure between them. */
-.wordmark + .lede { margin-top: calc(-0.5rem * var(--s)); }
+
 
 
 
 /* The column's heading. It used to be a full-bleed banner across the bottom of
    the screen, measured against the viewport; here it is measured against the
-   bio column instead, which is why --bio-w is a variable rather than a number
-   written into two places. Magistral advances 5.4670em for "Dante Smith";
-   -0.03em across 11 characters brings that to 5.1370em, and 5.17 leaves ~0.5%
-   so the last letter lands just inside the column. All three numbers are
-   face-specific — Inter wanted 5.5 and 0.85.
-
-   The vh cap is for short windows: at the column measure alone the name would
-   take a fifth of a 650px screen and push the contact details off the bottom. */
+   bio column, and sized to fill that measure exactly. There is no column any
+   more — it is a label in the bar — so the arithmetic that fitted it to one
+   went with it. The derivation is in c2d5628 if the name ever needs to fill
+   something again. */
 .wordmark {
   margin: 0;
+  flex: none;
   font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
   /* 400, not 500 — the kit ships one weight, and asking for 500 would get a
      synthesised bold: wider than measured, and a fake. */
   font-weight: 400;
-  font-size: calc(min(calc(var(--bio-w) / 5.17), 9vh) * var(--s));
+  /* Sized to the bar, not to a column. It was solved against a measure it had
+     to fill exactly; up here it is a label beside two controls and wants to
+     sit level with their type, a shade larger because it is the name. */
+  font-size: 1.0625rem;
   /* Magistral's ascender is 1.0em and descender 0.2em, so 0.85 would leave
      only 0.025em under the baseline. 0.922 reproduces the 0.061em gap Inter
      gave at 0.85. */
@@ -175,7 +347,7 @@ body.is-overflowing .bio { overflow: visible; }
      modal value is #EBEBE9, a warm off-white that reads as paint on canvas
      rather than as screen. Against the page's pure-white --foreground it is
      about 8% down and a shade off neutral. */
-  color: var(--flower-white);
+  color: var(--wordmark-ink);
 }
 
 /* name cards ------------------------------------------------------------- */
@@ -224,10 +396,10 @@ body.is-overflowing .bio { overflow: visible; }
   left: 0;
   top: 0;
   translate: var(--tip-x, 0px) var(--tip-y, 0px);
-  background: rgb(10 10 10 / 0.55);
+  background: var(--glass);
   backdrop-filter: blur(16px) saturate(160%);
   -webkit-backdrop-filter: blur(16px) saturate(160%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18), 0 10px 34px rgb(0 0 0 / 0.55);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), 0 10px 34px rgb(0 0 0 / 0.55);
   color: var(--foreground);
   pointer-events: none;
   opacity: 0;
@@ -261,7 +433,7 @@ body.is-overflowing .bio { overflow: visible; }
    and the text stops holding. Those browsers get an opaque panel instead. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .work-tip-panel,
-  .name-card { background: rgb(10 10 10 / 0.93); }
+  .name-card { background: var(--glass-solid); }
 }
 
 /* Behaves like the work tooltip: the content changes at once and the only
@@ -369,7 +541,7 @@ a.contact-val:hover { text-decoration-color: currentColor; }
 /* Copy the address. Sized and baselined to the line it sits on rather than to
    itself: a control in a paragraph that does not share the text's baseline
    reads as debris rather than as part of the sentence. Muted until wanted,
-   like the play control in the footer. */
+   like the play control in the bar. */
 .copy {
   margin: 0 0 0 calc(0.35rem * var(--s));
   padding: 0;
@@ -482,10 +654,10 @@ a.contact-val:focus-visible .link-out {
 }
 
 /* Wraps, and has to. Seven marks at the old 1.5rem on a 1.25rem gap measured
-   288px against a bio column of about 230 — a nowrap flex row does not shrink,
-   it just runs off the end, so the last two were simply cut. Smaller marks and
-   a tighter gap fit each row in the column at every width the column has; the
-   wrap is the safety net for whatever gets added next. */
+   288px against a column of about 230 — a nowrap flex row does not shrink, it
+   just runs off the end, so the last two were simply cut. The about sheet is
+   wider than that column was and there are nine marks now, so the wrap is
+   doing the work rather than standing by. */
 .tech-row {
   display: flex;
   flex-wrap: wrap;
@@ -522,75 +694,6 @@ a.contact-val:focus-visible .link-out {
    title that was underneath the whole time — no sliding overlay, no second
    surface. `round` on the inset keeps the corners on the clip box, so the
    bottom edge stays rounded all the way up instead of squaring off. */
-/* Four columns, and four is the line. Past that a piece goes into a column
-   rather than making a fifth one, so the cards never get narrower as the
-   cluster grows — they just stack. Columns and not grid rows because in a grid
-   every card is pushed down by the tallest one in its row: Vantage is
-   landscape among portraits, so it left a void under itself and anything on
-   the next row started below that. A column only answers to its own cards.
-
-   This is the only layout the page has now. Two row-based ones lived here
-   beside it, solved against a stage that was the viewport less a top bar and
-   a lede — neither the bar nor the stage exists any more, so they were stale
-   arithmetic for a shape nothing uses. Their derivations are in ca90529. */
-.work-grid--cluster {
-  --step: 5rem;
-  /* it is a flex item of .work, which centres it — none, so it does not
-     stretch to the column and lose its own width */
-  flex: none;
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  /* Solved off the TALLEST column, whichever that is. It is column four now:
-     WSU AI Lab at 1.25 of a column width over Filey at 1.4133, so 2.6633
-     columns tall, plus the 20px between the two cards and the 80px of step it
-     carries as an even column. Four columns and three 16px gaps make the
-     cluster 4w + 48 wide, so a height budget converts at 4/2.6633 = 1.5019 —
-     and 100vh less 48px of page gutter and the 40px --cluster-slack allows
-     gives 150.19vh - 234. That slack is a variable rather than a constant now:
-     the compact mode below drops it to 1rem, and the script reads whichever is
-     in force. A cluster pressed against the top and bottom of the screen
-     reads as something that did not fit.
-
-     The --step term is back: the binding column is a stepped one again, which
-     it was not when column three was tallest. Column three is the taller pair
-     at 2.7466w but it is unstepped, and the 80px column four carries puts it
-     ahead at any width under 960px per column, which is every window there is.
-
-     Column two is the shortest of the four by some way now that the square
-     apparel card sits in it — 1.75w against column three's 2.7466 — so a
-     ninth piece belongs there and nowhere else.
-
-     Re-derive all of this if a card moves columns, if one is added, or if the
-     page grows chrome above the cluster again. Sum each column as (aspect
-     heights in column widths) + 20px per stacked pair + 80px if it is even,
-     take the largest at a realistic column width, and the coefficient is
-     4 / that column's width multiple. */
-  /* --cluster-cap is measured from the real cards at load and on resize; see
-     app.js. The calc is the fallback for the first frame before the script
-     runs and for a visit with no JavaScript, and it is the hand-solved answer
-     for the cards as they stand today — 150.19vh - 234, from column four at
-     2.6633 column widths plus 20px of card gap and 80px of step. If it drifts
-     from what the script computes, the script is right. */
-  width: min(100%, 104rem, var(--cluster-cap, calc(150vh - 222px - var(--step) * 1.5)));
-}
-.work-col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  /* wider than the gap between columns: two cards stacked in one column want
-     more air between them than two sitting side by side, or the stack reads
-     as one tall object rather than two pieces */
-  gap: 1.25rem;
-}
-/* Stepped, not aligned. Columns squared off against each other read as the top
-   row of a grid whose second row is missing; offsetting them says the set IS
-   the whole set. Whole columns rather than single cards, so a column and
-   everything stacked in it move together and the zigzag survives the stack.
-   Margin rather than a transform, so the column actually reserves the height
-   and the lower cards cannot run off the bottom of the screen. */
-.work-grid--cluster .work-col:nth-child(even) { margin-top: var(--step); }
 .work-card {
   /* So the back's type can be sized off the CARD rather than the window. The
      backs carry sentences of very different lengths onto cards of very
@@ -604,9 +707,13 @@ a.contact-val:focus-visible .link-out {
   position: relative;
   margin: 0;
   padding: 0;
-  /* 4:3 sizes the rows off the column width, so the grid needs no height of
-     its own — and it is the aspect at which Vantage finally fits uncropped */
-  aspect-ratio: 4 / 3;
+  /* Square, and the same square for all eight. The grid is regular now, so the
+     pieces are sized by the row rather than each carrying its own shape — which
+     does mean the posters are cropped to it. That is a real loss and it is
+     deliberate: see the note where the old per-piece ratios were. */
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius);
+  overflow: hidden;
   min-height: 0;
   min-width: 0;
 }
@@ -620,13 +727,13 @@ a.contact-val:focus-visible .link-out {
    across cards that run 170px to 354px wide that ratio went 0.12 to 0.25 — the
    big posters turned with real depth while the small ones barely bent and read
    closer to a crossfade than a flip. 350cqw is 3.5x each card's own width, so
-   every card in the cluster turns with the same 0.29 and looks like the same
+   every card in the grid turns with the same 0.29 and looks like the same
    object at every size. Vanishing point is the element's own centre either
    way, so each card still turns about itself rather than swinging toward the
    middle of the screen.
 
    0.52s and not 0.62: this fires on pointer-enter, and sweeping across seven
-   cards at 0.62 each way the cluster feels like it is lagging behind the
+   cards at 0.62 each way the grid feels like it is lagging behind the
    cursor.
 
    And ease-in-out rather than the page's usual (0.32, 0.72, 0, 1). That curve
@@ -721,8 +828,13 @@ body:not(.is-playing) .work-card:hover .work-flip,
   color: var(--background);
   display: flex;
   flex-direction: column;
+  /* Centred down the face rather than stacked at the top. These backs were
+     written for cards a third this size, where two sentences filled one; on a
+     square tile at grid width the same two sentences sat in the top quarter
+     and left the rest a blank slab. */
+  justify-content: center;
   gap: 0.5rem;
-  padding: clamp(0.85rem, 1.1vw, 1.4rem);
+  padding: clamp(0.85rem, 1.1vw, 1.4rem) clamp(1rem, 2.2cqw, 2.25rem);
 }
 .work-card:hover .work-face--back,
 .work-card:has(.work-open:focus-visible) .work-face--back {
@@ -829,7 +941,10 @@ body:not(.is-playing) .work-card:hover .work-flip,
   display: grid;
   place-items: center;
   pointer-events: none;
-  color: var(--foreground);
+  /* White in both themes, not the page's foreground. The mark is laid over the
+     client's own cover art, so what it has to hold against is that picture —
+     it went black on the orange the moment the light theme existed. */
+  color: #ffffff;
   clip-path: inset(0 0 0 0 round var(--radius-md));
   transition: clip-path 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -910,29 +1025,14 @@ body:not(.is-playing) .work-card:hover .work-flip,
    (a squarer aspect) would put it back to splitting the loss. */
 .work-card--vantage { --focal-x: 43%; }
 
-/* A portrait card. The sign is 1400x1867 — 0.7499, which is 3:4 to within a
-   rounding error — so at this aspect cover crops nothing at all: the card is
-   the picture's own shape. Squeezed into the 4:3 the other cards use, the top
-   and bottom of the sign were the parts being thrown away, which on a piece
-   that is a tall object on a pole is the piece. */
-.work-card--tall { aspect-ratio: 3 / 4; }
-/* The poster is 1122x1402 — 0.8003, so 4:5 to a rounding error. Its own shape
-   again rather than the grid's: a poster cropped is a poster with its margins
-   taken off, which is most of what makes it one. */
-.work-card--poster { aspect-ratio: 4 / 5; }
-/* 1055x1491 — 0.7076, and not a tidy ratio, so it states the pixels rather
-   than rounding to the nearest one. Matched to the 4:5 poster it sits near, it
-   lost about 11% off the top and bottom, and on a piece whose whole subject is
-   type on a field that margin is the design. Same column width as everything
-   else; taller, because it is. Two posters are exported at this sheet size,
-   hence a size name rather than either of theirs. */
-.work-card--sheet { aspect-ratio: 1055 / 1491; }
-/* Square, because the artwork is: it is a print file rather than a photograph
-   of a thing, laid out on a 2500x2500 sheet with the case centred in it. The
-   piece is cut out, so it was flattened onto black at export rather than
-   carrying an alpha channel — the page behind it is black, and the flattened
-   file is a third the size. */
-.work-card--square { aspect-ratio: 1 / 1; }
+/* Five per-piece aspect ratios used to live here — 3:4 for the sign, 4:5 for
+   the WSU poster, 1055/1491 for the three on that sheet, 1107/1421 for the old
+   apparel shot, 1:1 for the disc — each one the piece's own shape so that
+   nothing was cropped. The regular grid takes that away: every tile is square
+   and the images are covered into it, so the posters lose their margins, which
+   on a piece whose subject is type on a field is part of the design. Kept as a
+   note rather than deleted quietly, because it is the one thing this layout is
+   worse at than the one before it. Their values are in c2d5628. */
 
 
 /* Transparent hit target covering the card. Above the image so it catches
@@ -1046,68 +1146,38 @@ body:not(.is-playing) .work-card:hover .work-flip,
   .work-card img { transition: none; }
 }
 
-@media (max-width: 780px) {
-  :root { --gutter: 1rem; }
-  .lede { font-size: 0.9375rem; }
-  /* Side by side stops working long before this: the bio wants 20rem of its
-     own and the cluster wants four columns out of what is left. Stacked, and
-     this is the one place the page is allowed to scroll — a phone cannot hold
-     a name, three paragraphs, the tools, the contact details and six cards on
-     one screen, and shrinking them until it can would make all of it unusable
-     rather than making it fit. */
-  body { height: auto; min-height: 100vh; overflow: visible; }
-  .page { flex-direction: column; gap: 2rem; }
-  .bio { flex: none; overflow: visible; }
-  .work { display: block; }
-  /* no step on a phone: the cards are already small there, and offsetting them
-     spends height the column has none of to spare */
-  .work-grid--cluster { --step: 0rem; width: 100%; }
-  /* two columns on a phone, each stacking its share */
-  .work-grid--cluster { flex-wrap: wrap; }
-  .work-col { flex: 1 1 calc(50% - 0.5rem); }
+/* The grid comes down a column at a time. The tiles never get narrow to keep
+   three of them on a line — a portfolio of thumbnails is not a portfolio. */
+@media (max-width: 1000px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-/* Compact one-screen mode. A short Windows laptop has less usable height than
-   its panel resolution once browser chrome is present, while a narrow laptop
-   spends more of its width on the fixed bio measure. Keep the composition —
-   bio beside four work columns — and recover space from its non-content parts.
-   Phones remain the only scrolling layout in the breakpoint below. */
-@media (min-width: 781px) and (max-width: 1100px),
-       (min-width: 781px) and (max-height: 720px) {
-  :root {
-    --gutter: 1rem;
-    --footer: 4rem;
-    --cluster-slack: 1rem;
-  }
-  .page { gap: 1rem; }
-  .bio { gap: calc(0.625rem * var(--s)); }
-  .card { padding-block: calc(0.5rem * var(--s)); }
-  .work-grid--cluster {
-    --step: 2rem;
-    gap: 0.75rem;
-  }
-  .work-col { gap: 0.75rem; }
+@media (max-width: 560px) {
+  :root { --gutter: 0.75rem; }
+  .tiles { grid-template-columns: minmax(0, 1fr); }
+  /* The sheet is the width of the window on a phone; a 26rem panel with a
+     sliver of page beside it reads as a mistake at that size. */
+  .about-sheet { width: 100%; border-left: 0; }
+  /* The middle group stops being centrable once the name and the switch have
+     taken their share, so the three groups share the line instead. */
+  .bar { gap: 0.35rem; }
+  .bar-mid { position: static; translate: none; }
+  .wordmark { font-size: 0.9375rem; }
+  .pill { padding: 0.35rem 0.6rem; font-size: 0.8125rem; }
 }
 
 /* the game ---------------------------------------------------------------
    Breakout on the portfolio itself. See the script for how the bricks are
    found; everything here is what it looks like. */
+/* The control is a pill in the bar and takes its shape from .pill; the only
+   thing it keeps of its own is the face, which is the game's and not the
+   page's. Its label grows once a game is on — "Arrows or mouse — Esc to Stop"
+   is three times the width of "play" — so the pill is sized by its text and
+   the two beside it hold still. */
 .play {
-  margin: 0;
-  padding: 0.1rem 0.15rem;
-  border: 0;
-  background: none;
   font-family: "argent-pixel-cf", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 400;
-  font-size: 0.9375rem;
   letter-spacing: 0.02em;
-  color: var(--muted-foreground);
-  cursor: pointer;
-  transition: color 0.15s ease;
 }
-.play:hover,
-.play:focus-visible { color: var(--foreground); }
-.play:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 /* Under the tooltip layer at 60 and over everything else, so the ball passes
    in front of the cards it is knocking out. Never takes the pointer — the
@@ -1124,7 +1194,7 @@ body.is-playing .pong { display: block; }
 /* Whatever the page decided about scrolling, a game does not scroll: the
    canvas is fixed and the bricks were read in viewport coordinates, so a page
    that moved under it would leave the two out of step. Later in the file than
-   .is-overflowing on purpose — same specificity, so source order settles it. */
+   read in viewport coordinates. */
 body.is-playing {
   overflow: hidden;
   /* the cursor is the paddle; two of them on screen is one too many */
@@ -1141,8 +1211,8 @@ body.is-playing .play { cursor: pointer; }
    fade the faces were not, so a living card dropped to opacity 0 whenever the
    pointer crossed it and came back when it left. Guarding each rule would have
    fixed those two and left the next one to find. The control, the canvas, the
-   score and the prize all sit outside .page and are unaffected. */
-body.is-playing .page { pointer-events: none; }
+   score and the prize all sit outside the grid and are unaffected. */
+body.is-playing .tiles { pointer-events: none; }
 
 /* Knocked out, and back.
 
@@ -1188,6 +1258,12 @@ body.is-playing .page { pointer-events: none; }
   font-size: 0.9375rem;
   letter-spacing: 0.02em;
   color: var(--muted-foreground);
+  /* Out of the flow while it is empty, so the bar's middle group stays centred
+     on the two controls rather than on the space a score will one day take. */
+  position: absolute;
+  left: 100%;
+  margin-left: 0.6rem;
+  white-space: nowrap;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -1329,16 +1405,5 @@ body.is-playing .score { opacity: 1; }
   letter-spacing: -0.011em;
 }
 
-/* The foot of the page. Its height is the paddle's playing room; its text sits
-   at the very bottom of it, below where a live ball can go. */
-.footer {
-  flex: none;
-  height: var(--footer);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0 var(--gutter) 0.5rem;
-  position: relative;
-  z-index: 50;
-}
+/* The footer this page used to have is gone with the fixed-height body: the
+   control it carried is in the bar and the paddle plays over the grid. */

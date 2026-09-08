@@ -118,25 +118,46 @@ async function renderedMetrics(cdp, width, height) {
       }
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
-      const cards = [...document.querySelectorAll('.work-card')]
-        .map((card) => card.getBoundingClientRect());
+      const tiles = [...document.querySelectorAll('.tile')]
+        .map((tile) => tile.getBoundingClientRect());
+      const bar = document.querySelector('.bar').getBoundingClientRect();
+      const about = document.getElementById('about');
       return {
         viewportWidth: innerWidth,
         viewportHeight: innerHeight,
-        documentHeight: document.documentElement.scrollHeight,
-        bodyHeight: document.body.scrollHeight,
-        bodyOverflow: getComputedStyle(document.body).overflow,
-        isOverflowing: document.body.classList.contains('is-overflowing'),
-        minCardWidth: Math.min(...cards.map((card) => card.width)),
-        maxCardBottom: Math.max(...cards.map((card) => card.bottom)),
-        footerBottom: document.querySelector('.footer').getBoundingClientRect().bottom,
+        documentWidth: document.documentElement.scrollWidth,
+        tiles: tiles.length,
+        /* one x per column: the grid puts every tile in a row at the same
+           left edge, so counting the distinct ones counts the columns */
+        columns: new Set(tiles.map((tile) => Math.round(tile.x))).size,
+        minTileWidth: Math.min(...tiles.map((tile) => tile.width)),
+        barHeight: bar.height,
+        /* the bar is fixed, so this is the test that the grid starts under it
+           rather than behind it */
+        firstTileTop: tiles[0].top,
+        /* one line, always: three groups that wrapped would double its height */
+        barWraps: bar.height > 72,
+        aboutHidden: about.hidden,
+        aboutDisplay: getComputedStyle(about).display,
       };
     })()`,
   });
   return result.value;
 }
 
-test('responsive viewport contract keeps scrolling exclusive to phones', async (t) => {
+/* Runs a sequence of expressions in the page and hands back what the last one
+   returned. The behaviour tests below are all "click this, then read that",
+   which the metrics helper above cannot express because it reloads. */
+async function evaluate(cdp, expression) {
+  const { result } = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression,
+  });
+  return result.value;
+}
+
+test('the grid, the bar, the theme and the about sheet', async (t) => {
   const profile = mkdtempSync(join(tmpdir(), 'portfolio-chromium-'));
   const server = spawn('python3', ['-m', 'http.server', String(HTTP_PORT), '--bind', '127.0.0.1'], {
     cwd: process.cwd(),
@@ -168,36 +189,91 @@ test('responsive viewport contract keeps scrolling exclusive to phones', async (
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
 
-  for (const viewport of [
-    { width: 1024, height: 600 },
-    { width: 1280, height: 650 },
-    { width: 1366, height: 650 },
+  /* The grid drops a column rather than narrowing the tiles. Three across is
+     the desktop shape, two on a tablet, one on a phone — and at no width may
+     the page be wider than the window. */
+  for (const [viewport, columns] of [
+    [{ width: 1728, height: 1117 }, 3],
+    [{ width: 1366, height: 900 }, 3],
+    [{ width: 1024, height: 600 }, 3],
+    [{ width: 900, height: 800 }, 2],
+    [{ width: 700, height: 800 }, 2],
+    [{ width: 390, height: 844 }, 1],
   ]) {
-    const metrics = await renderedMetrics(cdp, viewport.width, viewport.height);
+    const m = await renderedMetrics(cdp, viewport.width, viewport.height);
+    const at = `${viewport.width}x${viewport.height}`;
+
+    assert.equal(m.tiles, 8, `${at} did not render every piece`);
+    assert.equal(m.columns, columns, `${at} laid out ${m.columns} columns, wanted ${columns}`);
     assert.ok(
-      metrics.documentHeight <= metrics.viewportHeight + 1,
-      `${viewport.width}x${viewport.height} scrolls: ${JSON.stringify(metrics)}`,
+      m.documentWidth <= m.viewportWidth + 1,
+      `${at} scrolls sideways: ${JSON.stringify(m)}`,
     );
-    assert.equal(
-      metrics.isOverflowing,
-      false,
-      `${viewport.width}x${viewport.height} activated the overflow fallback`,
-    );
+    /* The bar floats over the grid, so a tile that started at the top of the
+       page would be behind it. */
     assert.ok(
-      metrics.minCardWidth >= 160,
-      `${viewport.width}x${viewport.height} cards are too narrow: ${JSON.stringify(metrics)}`,
+      m.firstTileTop >= m.barHeight - 1,
+      `${at} put the first tile under the bar: ${JSON.stringify(m)}`,
     );
-    assert.ok(
-      metrics.footerBottom <= metrics.viewportHeight + 1,
-      `${viewport.width}x${viewport.height} footer leaves the viewport`,
-    );
+    assert.ok(!m.barWraps, `${at} wrapped the bar onto a second line`);
+    /* Shut, and shut in the way that keeps it out of the tab order. */
+    assert.equal(m.aboutHidden, true, `${at} loaded with the about sheet open`);
+    assert.equal(m.aboutDisplay, 'none', `${at} left the hidden sheet displayed`);
   }
 
-  const large = await renderedMetrics(cdp, 1728, 1117);
-  assert.ok(large.documentHeight <= large.viewportHeight + 1, 'large layout scrolls');
-  assert.ok(large.minCardWidth >= 250, 'large layout lost its spacious card sizing');
+  /* A tile is a piece of work, not a thumbnail. This is the floor the column
+     count exists to protect. */
+  const wide = await renderedMetrics(cdp, 1728, 1117);
+  assert.ok(wide.minTileWidth >= 400, `wide layout shrank its tiles to ${wide.minTileWidth}`);
+  const laptop = await renderedMetrics(cdp, 1024, 600);
+  assert.ok(laptop.minTileWidth >= 280, `laptop layout shrank its tiles to ${laptop.minTileWidth}`);
 
-  const phone = await renderedMetrics(cdp, 390, 844);
-  assert.ok(phone.documentHeight > phone.viewportHeight + 1, 'phone layout should scroll');
-  assert.equal(phone.bodyOverflow, 'visible', 'phone layout should expose page overflow');
+  /* The switch flips the theme, says what it will do next, and is remembered. */
+  await renderedMetrics(cdp, 1440, 900);
+  const theme = await evaluate(cdp, `(async () => {
+    const button = document.getElementById('theme');
+    const before = document.documentElement.dataset.theme || 'dark';
+    button.click();
+    const after = document.documentElement.dataset.theme || 'dark';
+    const stored = localStorage.getItem('theme');
+    const label = button.getAttribute('aria-label');
+    button.click();
+    return { before, after, stored, label, back: document.documentElement.dataset.theme || 'dark' };
+  })()`);
+  assert.equal(theme.before, 'dark', 'the page did not start dark');
+  assert.equal(theme.after, 'light', 'the switch did not reach the light theme');
+  assert.equal(theme.stored, 'light', 'the choice was not remembered');
+  assert.match(theme.label, /dark/i, 'the switch did not name what it would do next');
+  assert.equal(theme.back, 'dark', 'the switch did not come back');
+
+  /* The sheet opens, takes the focus, holds the page still under it, and
+     Escape puts everything back. */
+  const about = await evaluate(cdp, `(async () => {
+    const panel = document.getElementById('about');
+    const open = document.getElementById('about-open');
+    open.click();
+    const opened = {
+      hidden: panel.hidden,
+      expanded: open.getAttribute('aria-expanded'),
+      focus: document.activeElement.id,
+      bodyOverflow: document.body.style.overflow,
+      hasContact: !!panel.querySelector('.deposit-go'),
+    };
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    return { opened, closed: {
+      hidden: panel.hidden,
+      expanded: open.getAttribute('aria-expanded'),
+      focus: document.activeElement.id,
+      bodyOverflow: document.body.style.overflow,
+    } };
+  })()`);
+  assert.equal(about.opened.hidden, false, 'the about control did not open the sheet');
+  assert.equal(about.opened.expanded, 'true', 'the about control did not say it was open');
+  assert.equal(about.opened.focus, 'about-close', 'opening the sheet did not move the focus into it');
+  assert.equal(about.opened.bodyOverflow, 'hidden', 'the page still scrolled behind the sheet');
+  assert.equal(about.opened.hasContact, true, 'the sheet does not carry the contact details');
+  assert.equal(about.closed.hidden, true, 'Escape did not close the sheet');
+  assert.equal(about.closed.expanded, 'false', 'the control still says it is open');
+  assert.equal(about.closed.focus, 'about-open', 'closing the sheet stranded the focus');
+  assert.equal(about.closed.bodyOverflow, '', 'the page was left unable to scroll');
 });

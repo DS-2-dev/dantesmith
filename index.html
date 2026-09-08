@@ -86,23 +86,276 @@
 <link rel="stylesheet" href="https://use.typekit.net/yrs7pes.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Michroma&family=Syne+Mono&display=swap">
 <link rel="stylesheet" href="styles.css">
+
+<!-- Before the first paint, not after. The stylesheet's default is dark, so a
+     reader who chose light would otherwise get one black frame on every load —
+     the flash is the whole reason this is inline and blocking rather than in
+     app.js, which is deferred by being a module. No stored choice falls
+     through to the CSS default. -->
+<script>
+  try {
+    var t = localStorage.getItem('theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode: the default stands */ }
+</script>
 </head>
 <body>
 
-  <!-- One page, two columns: who I am on the left, the work on the right.
-       Nothing here navigates — there are no other views to reach, so what
-       used to be three panes behind a nav is just the page now. -->
-  <main class="page">
-    <aside class="bio">
-      <!-- Split into four hover targets. No whitespace or line break may
-           appear between the spans: a newline inside the element collapses
-           to a space, which would open a gap in the middle of the name. The
-           one real space between the words sits outside every span on
-           purpose — that gap belongs to neither, and hovering it shows
-           nothing. -->
-      <h1 class="wordmark"><span class="wordmark-part" data-name-card="imac-g3">Da</span><span class="wordmark-part" data-name-card="bmth-amo">nte</span> <span class="wordmark-part" data-name-card="cezanne">Sm</span><span class="wordmark-part" data-name-card="one-tree-hill">ith</span></h1>
-      <!-- broken at the sentence, not to square off the block: the claim on
-           one line, the qualification on the next -->
+  <!-- The whole of the chrome. Name, the two controls, and the switch — the
+       work is the page and this bar is everything that is not it. -->
+  <header class="bar">
+    <!-- Split into four hover targets. No whitespace or line break may appear
+         between the spans: a newline inside the element collapses to a space,
+         which would open a gap in the middle of the name. The one real space
+         between the words sits outside every span on purpose — that gap
+         belongs to neither, and hovering it shows nothing. -->
+    <h1 class="wordmark pill"><span class="wordmark-part" data-name-card="imac-g3">Da</span><span class="wordmark-part" data-name-card="bmth-amo">nte</span> <span class="wordmark-part" data-name-card="cezanne">Sm</span><span class="wordmark-part" data-name-card="one-tree-hill">ith</span></h1>
+
+    <nav class="bar-mid" aria-label="Page">
+      <!-- Not a link to another page: there is one view here and this returns
+           to the top of it, which is what the reference's own first control
+           does. -->
+      <button class="pill" id="to-top" type="button">work</button>
+      <button class="pill play" id="play" type="button">play</button>
+      <p class="score" id="score" aria-hidden="true"></p>
+    </nav>
+
+    <div class="bar-end">
+      <button class="pill" id="about-open" type="button"
+              aria-expanded="false" aria-controls="about">about</button>
+      <!-- Both marks ship in the markup and CSS shows the one that applies, so
+           the switch never has to be redrawn in script and never flashes the
+           wrong one. -->
+      <button class="theme" id="theme" type="button" aria-label="Switch theme">
+        <svg class="theme-moon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M13.6 10.2A6 6 0 0 1 5.8 2.4a6 6 0 1 0 7.8 7.8Z"/>
+        </svg>
+        <svg class="theme-sun" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="3.1" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.3" stroke-linecap="round">
+            <path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6"/>
+            <path d="M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/>
+          </g>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- The work, and that is the page. One tile per piece: the picture, then a
+       strip under it carrying the number, the name and the year. Every figure
+       inside is the card it always was — it still turns over, still answers a
+       hover with its own words, and the game still knocks it down. -->
+  <main class="tiles" id="work">
+    <article class="tile reveal">
+      <figure class="work-card work-card--vantage reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it.">
+            <div class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">Vantage</span>
+            <p class="work-back-text">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-vantage"
+                aria-label="Vantage — upcoming, not yet shown"></button>
+        <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">1</span>
+        <span class="tile-name">Vantage</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--sheet reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/jacks-mannequin-poster.webp" alt="Lyric poster in tall condensed black caps on off-white: “Just think of all the thoughts wasted on you”, with the Jack’s Mannequin logo in a blue box beneath.">
+            <div class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">Jack’s Mannequin</span>
+            <p class="work-back-text">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-jacks"
+                aria-label="Jack’s Mannequin — lyric poster"></button>
+        <span class="work-tip" role="tooltip" id="tip-jacks">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">2</span>
+        <span class="tile-name">Jack’s Mannequin</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card reveal" data-external>
+        <img src="images/weave-cover.webp" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field.">
+        <!-- The client's own mark, centred on the cover. Inline rather than an
+             <img src>: one fewer request, and it inherits currentColor so it
+             cannot fall out of step with the page's foreground. Decorative —
+             the card is already named by its title and its button. -->
+        <span class="work-mark" aria-hidden="true">
+          <svg viewBox="0 0 12 9" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path fill="currentColor" d="M2.71555 0.0818261C1.90505 0.237976 1.00533 0.847705 0.559189 1.54666C0.0609961 2.32741 0.00151038 2.60997 0.00151038 4.42429C-0.00592534 5.94861 0.0089461 6.08989 0.165096 6.53603C0.87149 8.49163 2.96093 9.41366 4.79011 8.58086C5.50394 8.25368 5.50394 8.26112 5.07267 7.53985C4.86447 7.19038 4.67114 6.92269 4.64884 6.93756C3.99449 7.29448 3.71193 7.37627 3.25836 7.33909C2.44786 7.2796 1.80839 6.76654 1.60019 6.00066C1.53327 5.78502 1.51096 5.22735 1.53327 4.26814C1.55558 2.69176 1.61506 2.491 2.15043 2.02255C2.56683 1.65076 2.89401 1.54666 3.4963 1.57641C4.09116 1.60615 4.47781 1.79948 4.82729 2.26793C5.18421 2.72894 5.22882 2.97432 5.23626 4.46147C5.23626 6.40219 5.43702 7.0491 6.26982 7.8819C7.54877 9.16828 9.55641 9.19802 10.9023 7.96369C11.393 7.51755 11.8094 6.7591 11.9284 6.10476C12.0251 5.56939 12.0251 3.22714 11.921 2.73638C11.7276 1.79204 10.9543 0.780784 10.1364 0.386691C9.72 0.185926 9.00617 3.31914e-05 8.64925 3.31914e-05C7.98004 3.31914e-05 6.70853 0.431305 6.60443 0.691555C6.58212 0.751041 6.70853 1.0336 6.87955 1.30872C7.32569 2.04486 7.30339 2.02999 7.5339 1.8664C7.98004 1.5541 8.79797 1.46487 9.28873 1.66563C9.68282 1.83666 10.1959 2.34972 10.3446 2.73638C10.5305 3.2197 10.5379 5.76272 10.352 6.17912C10.062 6.8409 9.31847 7.3614 8.66412 7.3614C8.1585 7.3614 7.77927 7.21268 7.39262 6.8632C6.8275 6.35757 6.77545 6.17168 6.7234 4.27557C6.67879 2.81817 6.65648 2.5951 6.50777 2.21588C5.90547 0.676684 4.29192 -0.230474 2.71555 0.0818261Z"/>
+          </svg>
+        </span>
+        <figcaption class="work-overlay"><span class="work-title work-title--orbix">Weave</span></figcaption>
+        <!-- An anchor, not a button: this leaves the page, so it should be a
+             link — middle-click, copy address and open-in-new-tab all work,
+             and it announces itself as a link rather than a control. -->
+        <a class="work-open" href="https://weave2-demo.vercel.app/"
+           target="_blank" rel="noopener noreferrer" aria-describedby="tip-weave"
+           aria-label="Weave — open the live demo (opens in a new tab)"></a>
+        <span class="work-tip" role="tooltip" id="tip-weave">Click to go to the demo site</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">3</span>
+        <span class="tile-name">Weave</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--square reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/mac-os-x-shirt.webp" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid.">
+            <div class="work-overlay"><span class="work-title work-title--syne-mono">CD T-Shirt Print</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">CD T-Shirt Print</span>
+            <p class="work-back-text">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-macosx"
+                aria-label="CD T-Shirt Print — apparel print draft"></button>
+        <span class="work-tip" role="tooltip" id="tip-macosx">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">4</span>
+        <span class="tile-name">CD T-Shirt Print</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--tall reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/inconvenience-sign.webp" alt="Inconvenience: a blue and white parking-lot sign on a steel pole against clear sky, numbered 04 above the single word “Inconvenience”.">
+            <div class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">Inconvenience</span>
+            <p class="work-back-text">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-inconvenience"
+                aria-label="Inconvenience — existential parking lot mockup"></button>
+        <span class="work-tip" role="tooltip" id="tip-inconvenience">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">5</span>
+        <span class="tile-name">Inconvenience</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--sheet reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/find-collect-repeat-poster.webp" alt="Find Collect Repeat poster for Are.na: a white eight-pointed star over blurred green and blue flowers, with “FIND” in heavy rounded letters along the foot and “collect” and “repeat” stacked at the corner.">
+            <div class="work-overlay"><span class="work-title work-title--carbon">Find Collect Repeat</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">Find Collect Repeat</span>
+            <p class="work-back-text">Are.na poster I whipped up in my spare time.</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-find"
+                aria-label="Find Collect Repeat — poster"></button>
+        <span class="work-tip" role="tooltip" id="tip-find">Are.na poster I whipped up in my spare time.</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">6</span>
+        <span class="tile-name">Find Collect Repeat</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--poster reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot.">
+            <div class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">WSU AI Lab</span>
+            <p class="work-back-text">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-wsu"
+                aria-label="WSU AI Lab — poster for the lab's Thursday build sessions"></button>
+        <span class="work-tip" role="tooltip" id="tip-wsu">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">7</span>
+        <span class="tile-name">WSU AI Lab</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+    <article class="tile reveal">
+      <figure class="work-card work-card--sheet reveal">
+        <div class="work-flip">
+          <div class="work-face work-face--front">
+            <img src="images/filey-poster.webp" alt="Filey poster: the name in a wide monospace over a red form smeared into grey by motion blur, above the line “All of your files. On the go.”">
+            <div class="work-overlay"><span class="work-title work-title--carbon">Filey</span></div>
+          </div>
+          <div class="work-face work-face--back" aria-hidden="true">
+            <span class="work-back-title">Filey</span>
+            <p class="work-back-text">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</p>
+          </div>
+        </div>
+        <button class="work-open" type="button" aria-describedby="tip-filey"
+                aria-label="Filey — poster"></button>
+        <span class="work-tip" role="tooltip" id="tip-filey">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</span>
+      </figure>
+      <p class="tile-cap">
+        <span class="tile-no">8</span>
+        <span class="tile-name">Filey</span>
+        <!-- Year goes here. Nothing on the old page recorded one, so the slot
+             is empty rather than guessed at. -->
+        <span class="tile-year"></span>
+      </p>
+    </article>
+  </main>
+
+  <!-- Everything that used to be the left column. It is writing about me
+       rather than work by me, so it sits behind a control instead of beside
+       the pieces. Hidden with the attribute, not with a class: the panel is
+       out of the accessibility tree and out of the tab order until it opens. -->
+  <aside class="about" id="about" hidden>
+    <div class="about-sheet" role="dialog" aria-modal="true" aria-label="About">
+      <button class="about-close" id="about-close" type="button" aria-label="Close">
+        <svg viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+          <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </button>
       <p class="lede">18yo Modern AI Designer — based in Utah.<br>Leveraging the future, without losing taste.</p>
       <div class="prose-block reveal">
         <p class="prose">Hi, I’d repeat my name again, but I think you already
@@ -196,198 +449,26 @@
           <a class="deposit-go" href="https://buy.stripe.com/00waEY1d52al8Mr9220Jq00">Pay Project Deposit</a>
         </p>
       </div>
-    </aside>
+    </div>
+  </aside>
 
-    <section class="work" aria-label="Work">
-      <div class="work-grid--cluster">
-      <!-- Columns, not grid rows. In a grid every card in a row is pushed down
-           by the tallest one in it, so a landscape card like Vantage left a
-           void under itself and the next row began below that — the fifth card
-           ended up a long way from the one it sits under. A column stacks its
-           own cards against each other and nothing else, which is what puts
-           Jack's directly beneath Vantage.
-           Adding a piece: drop it into whichever column is shortest.
+  <!-- The board is drawn here; the bricks are not. Those are the real tiles
+       and the real copy, read off the page with getBoundingClientRect. -->
+  <canvas class="pong" id="pong" aria-hidden="true"></canvas>
+  <!-- Shown once every brick is down. There is something to collect now, so
+       the claim and what to do about it are two lines rather than one wrapped
+       block: the prize reads at full size, the instruction sits under it at
+       the weight an instruction deserves. -->
+  <div class="prize" id="prize">
+    <p class="prize-line">You won <span class="dollar">$</span>10 off any service!</p>
+    <p class="prize-note">Take a screenshot for proof!</p>
+    <!-- The prize is money off a project, so the way to start one sits under
+         it. Same Payment Link and same plain anchor as the contact block: the
+         discount is settled between us, not by this button. It carries its own
+         pointer-events because the panel around it deliberately has none. -->
+    <a class="prize-go" href="https://buy.stripe.com/00waEY1d52al8Mr9220Jq00">Pay Project Deposit</a>
+  </div>
 
-           Every card's back face is aria-hidden. It repeats the sentence its
-           .work-tip already carries as the accessible description, so leaving
-           it in the accessibility tree would read the same words twice. -->
-      <div class="work-col reveal">
-        <!-- Locked: the piece is not being shown yet, so the card says why
-             on its back instead of going anywhere, which is every card here
-             but Weave. The .work-open button over it deliberately does
-             nothing; only [data-external] carries a destination. -->
-        <!-- No loading="lazy" on any card here, deliberately. The page is one
-             screen with no scroll, so all eight are in the viewport at load;
-             lazy would only take them out of the preload scanner's reach and
-             make them wait on layout. -->
-        <figure class="work-card work-card--vantage reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it.">
-              <div class="work-overlay"><span class="work-title work-title--michroma">Vantage</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">Vantage</span>
-              <p class="work-back-text">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-vantage"
-                  aria-label="Vantage — upcoming, not yet shown"></button>
-          <span class="work-tip" role="tooltip" id="tip-vantage">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</span>
-        </figure>
-        <figure class="work-card work-card--sheet reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/jacks-mannequin-poster.webp" alt="Lyric poster in tall condensed black caps on off-white: “Just think of all the thoughts wasted on you”, with the Jack’s Mannequin logo in a blue box beneath.">
-              <div class="work-overlay"><span class="work-title work-title--carbon">Jack’s Mannequin</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">Jack’s Mannequin</span>
-              <p class="work-back-text">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-jacks"
-                  aria-label="Jack’s Mannequin — lyric poster"></button>
-          <span class="work-tip" role="tooltip" id="tip-jacks">Did I mention I&rsquo;m a fan of Andrew McMahon&hellip; Might do more of these in the future for fun. Also &mdash; she knows what she did.</span>
-        </figure>
-      </div>
-      <div class="work-col reveal">
-        <!-- The one card that goes somewhere: an anchor, not a button, so
-             middle-click and copy-address work. data-external marks it, and it
-             does not flip — a card that leaves the page should show what you
-             are clicking, not turn over. -->
-        <figure class="work-card reveal" data-external>
-          <img src="images/weave-cover.webp" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field.">
-          <!-- The client's own mark, centred on the cover. Inline rather than an
-               <img src>: one fewer request, and it inherits currentColor so it
-               cannot fall out of step with the page's foreground. Decorative —
-               the card is already named by its title and its button. -->
-          <span class="work-mark" aria-hidden="true">
-            <svg viewBox="0 0 12 9" xmlns="http://www.w3.org/2000/svg" focusable="false">
-              <path fill="currentColor" d="M2.71555 0.0818261C1.90505 0.237976 1.00533 0.847705 0.559189 1.54666C0.0609961 2.32741 0.00151038 2.60997 0.00151038 4.42429C-0.00592534 5.94861 0.0089461 6.08989 0.165096 6.53603C0.87149 8.49163 2.96093 9.41366 4.79011 8.58086C5.50394 8.25368 5.50394 8.26112 5.07267 7.53985C4.86447 7.19038 4.67114 6.92269 4.64884 6.93756C3.99449 7.29448 3.71193 7.37627 3.25836 7.33909C2.44786 7.2796 1.80839 6.76654 1.60019 6.00066C1.53327 5.78502 1.51096 5.22735 1.53327 4.26814C1.55558 2.69176 1.61506 2.491 2.15043 2.02255C2.56683 1.65076 2.89401 1.54666 3.4963 1.57641C4.09116 1.60615 4.47781 1.79948 4.82729 2.26793C5.18421 2.72894 5.22882 2.97432 5.23626 4.46147C5.23626 6.40219 5.43702 7.0491 6.26982 7.8819C7.54877 9.16828 9.55641 9.19802 10.9023 7.96369C11.393 7.51755 11.8094 6.7591 11.9284 6.10476C12.0251 5.56939 12.0251 3.22714 11.921 2.73638C11.7276 1.79204 10.9543 0.780784 10.1364 0.386691C9.72 0.185926 9.00617 3.31914e-05 8.64925 3.31914e-05C7.98004 3.31914e-05 6.70853 0.431305 6.60443 0.691555C6.58212 0.751041 6.70853 1.0336 6.87955 1.30872C7.32569 2.04486 7.30339 2.02999 7.5339 1.8664C7.98004 1.5541 8.79797 1.46487 9.28873 1.66563C9.68282 1.83666 10.1959 2.34972 10.3446 2.73638C10.5305 3.2197 10.5379 5.76272 10.352 6.17912C10.062 6.8409 9.31847 7.3614 8.66412 7.3614C8.1585 7.3614 7.77927 7.21268 7.39262 6.8632C6.8275 6.35757 6.77545 6.17168 6.7234 4.27557C6.67879 2.81817 6.65648 2.5951 6.50777 2.21588C5.90547 0.676684 4.29192 -0.230474 2.71555 0.0818261Z"/>
-            </svg>
-          </span>
-          <figcaption class="work-overlay"><span class="work-title work-title--orbix">Weave</span></figcaption>
-          <!-- An anchor, not a button: this leaves the page, so it should be a
-               link — middle-click, copy address and open-in-new-tab all work,
-               and it announces itself as a link rather than a control. -->
-          <a class="work-open" href="https://weave2-demo.vercel.app/"
-             target="_blank" rel="noopener noreferrer" aria-describedby="tip-weave"
-             aria-label="Weave — open the live demo (opens in a new tab)"></a>
-          <span class="work-tip" role="tooltip" id="tip-weave">Click to go to the demo site</span>
-        </figure>
-        <!-- The apparel draft. It replaced an earlier one for the same
-             brand — same slot, same column, and square rather than 4:5, which
-             leaves the column shorter than it was. -->
-        <figure class="work-card work-card--square reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/mac-os-x-shirt.webp" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid.">
-              <div class="work-overlay"><span class="work-title work-title--syne-mono">CD T-Shirt Print</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">CD T-Shirt Print</span>
-              <p class="work-back-text">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-macosx"
-                  aria-label="CD T-Shirt Print — apparel print draft"></button>
-          <span class="work-tip" role="tooltip" id="tip-macosx">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</span>
-        </figure>
-      </div>
-      <div class="work-col reveal">
-        <!-- A piece, not a case study: one image and its name, so it is locked
-             like Vantage and the back carries what there is to say. -->
-        <figure class="work-card work-card--tall reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/inconvenience-sign.webp" alt="Inconvenience: a blue and white parking-lot sign on a steel pole against clear sky, numbered 04 above the single word “Inconvenience”.">
-              <div class="work-overlay"><span class="work-title work-title--syne-mono">Inconvenience</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">Inconvenience</span>
-              <p class="work-back-text">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-inconvenience"
-                  aria-label="Inconvenience — existential parking lot mockup"></button>
-          <span class="work-tip" role="tooltip" id="tip-inconvenience">Ever had to hunt for an open parking space at IKEA, especially on a Saturday? Anyways, I think it captures that existential liminal feel.</span>
-        </figure>
-        <!-- Same sheet size as Jack's, which is why they share a class rather
-             than each stating 1055x1491 for itself. -->
-        <figure class="work-card work-card--sheet reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/find-collect-repeat-poster.webp" alt="Find Collect Repeat poster for Are.na: a white eight-pointed star over blurred green and blue flowers, with “FIND” in heavy rounded letters along the foot and “collect” and “repeat” stacked at the corner.">
-              <div class="work-overlay"><span class="work-title work-title--carbon">Find Collect Repeat</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">Find Collect Repeat</span>
-              <p class="work-back-text">Are.na poster I whipped up in my spare time.</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-find"
-                  aria-label="Find Collect Repeat — poster"></button>
-          <span class="work-tip" role="tooltip" id="tip-find">Are.na poster I whipped up in my spare time.</span>
-        </figure>
-      </div>
-      <div class="work-col reveal">
-        <!-- The poster for the lab's open sessions. Locked like the others in
-             the cluster: it is the piece, not a cover over one. -->
-        <figure class="work-card work-card--poster reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot.">
-              <div class="work-overlay"><span class="work-title work-title--fuuld">WSU AI Lab</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">WSU AI Lab</span>
-              <p class="work-back-text">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-wsu"
-                  aria-label="WSU AI Lab — poster for the lab's Thursday build sessions"></button>
-          <span class="work-tip" role="tooltip" id="tip-wsu">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</span>
-        </figure>
-        <!-- Third piece on the same 1055x1491 sheet as Jack's and Find Collect
-             Repeat, hence the shared class. -->
-        <figure class="work-card work-card--sheet reveal">
-          <div class="work-flip">
-            <div class="work-face work-face--front">
-              <img src="images/filey-poster.webp" alt="Filey poster: the name in a wide monospace over a red form smeared into grey by motion blur, above the line “All of your files. On the go.”">
-              <div class="work-overlay"><span class="work-title work-title--carbon">Filey</span></div>
-            </div>
-            <div class="work-face work-face--back" aria-hidden="true">
-              <span class="work-back-title">Filey</span>
-              <p class="work-back-text">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</p>
-            </div>
-          </div>
-          <button class="work-open" type="button" aria-describedby="tip-filey"
-                  aria-label="Filey — poster"></button>
-          <span class="work-tip" role="tooltip" id="tip-filey">Current WIP of a cross-platform app where designers can store ideas found in the wild, run through AI sorting, and access them on any device at any time.</span>
-        </figure>
-      </div>
-
-      </div>
-    </section>
-  </main>
-
-  <!-- A real band at the foot of the page, not a corner. The paddle plays in
-       the empty part of it, which is how the bar is kept off the cards: nothing
-       in .page reaches this far down. The row of text sits under the paddle,
-       in the strip a live ball can never enter. -->
-  <footer class="footer">
-    <p class="score" id="score" aria-hidden="true"></p>
-    <button class="play" id="play" type="button">Click to Play</button>
-  </footer>
-
-
-  <!-- The four faces the name can show. They live in the markup rather than
-       being built from a list in the script so the copy can be edited here,
-       next to everything else that is written on this page. All four images
-       are in the document from the start, which is what makes the swap
-       instant — a face that had to load on hover would flash its frame empty.
-       The copy is final. -->
   <div class="name-card" id="name-card" aria-hidden="true">
     <figure class="name-card-face" data-name-card="imac-g3">
       <img src="images/imac-g3.webp" alt="" decoding="async">
@@ -417,23 +498,6 @@
         <p class="name-card-text">Favorite TV show, hands down. Man, they don’t make ’em like they used to.</p>
       </figcaption>
     </figure>
-  </div>
-
-  <!-- The board is drawn here; the bricks are not. Those are the real cards
-       and the real copy, read off the page with getBoundingClientRect. -->
-  <canvas class="pong" id="pong" aria-hidden="true"></canvas>
-  <!-- Shown once every brick is down. There is something to collect now, so
-       the claim and what to do about it are two lines rather than one wrapped
-       block: the prize reads at full size, the instruction sits under it at
-       the weight an instruction deserves. -->
-  <div class="prize" id="prize">
-    <p class="prize-line">You won <span class="dollar">$</span>10 off any service!</p>
-    <p class="prize-note">Take a screenshot for proof!</p>
-    <!-- The prize is money off a project, so the way to start one sits under
-         it. Same Payment Link and same plain anchor as the contact block: the
-         discount is settled between us, not by this button. It carries its own
-         pointer-events because the panel around it deliberately has none. -->
-    <a class="prize-go" href="https://buy.stripe.com/00waEY1d52al8Mr9220Jq00">Pay Project Deposit</a>
   </div>
 
   <!-- A module: its own scope, deferred by definition, and the one file the

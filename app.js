@@ -196,14 +196,15 @@ function follower(el, off) {
   if (!toggle || !canvas) return;
   const ctx = canvas.getContext('2d');
 
-  /* The cards, and the copy beside them. Paragraph by paragraph rather than
-     block by block — a whole column of text going out to one hit is no fun,
-     and a single line is about a card's worth of target. */
-  /* A card is one brick, not three. Targeting its caption and its icon row
-     separately emptied the card out and left the white slab standing, which
-     looks like a bug rather than a hit. `.prose` never appears inside a card,
-     so nothing here nests. */
-  const BRICKS = '.work-card, .wordmark, .lede, .prose, .card';
+  /* The pieces, their caption strips, and the name in the bar. A card is one
+     brick and not three: targeting its caption and its icon row separately
+     emptied the card out and left the slab standing, which looks like a bug
+     rather than a hit.
+
+     The prose used to be in here as well, paragraph by paragraph. It is behind
+     the about control now, so it is not on screen to be knocked down and the
+     selector no longer asks for it. */
+  const BRICKS = '.work-card, .tile-cap, .wordmark';
   const PAD_W = 180;
   const PAD_H = 9;
   /* 44 and not 30, so the strip under the paddle is tall enough to park the
@@ -286,12 +287,28 @@ function follower(el, off) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
+  /* The board is the screen, not the document.
+
+     The page scrolls now, and the rects here are viewport coordinates read
+     once — .is-playing then locks the scroll so they stay true. Anything below
+     the fold is simply not in this game: it cannot be reached, and counting it
+     would leave a score that never completes and a prize that never comes.
+     Scroll down and start again and you get a different board, which is the
+     honest reading of "the bricks are whatever is on screen".
+
+     The paddle's own strip is carved out for the same reason. A tile sitting
+     under it could not be hit either, and one hanging half into it would take
+     the ball out of play against a target it was still owed. */
   function collect() {
+    const floor = innerHeight - PAD_UP - PAD_H - R * 2;
     bricks = Array.from(document.querySelectorAll(BRICKS)).map((el) => {
       const r = el.getBoundingClientRect();
-      return { el, x: r.left, y: r.top, w: r.width, h: r.height };
-    /* an empty inline or a collapsed block is not a target */
-    }).filter((b) => b.w > 10 && b.h > 6);
+      return { el, x: r.left, y: r.top, w: r.width, h: r.height, bottom: r.bottom };
+    }).filter((b) =>
+      /* an empty inline or a collapsed block is not a target, and neither is
+         a sheet that is closed: hidden leaves a rect of zeros */
+      b.w > 10 && b.h > 6 &&
+      b.y >= 0 && b.bottom <= floor && b.x < innerWidth && b.x + b.w > 0);
     total = bricks.length;
   }
 
@@ -666,121 +683,84 @@ function follower(el, off) {
   });
 })();
 
-/* The cluster's width, measured rather than solved by hand.
+/* The theme. Dark is what the stylesheet says on its own; this writes
+   data-theme on <html> for anything else and remembers the choice, and the
+   inline script in <head> puts it back before the first paint so a reader who
+   chose light never sees a black frame on the way in.
 
-   The cards have fixed aspect ratios, so the cluster's height is a multiple of
-   its column width — which means a height budget can be spent as a width. That
-   multiple is the tallest column: the sum of 1/aspect over its cards, plus the
-   gap between them, plus the step an even column is offset by. The stylesheet
-   carries the answer as a fallback so the first paint and a no-JS visit are
-   both right, but the answer is a constant, and a constant goes stale the
-   moment a card moves column or a new one lands. This re-derives it from the
-   cards actually on the page and writes it back as --cluster-cap.
-
-   Nothing here reads a rendered width, so there is no circularity: aspect
-   ratios and gaps come from the computed styles, and the only measured input
-   is how much height the column has to spend. */
+   Nothing here reads prefers-color-scheme. The black page is the site, not a
+   preference, so a first visit gets it either way and the switch is how you
+   say otherwise. */
 (function () {
-  const grid = document.querySelector('.work-grid--cluster');
-  const work = document.querySelector('.work');
-  if (!grid || !work) return;
-  const cols = Array.from(grid.children);
-  if (!cols.length) return;
+  const button = document.getElementById('theme');
+  if (!button) return;
+  const root = document.documentElement;
 
-  const px = (v) => parseFloat(v) || 0;
-  /* computed aspect-ratio comes back as "4 / 3" or "auto"; height per unit of
-     width is the inverse of it */
-  function tallness(card) {
-    const raw = getComputedStyle(card).aspectRatio;
-    const [w, h] = raw.split('/').map((n) => parseFloat(n));
-    return w > 0 && h > 0 ? h / w : 0;
+  function apply(theme) {
+    if (theme === 'light') root.dataset.theme = 'light';
+    else delete root.dataset.theme;
+    /* The mark says what the switch will do, so the label has to say the same
+       thing rather than naming the state it is in. */
+    button.setAttribute('aria-label',
+      theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
   }
 
-  function measure() {
-    const gridStyle = getComputedStyle(grid);
-    const colGap = px(gridStyle.columnGap);
-    const step = px(gridStyle.getPropertyValue('--step'));
-    /* A cluster pressed against the top and bottom of its own column reads as
-       something that did not fit. The stylesheet lowers this allowance in its
-       compact one-screen mode; clientHeight already excludes the footer band,
-       so nothing here has to know about it. */
-    const slack = px(gridStyle.getPropertyValue('--cluster-slack'));
-    const budget = work.clientHeight - slack;
-    if (budget <= 0) return;
+  apply(root.dataset.theme === 'light' ? 'light' : 'dark');
 
-    let worst = 0;
-    cols.forEach((col, i) => {
-      const cards = Array.from(col.querySelectorAll('.work-card'));
-      if (!cards.length) return;
-      const rowGap = px(getComputedStyle(col).rowGap);
-      const tall = cards.reduce((sum, c) => sum + tallness(c), 0);
-      const fixed = rowGap * (cards.length - 1) + (i % 2 ? step : 0);
-      if (tall <= 0) return;
-      /* the column width this column could afford on its own */
-      worst = worst === 0 ? (budget - fixed) / tall
-                          : Math.min(worst, (budget - fixed) / tall);
-    });
-    if (worst <= 0) return;
-    const width = worst * cols.length + colGap * (cols.length - 1);
-    grid.style.setProperty('--cluster-cap', Math.round(width) + 'px');
-  }
-
-  measure();
-  onResize(measure);
-  /* the display faces arrive after first paint and can change a card's height
-     through its title; re-measure once they are in */
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+  button.addEventListener('click', () => {
+    const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+    apply(next);
+    /* Private browsing throws on write. The theme still changes for this
+       visit; it simply is not there on the next one. */
+    try { localStorage.setItem('theme', next); } catch (e) { /* not fatal */ }
+  });
 })();
 
-/* The bio column, made to fit. Its content is fixed copy on a screen of unknown
-   height, and past a certain point the two do not agree — the column used to
-   take a scroll for that, which meant the contact details were below the fold
-   on a laptop and nobody would ever see them.
 
-   Everything in the column is written as a multiple of --bio-scale, so one
-   number shrinks all of it together: type, gaps, the marks, the name. This
-   walks that number down until the content stops overflowing. There is a floor
-   on it, below which the copy stops being copy — see FLOOR for where that sits
-   and what has moved it — and under that the page takes the scroll as the
-   honest last resort. */
+/* About. The writing lives in a sheet over the page rather than beside the
+   work, so this is what opens it — and, because it is a dialog, what gives the
+   keyboard a way back out and somewhere to land when it does. */
 (function () {
-  const bio = document.querySelector('.bio');
-  if (!bio) return;
-  /* Was 0.72, then 0.58. Each step down has been paid for by something added
-     to the column, and this one is the deposit control: at 1024x600 the layout
-     had no slack left and the button put it ten pixels over. The floor is not
-     a budget to keep spending — the next thing added here should come out of
-     the copy instead. */
-  const FLOOR = 0.56;
-  const STEP = 0.02;
+  const panel = document.getElementById('about');
+  const open = document.getElementById('about-open');
+  const close = document.getElementById('about-close');
+  if (!panel || !open || !close) return;
 
-  const over = () => bio.scrollHeight > bio.clientHeight + 1;
-
-  function fit() {
-    /* Measure in the locked layout, every pass. Releasing it makes the column
-       exactly as tall as its content, which reads as "fits" and would lock it
-       again on the next pass — a flip-flop rather than a measurement. */
-    document.body.classList.remove('is-overflowing');
-    let s = 1;
-    bio.style.setProperty('--bio-scale', s);
-    /* scrollHeight against clientHeight is the overflow, and reading it forces
-       the layout each pass — which is the point, and why the caller is behind
-       onResize rather than on the event itself */
-    while (s > FLOOR && over()) {
-      s = Math.round((s - STEP) * 100) / 100;
-      bio.style.setProperty('--bio-scale', s);
-    }
-    /* Floor reached and still too tall. The column's scrollbar is hidden, so
-       leaving the overflow in there is content silently cut off — the one
-       outcome worse than scrolling. Hand the scroll to the page instead, which
-       is the same answer the phone layout gives one breakpoint down. */
-    document.body.classList.toggle('is-overflowing', over());
+  /* hidden and not a class: shut, the sheet is out of the accessibility tree
+     and out of the tab order, which is the whole reason it can hold the
+     contact details without them being reachable behind the page */
+  function show(on) {
+    panel.hidden = !on;
+    open.setAttribute('aria-expanded', String(on));
+    /* The sheet scrolls on its own; the page behind it must not, or a wheel
+       over the backdrop moves the grid under the reader. */
+    document.body.style.overflow = on ? 'hidden' : '';
+    if (on) close.focus();
+    else open.focus();
   }
 
-  fit();
-  onResize(fit);
-  /* the display faces arrive after first paint and change how the copy wraps */
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  open.addEventListener('click', () => show(true));
+  close.addEventListener('click', () => show(false));
+  /* the backdrop, but not the sheet sitting on it */
+  panel.addEventListener('click', (event) => {
+    if (event.target === panel) show(false);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !panel.hidden) show(false);
+  });
+})();
+
+
+/* The first control in the bar. There is one view here, so it returns to the
+   top of it rather than navigating — an anchor to #work would do the same
+   thing and leave a fragment in the address bar for a page with no second
+   place to be. */
+(function () {
+  const top = document.getElementById('to-top');
+  if (!top) return;
+  top.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 })();
 
 
