@@ -20,6 +20,10 @@
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
   --surface-hover: rgb(0 0 0 / 0.09);
+  /* The name is set in a white sampled from the painting it used to be
+     knocked out of — #EBEBE9, warm, reads as paint rather than as screen. On
+     the light ground that white disappears, so there it is simply the ink. */
+  --wordmark-ink: #0b0b0b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -30,6 +34,7 @@
     --hairline: #2b2b2b;
     --surface: rgb(255 255 255 / 0.07);
     --surface-hover: rgb(255 255 255 / 0.13);
+    --wordmark-ink: #ebebe9;
   }
 }
 :root[data-theme="dark"] {
@@ -40,6 +45,7 @@
   --hairline: #2b2b2b;
   --surface: rgb(255 255 255 / 0.07);
   --surface-hover: rgb(255 255 255 / 0.13);
+  --wordmark-ink: #ebebe9;
 }
 
 * { box-sizing: border-box; }
@@ -104,3 +110,32 @@ body {
 }
 :root[data-theme="dark"] .theme-moon { display: none; }
 :root[data-theme="dark"] .theme-sun { display: block; }
+
+
+/* the name ---------------------------------------------------------------
+   Bottom left, opposite the switch. Fixed rather than in the flow for the
+   same reason it is: there is no layout yet for it to sit in, and when there
+   is, this loses the position and keeps everything else. */
+.wordmark {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  margin: 0;
+  font-family: "magistral", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* 400, not 500 — the kit ships one weight, and asking for more would get a
+     synthesised bold: wider than drawn, and a fake. */
+  font-weight: 400;
+  font-size: clamp(2.25rem, 6vw, 5.5rem);
+  /* Magistral's ascender is 1.0em and its descender 0.2em, so 0.85 would leave
+     only 0.025em under the baseline. 0.922 is the gap Inter gave at 0.85. */
+  line-height: 0.922;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  user-select: none;
+  color: var(--wordmark-ink);
+  transition: color 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark { transition: none; }
+}
