@@ -368,13 +368,10 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
    crop is taken off-centre to keep the last letter in. */
 .shot--vantage img { object-position: 43% 50%; }
 
-/* A piece and its strip. It is a <figure>, so this is also what takes off the
-   user agent's margin: 1em 40px — left on, that 80px was coming out of every
-   column's width and the pictures were rendering 33% narrow. */
+/* A piece. It is a <figure>, so this is also what takes off the user agent's
+   margin: 1em 40px — left on, that 80px was coming out of every column's width
+   and the pictures were rendering 33% narrow. */
 .tile {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
   margin: 0;
   min-width: 0;
 }
@@ -439,24 +436,6 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 .tile-shot:focus-visible .tile-note { opacity: 1; }
 .tile-shot:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
-/* The strip under each piece: its number and its name. */
-.tile-cap {
-  display: flex;
-  padding: 0 0.15rem;
-  font-size: 0.8125rem;
-  letter-spacing: -0.006em;
-}
-.tile-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-a.tile-shot + .tile-cap .tile-name { text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 0.25em; }
-
-/* Four columns stop working long before a phone. Two, and the step goes: the
-   cards are already small there and offsetting them spends height the box has
-   none of to spare. */
 @media (max-width: 700px) {
   .cluster { flex-wrap: wrap; --step: 0rem; width: 100%; }
   .col { flex: 1 1 calc(50% - 0.375rem); }

@@ -185,15 +185,17 @@ function onResize(fn) {
       let ratio = 0;
       let fixed = rowGap * (tiles.length - 1) + px(style.marginTop);
       tiles.forEach((tile) => {
-        const shot = tile.querySelector('.tile-shot');
+        ratio += tallness(tile.querySelector('.tile-shot'));
+        /* A tile is its picture and nothing else today. Anything set under one
+           is type, so it does not scale with w and belongs in the fixed term —
+           measured off the rect rather than offsetHeight, which rounds a
+           fractional line box down and hands the solve height that is not
+           there. Kept because a caption is the obvious thing to put back. */
         const cap = tile.querySelector('.tile-cap');
-        ratio += tallness(shot);
-        /* the strip and the gap above it are type, not a fraction of w */
-        /* the strip and the gap above it are type, not a fraction of w — and
-           the rect rather than offsetHeight, which rounds a fractional line
-           box down and hands the solve height that is not there */
-        fixed += (cap ? cap.getBoundingClientRect().height : 0)
-               + px(getComputedStyle(tile).rowGap);
+        if (cap) {
+          fixed += cap.getBoundingClientRect().height
+                 + px(getComputedStyle(tile).rowGap);
+        }
       });
       if (ratio <= 0) return;
       best = Math.min(best, (height - fixed) / ratio);
