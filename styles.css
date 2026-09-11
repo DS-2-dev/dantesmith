@@ -68,8 +68,8 @@ body {
      the price of a blank band across the top and the bottom of every
      section. Frosted, the menu stays readable over whatever passes beneath,
      so the band is gone and the padding does what it was for: at rest the
-     content starts clear of the mark, and scrolled to the end it finishes
-     clear of the menu's card.
+     content starts clear of the mark and the menu, which share the top of
+     the window. The bottom needs only a little air, with nothing there.
 
      Left and right are 0 with a max-width, so a text section is a column
      against the left edge and .view--wide is the whole window. */
@@ -77,7 +77,7 @@ body {
   inset: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4.5rem 1rem 9.25rem;
+  padding: 4.5rem 1rem 2rem;
   max-width: 38rem;
   opacity: 0;
   visibility: hidden;
@@ -176,24 +176,28 @@ body {
 
 
 /* the menu ---------------------------------------------------------------
-   Bottom right, stacked, on glass, on the same 1rem gutter as the mark in
-   the opposite corner. The mark only takes the same glass while something is
-   under it, because it is the name and not a control panel; the menu needs
-   it all the time to be read over the work.
+   Top right, one row, on glass: the header, with the mark at the other end
+   of it on the same 1rem gutter. The mark only takes the same glass while
+   something is under it, because it is the name and not a control panel;
+   the menu needs it all the time to be read over the work.
+
+   Level with the mark: the mark is 2.25rem tall at 1rem from the top, this
+   card is 2.5rem tall, so it starts an eighth of a rem higher and the two
+   share a centre line.
 
    Buttons, because the three sections are views of this one page rather than
    places to go. The deposit is the one real destination and the one anchor,
    and everything here applies to it all the same. */
 .menu {
   position: fixed;
+  top: 0.875rem;
   right: 1rem;
-  bottom: 1rem;
   z-index: 10;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
-  padding: 0.5rem 0.75rem;
+  align-items: center;
+  gap: 1.1rem;
+  height: 2.5rem;
+  padding: 0 0.9rem;
   border-radius: 0.875rem;
   background-color: var(--glass);
   box-shadow: var(--glass-shadow);
@@ -208,8 +212,10 @@ body {
   background: none;
   text-decoration: none;
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
+  /* "pay deposit" is two words and must never break onto a second line */
+  white-space: nowrap;
   letter-spacing: -0.011em;
   /* written lowercase in the markup; this is the guard against a stray capital
      getting typed in later */
@@ -228,12 +234,23 @@ body {
 /* the section you are in */
 .menu-item[aria-current="true"] { color: var(--foreground); }
 
+/* On a phone the row has the width left beside the mark, and four words at
+   the desktop size do not fit it: smaller, and closer together, in two steps
+   so a 390 phone keeps as much size as it can and a 360 one still fits. */
+@media (max-width: 480px) {
+  .menu { gap: 0.6rem; padding: 0 0.65rem; }
+  .menu-item { font-size: 0.8125rem; }
+}
+@media (max-width: 370px) {
+  .menu { gap: 0.5rem; padding: 0 0.55rem; }
+  .menu-item { font-size: 0.75rem; }
+}
+
 
 /* now playing -------------------------------------------------------------
-   Bottom left at home: the menu's twin in the opposite corner, on the same
-   glass, the same gutter and the same radius. The album art, a line saying
-   whether it is playing now, then the track and the artist, each held to one
-   line so a long title cannot push the card into the menu. */
+   Bottom left at home, on the menu's glass, gutter and radius.
+   The album art, a line saying whether it is playing now, then the track and
+   the artist, each held to one line. */
 .listening {
   position: fixed;
   left: 1rem;
@@ -242,10 +259,10 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  /* the menu's card and both gutters come off a phone's width first */
-  max-width: min(20rem, calc(100vw - 11rem));
+  max-width: min(20rem, calc(100vw - 2rem));
   padding: 0.5rem 0.9rem 0.5rem 0.5rem;
   border-radius: 0.875rem;
+  color: var(--foreground);
   background-color: var(--glass);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -253,7 +270,22 @@ body {
   animation: listening-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
   transition: opacity 0.35s ease,
               translate 0.45s cubic-bezier(0.32, 0.72, 0, 1),
-              visibility 0s;
+              visibility 0s,
+              width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* A new track: the art and the words fade out with a little blur, and the
+   new ones fade back in the same way once app.js has set them — a morph
+   from one to the next rather than a swap. */
+.listening-cover > *,
+.listening-text {
+  transition: opacity 0.28s ease, filter 0.28s ease, translate 0.28s ease;
+}
+.listening.is-changing .listening-cover > *,
+.listening.is-changing .listening-text {
+  opacity: 0;
+  filter: blur(6px);
+  translate: 0 0.2rem;
 }
 /* the display above outranks the user agent's rule for hidden */
 .listening[hidden] { display: none; }
@@ -376,8 +408,8 @@ body:not([data-view="home"]) .listening {
 }
 
 /* Three bars that move while a track is playing now, and are not there when
-   it is only the last one played. In the page's ink: the site has one accent
-   and Spotify's green is not it. */
+   it is only the last one played. In the page's ink: the site has one
+   accent and Spotify's green is not it. */
 .listening-bars {
   display: none;
   align-items: flex-end;
@@ -389,7 +421,7 @@ body:not([data-view="home"]) .listening {
   width: 2px;
   height: 100%;
   border-radius: 1px;
-  background: var(--foreground);
+  background: currentColor;
   transform-origin: bottom;
   animation: listening-bar 0.9s ease-in-out infinite alternate;
 }
@@ -402,7 +434,9 @@ body:not([data-view="home"]) .listening {
 
 @media (prefers-reduced-motion: reduce) {
   .listening,
-  body:not([data-view="home"]) .listening { animation: none; transition: none; }
+  body:not([data-view="home"]) .listening,
+  .listening-cover > *,
+  .listening-text { animation: none; transition: none; }
   .listening-bars i { animation: none; transform: scaleY(0.7); }
 }
 
@@ -642,8 +676,8 @@ body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
   gap: 0.75rem;
   min-width: 0;
 }
-/* A piece at the ratio of its own file, never cropped. The cap is the band
-   between the mark and the menu's card, less the project card's padding,
+/* A piece at the ratio of its own file, never cropped. The cap sits inside
+   the band under the header, less the project card's padding,
    so the tallest piece still fits on the screen whole with nothing over it. The rem cap is about the height a wide piece
    comes out at on its own, so a square or a poster lands at the same height
    as the covers rather than a card taller than everything around it. */

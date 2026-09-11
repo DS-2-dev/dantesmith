@@ -185,6 +185,7 @@ function metrics(cdp, view) {
     const section = document.getElementById('${view}');
     return {
       viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
       documentWidth: document.documentElement.scrollWidth,
       section: { ...rect(section), clientHeight: section.clientHeight, scrollHeight: section.scrollHeight },
       mark: rect(document.querySelector('.monogram')),
@@ -229,13 +230,14 @@ function reach(cdp, view) {
   })()`);
 }
 
-/* The chrome floats over the sections on glass, so what has to clear it is
-   the content: at rest it starts under the mark's card, and scrolled to the
-   end it finishes above the menu's, so nothing is ever stuck beneath either. */
+/* The header floats over the sections, so what has to clear it is the
+   content: at rest it starts below both the mark and the menu, and scrolled
+   to the end its last line comes all the way into the window. */
 async function assertClearOfChrome(cdp, view, m, at) {
   const { top, bottom } = await reach(cdp, view);
-  assert.ok(top >= m.mark.bottom - 1, `${at} ${view} starts under the mark: ${top} against ${m.mark.bottom}`);
-  assert.ok(bottom <= m.menu.top + 1, `${at} ${view} ends under the menu: ${bottom} against ${m.menu.top}`);
+  const header = Math.max(m.mark.bottom, m.menu.bottom);
+  assert.ok(top >= header - 1, `${at} ${view} starts under the header: ${top} against ${header}`);
+  assert.ok(bottom <= m.viewportHeight + 1, `${at} ${view} cannot bring its end into the window: ${bottom} in ${m.viewportHeight}`);
 }
 
 async function pressKey(cdp, key, keyCode) {
@@ -284,6 +286,8 @@ test('the page', async (t) => {
      the time. The CORS header is what the real API sends too. */
   let lastfm = { status: 200, body: NOW_PLAYING };
   cdp.on('Fetch.requestPaused', ({ requestId }) => {
+    /* left unanswered, the way a stalled connection leaves a request */
+    if (lastfm.hang) return;
     cdp.send('Fetch.fulfillRequest', {
       requestId,
       responseCode: lastfm.status,
@@ -302,8 +306,10 @@ test('the page', async (t) => {
     const card = document.getElementById('listening');
     const style = getComputedStyle(card);
     const box = card.getBoundingClientRect();
-    const menu = document.querySelector('.menu').getBoundingClientRect();
     return {
+      fill: style.backgroundColor,
+      innerWidth,
+      innerHeight,
       hidden: card.hidden,
       visibility: style.visibility,
       opacity: style.opacity,
@@ -337,8 +343,6 @@ test('the page', async (t) => {
       left: box.left,
       right: box.right,
       bottom: box.bottom,
-      menuLeft: menu.left,
-      menuBottom: menu.bottom,
     };
   })()`;
 
@@ -355,8 +359,11 @@ test('the page', async (t) => {
     assert.equal(card.titleScrolls, false, 'a name that fits was set scrolling');
     assert.equal(card.playing, true, 'the bars are not moving for a track playing now');
     assert.equal(card.art, true, 'the album art is not showing');
-    assert.ok(Math.abs(card.left - 16) <= 1 && Math.abs(card.bottom - card.menuBottom) <= 1,
-      'the card is not in the corner opposite the menu');
+    assert.ok(Math.abs(card.left - 16) <= 1 && Math.abs(card.bottom - (card.innerHeight - 16)) <= 1,
+      'the card is not in the bottom-left corner');
+    /* the menu's white glass */
+    const [red, green, blue] = card.fill.match(/[\d.]+/g).map(Number);
+    assert.ok(Math.min(red, green, blue) > 240, `the card is not on the white glass: ${card.fill}`);
 
     await open(cdp, 'work');
     card = await evaluate(cdp, listening);
@@ -375,12 +382,21 @@ test('the page', async (t) => {
     card = await evaluate(cdp, listening);
     assert.equal(card.art, false, 'Last.fm\'s blank star was shown as album art');
 
-    /* the longest line cannot push it into the menu on a phone */
+    /* an address that turns out to be nothing leaves the note, not a
+       broken-image mark */
+    lastfm = { status: 200, body: recentTrack({ image: [{ size: 'large', '#text': `http://127.0.0.1:${HTTP_PORT}/images/not-there.png` }] }) };
+    await load(cdp, 1440, 900);
+    await sleep(SETTLE);
+    card = await evaluate(cdp, listening);
+    assert.equal(card.hidden, false, 'a missing picture kept the whole card down');
+    assert.equal(card.art, false, 'art that failed to load was shown anyway');
+
+    /* the longest line cannot push it off a phone */
     lastfm = { status: 200, body: recentTrack({ name: 'A title long enough to run the whole width of a phone and then some more', '@attr': { nowplaying: 'true' } }) };
     await load(cdp, 375, 667, true);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
-    assert.ok(card.right <= card.menuLeft - 8, `the card runs into the menu: ends ${card.right}, menu starts ${card.menuLeft}`);
+    assert.ok(card.right <= card.innerWidth - 15, `the card runs off the phone: ends ${card.right} of ${card.innerWidth}`);
     /* and a name too long for its line scrolls rather than being cut off,
        read out once, while the short artist beside it stays still */
     assert.equal(card.titleScrolls, true, 'the long name was cut off rather than scrolled');
@@ -400,14 +416,15 @@ test('the page', async (t) => {
   });
 
   /* The card follows the music without a reload: the next scheduled check
-     picks up a new track, and so does coming back to the window. The page's
-     long timers are cut to a fifth of a second for this, so the poll comes
-     round within the test rather than in 15 seconds. */
+     picks up a new track, a request that never answers does not stop it,
+     and coming back to the window checks straight away. The page's long
+     timers — the poll, and how long a request is given — are cut to a fifth
+     of a second for this, so they come round within the test. */
   await t.test('the card follows a new track without a reload', async () => {
     const { identifier } = await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
       source: `(() => {
         const wait = window.setTimeout;
-        window.setTimeout = (fn, ms, ...rest) => wait(fn, ms >= 10000 ? 200 : ms, ...rest);
+        window.setTimeout = (fn, ms, ...rest) => wait(fn, ms >= 5000 ? 200 : ms, ...rest);
       })()`,
     });
     try {
@@ -417,8 +434,16 @@ test('the page', async (t) => {
       assert.equal((await evaluate(cdp, listening)).title, 'Nights');
 
       lastfm = { status: 200, body: recentTrack({ name: 'Ivy', '@attr': { nowplaying: 'true' } }) };
-      await sleep(800);
+      await sleep(1200);
       assert.equal((await evaluate(cdp, listening)).title, 'Ivy', 'the scheduled check did not pick up the new track');
+
+      /* Last.fm stops answering for a while, then answers with a new song:
+         the card has to pick it up without anyone reloading */
+      lastfm = { hang: true };
+      await sleep(700);
+      lastfm = { status: 200, body: recentTrack({ name: 'Solo', '@attr': { nowplaying: 'true' } }) };
+      await sleep(1500);
+      assert.equal((await evaluate(cdp, listening)).title, 'Solo', 'a request that never answered stopped the card following the music');
 
       /* with the timers back to their real length, focus alone has to do it */
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
@@ -426,8 +451,21 @@ test('the page', async (t) => {
       await sleep(SETTLE);
       lastfm = { status: 200, body: recentTrack({ name: 'Pink + White', '@attr': { nowplaying: 'true' } }) };
       await evaluate(cdp, `window.dispatchEvent(new Event('focus'))`);
-      await sleep(400);
+      /* partway through, the old track is fading out rather than swapped */
+      await sleep(150);
+      const midway = await evaluate(cdp, `(() => {
+        const card = document.getElementById('listening');
+        return { changing: card.classList.contains('is-changing'), opacity: Number(getComputedStyle(card.querySelector('.listening-text')).opacity) };
+      })()`);
+      assert.equal(midway.changing, true, 'a new track was swapped in rather than morphed');
+      assert.ok(midway.opacity < 1, 'the old track did not fade on its way out');
+      await sleep(800);
       assert.equal((await evaluate(cdp, listening)).title, 'Pink + White', 'coming back to the window did not check again');
+      const settled = await evaluate(cdp, `(() => {
+        const card = document.getElementById('listening');
+        return { changing: card.classList.contains('is-changing'), width: card.style.width };
+      })()`);
+      assert.deepEqual(settled, { changing: false, width: '' }, 'the card did not settle after the morph');
     } finally {
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
       lastfm = { status: 200, body: NOW_PLAYING };
@@ -544,10 +582,10 @@ test('the page', async (t) => {
             picture.left >= card.card.left - 1 && picture.right <= card.card.right + 1,
             `${at} ${picture.src} spills out of its card`,
           );
-          const band = m.menu.top - m.mark.bottom;
+          const band = m.viewportHeight - Math.max(m.mark.bottom, m.menu.bottom);
           assert.ok(
             picture.height <= band,
-            `${at} ${picture.src} is ${Math.round(picture.height)}px tall between chrome ${Math.round(band)}px apart`,
+            `${at} ${picture.src} is ${Math.round(picture.height)}px tall under a header that leaves ${Math.round(band)}px`,
           );
         }
       }
@@ -627,6 +665,37 @@ test('the page', async (t) => {
     await evaluate(cdp, `document.getElementById('home').click()`);
     await sleep(450);
     assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the glass came home with the mark');
+  });
+
+  /* The menu is a row of glass across the top: in the top-right corner,
+     level with the mark, clear of it at every width down to a 360 phone,
+     and never broken onto a second line. */
+  await t.test('the menu is a row across the top, beside the mark', async () => {
+    for (const [width, height, phone] of [
+      [1440, 900, false],
+      [1024, 768, false],
+      [390, 844, true],
+      [375, 667, true],
+      [360, 740, true],
+    ]) {
+      await load(cdp, width, height, phone);
+      await open(cdp, 'about');
+      const h = await evaluate(cdp, `(() => {
+        const box = (el) => { const b = el.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, left: b.left, right: b.right }; };
+        return {
+          menu: box(document.querySelector('.menu')),
+          mark: box(document.querySelector('.monogram')),
+          tops: [...document.querySelectorAll('.menu-item')].map((item) => Math.round(item.getBoundingClientRect().top)),
+          width: innerWidth,
+        };
+      })()`);
+      const at = `${width}x${height}`;
+      assert.equal(new Set(h.tops).size, 1, `${at} the menu is not one row: ${h.tops}`);
+      assert.ok(Math.abs(h.menu.right - (h.width - 16)) <= 1, `${at} the menu is not in the top-right corner`);
+      const level = (h.menu.top + h.menu.bottom) / 2 - (h.mark.top + h.mark.bottom) / 2;
+      assert.ok(Math.abs(level) <= 2, `${at} the menu sits ${level.toFixed(1)}px off the mark's centre line`);
+      assert.ok(h.menu.left >= h.mark.right + 8, `${at} the menu runs into the mark: starts ${h.menu.left}, mark ends ${h.mark.right}`);
+    }
   });
 
   /* The menu brings a section up and marks it, the mark comes home, and so
