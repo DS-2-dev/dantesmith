@@ -20,6 +20,17 @@
   --ink-2: #3a3a3a;
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
+  /* The glass the menu sits on. White at a little over half, so
+     on the white ground it is only the ring and the shadow that show, and over
+     a photograph it frosts what passes under rather than hiding it. */
+  --glass: rgb(255 255 255 / 0.6);
+  --glass-blur: blur(18px) saturate(1.6);
+  --glass-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06), 0 6px 20px rgb(0 0 0 / 0.06);
+}
+/* Without a backdrop filter the glass is only a veil, and a veil over a
+   photograph is where the menu stopped being readable. Nearly solid instead. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: rgb(255 255 255 / 0.94); }
 }
 
 * { box-sizing: border-box; }
@@ -46,25 +57,26 @@ body {
    down — a fade on opacity alone would leave four paragraphs reachable from
    a page that is not showing them. */
 .view {
-  /* Fixed and inset from the corners the chrome lives in, and it scrolls
-     inside that box rather than scrolling the page. Two things fall out of
-     that. Sections that are down take no space, where in the flow the hidden
-     one still kept its full height — visibility: hidden keeps a box — and the
-     second one opened halfway down the page. And nothing ever travels under
-     the name or the menu: with the page scrolling instead, the tiles slid
-     beneath both and the menu was unreadable over a photograph.
+  /* Fixed to the whole window, and it scrolls inside itself rather than
+     scrolling the page, so a section that is down takes no space: in the
+     flow the hidden one still kept its full height — visibility: hidden
+     keeps a box — and the second one opened halfway down the page.
 
-     Top clears the mark at its corner size, bottom clears the three menu
-     items. Left and right are 0 with a max-width, so a text section is a
-     column against the left edge and .view--wide is the whole window. */
+     The mark floats over it bare and the menu on glass. The box used to stop
+     short of both, which kept a photograph from running under the menu at
+     the price of a blank band across the top and the bottom of every
+     section. Frosted, the menu stays readable over whatever passes beneath,
+     so the band is gone and the padding does what it was for: at rest the
+     content starts clear of the mark, and scrolled to the end it finishes
+     clear of the menu's card.
+
+     Left and right are 0 with a max-width, so a text section is a column
+     against the left edge and .view--wide is the whole window. */
   position: fixed;
-  top: 4.5rem;
-  right: 0;
-  bottom: 6rem;
-  left: 0;
+  inset: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 1rem 1rem;
+  padding: 4.5rem 1rem 9.25rem;
   max-width: 38rem;
   opacity: 0;
   visibility: hidden;
@@ -163,12 +175,13 @@ body {
 
 
 /* the menu ---------------------------------------------------------------
-   Bottom right, stacked, under the name's eye line. Right-aligned on the same
-   gutter as the switch above it, so the two share an edge and read as one
-   column of chrome rather than two things that happen to be near the corner.
+   Bottom right, stacked, on glass, on the same 1rem gutter as the mark in
+   the opposite corner. The mark goes without a card, because it is the name
+   and not a control panel; the menu needs one to be read over the work.
 
-   Buttons and not links, for now: there is nowhere for them to go yet. When
-   there is, each becomes an anchor and everything here still applies. */
+   Buttons, because the three sections are views of this one page rather than
+   places to go. The deposit is the one real destination and the one anchor,
+   and everything here applies to it all the same. */
 .menu {
   position: fixed;
   right: 1rem;
@@ -178,6 +191,12 @@ body {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.15rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.875rem;
+  background-color: var(--glass);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 .menu-item {
   display: block;
@@ -209,14 +228,14 @@ body {
 
 
 /* contact ----------------------------------------------------------------
-   Three ways to reach me and one control that takes money, and they are
-   deliberately not styled alike: the first three are links in a paragraph and
-   the last is the only thing here drawn as a button. */
+   Three ways to reach me, set as lines of a paragraph rather than as a row of
+   controls: two links, and an address with a copy mark beside it. */
 .contact-list { margin-top: 1.25rem; }
 
 /* A hairline that comes up to full strength on hover, rather than a link that
    was already shouting. */
-.contact-val {
+.contact-val,
+.project-link {
   color: var(--foreground);
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
@@ -225,7 +244,9 @@ body {
   transition: text-decoration-color 0.15s ease;
 }
 .contact-val:hover,
-.contact-val:focus-visible { text-decoration-color: currentColor; }
+.contact-val:focus-visible,
+.project-link:hover,
+.project-link:focus-visible { text-decoration-color: currentColor; }
 
 /* The arrow that says a new tab. Nudged up and out on hover, in the direction
    it points, which is the whole of the animation.
@@ -265,7 +286,7 @@ a:focus-visible .link-out { translate: 0.08em -0.08em; }
    element and would outrank the plain `.copy-done` below, painting both marks
    at once. The display belongs on the marks, not on the element they are. */
 .copy svg { width: 0.85rem; height: 0.85rem; }
-/* Two marks, one shown. White and not green when it lands: the page has one
+/* Two marks, one shown. Full ink and not green when it lands: the page has one
    accent and this is not the place to introduce a second. */
 .copy-done { display: none; }
 .copy.is-done { color: var(--foreground); }
@@ -367,127 +388,111 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 
 
 /* work --------------------------------------------------------------------
-   The text sections are a column with a measure; this one is pictures, so it
-   takes the width of the window instead. */
+   One card per project, stacked, and the section scrolls. A card is the
+   pictures and, beside them, what the project is: on the card's own grey, so
+   the words read as belonging to the pictures they sit next to. Under a
+   tablet's width the words go under the pictures instead.
+
+   Sized for reading rather than for fitting. It used to be one arrangement
+   solved to fill the window without scrolling, and the price was that a phone
+   drew the campaign at a hundred pixels an ad. Now the column is wide enough
+   for the pictures to be large, and no picture is taller than the box it
+   scrolls in, so any one of them can be seen whole. */
 .view--wide { max-width: none; }
 
-/* The work, as one arrangement. Two rows stacked and centred: the campaign
-   with the two wide pieces beside it, then the square and the poster. The
-   campaign leads and is the largest — it is three ads for one product, and the
-   rest of the page is one piece at a time.
-
-   Every row's height is a multiple of a single unit written by app.js, which
-   spends the box's height and width on the rows at once. Widths follow from
-   the ratios, so nothing here is cropped and nothing scrolls. */
-.group {
+/* Held at 76rem, so on a desktop window the cards sit in from the corners
+   the mark and the menu hold rather than running under them. Wider made the
+   campaign taller, but put the work beneath the chrome to get it. */
+.projects {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   gap: 1rem;
-  height: 100%;
-}
-.grow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  /* the fallback keeps the first frame and a visit with no JavaScript from
-     laying the rows out at zero */
-  height: calc(var(--u, 9vh) * var(--w));
-}
-/* The weights are the two rows' share of the box's height. They are set where
-   both rows fill it at a common desktop shape; past that the solver's width
-   term takes over and these are only a ratio. */
-.grow--lead  { --w: 2.2; }
-.grow--flank { --w: 1.4; }
-
-/* The two wide pieces, stacked beside the campaign. They are the only
-   landscape work here, so two of them one over the other stand as tall as the
-   campaign does and the lead row squares off. */
-.stack {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* not the default stretch: a piece here has a height from the row and a
-     ratio of its own, and stretching it to the column's width overrides the
-     second with the first */
-  align-items: center;
-  gap: 0.75rem;
-  height: 100%;
-  /* Stated, not inferred. Asked for its own width this column reports the
-     900px the files are drawn at — a flex item's intrinsic width is worked out
-     before its children have a height to take a ratio against — and the row
-     then reserves hundreds of pixels it does not draw in. The width is the
-     taller-per-width of the two pieces at half the row, which is what it
-     actually paints. */
-  width: calc((var(--u, 9vh) * var(--w) - 0.75rem) / 2 * (900 / 507));
-}
-.stack .tile {
-  flex: 1 1 0;
-  min-height: 0;
+  max-width: 76rem;
+  margin: 0 auto;
 }
 
-/* The campaign. The grey the page already uses behind a picture, so the three
-   read as one held set rather than three adjacent posters. */
-.ad-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 0.85rem;
+/* The words in a narrow column, so the pictures keep the width: the campaign
+   is three flyers across and its height is bound by it. */
+.project {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 13rem;
+  gap: 1.75rem;
+  align-items: start;
+  padding: 1rem;
   border-radius: 0.75rem;
   background: var(--surface);
 }
-.ad {
-  height: 100%;
-  width: auto;
-  border-radius: 0.25rem;
+
+/* The pictures, centred in their share of the card, so a narrow piece sits on
+   the grey the way a print sits on a mat rather than pushed up against the
+   words. */
+.project-media {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+/* A piece at the ratio of its own file, never cropped. The cap is the band
+   between the mark and the menu's card, less the project card's padding,
+   so the tallest piece still fits on the screen whole with nothing over it. The rem cap is about the height a wide piece
+   comes out at on its own, so a square or a poster lands at the same height
+   as the covers rather than a card taller than everything around it. */
+.project-media img {
   display: block;
-}
-
-/* Each piece at the ratio of its own file, stated in the pixels the file is
-   rather than rounded to a tidy fraction. The shape is on the figure rather
-   than on the picture inside it: a figure is not a replaced element, so with a
-   height to go on the browser takes its width from this ratio. Left on the
-   picture, the width came off the file's own 900px instead and the row laid
-   itself out hundreds of pixels wider than what it drew.
-
-   It also means the box is right on the first frame, before the picture has
-   loaded; the picture is contained inside it, so a ratio out by a pixel shows
-   as air and never as a crop. */
-.shot--vantage { aspect-ratio: 900 / 531; }
-.shot--weave   { aspect-ratio: 900 / 507; }
-.shot--square  { aspect-ratio: 1 / 1; }
-.shot--poster  { aspect-ratio: 810 / 1013; }
-
-/* A piece. It is a <figure>, so this is also what takes off the user agent's
-   margin: 1em 40px. */
-.tile {
-  margin: 0;
-  height: 100%;
   width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: min(34rem, calc(100svh - 15rem));
+  border-radius: 0.375rem;
 }
 
-/* The picture. Its shape comes from the shot-- class beside this one, so what
-   is here is everything the pieces have in common and nothing about any one of
-   them. */
-.tile-shot {
+/* Past the tablet width the campaign is the biggest thing here, so every
+   other piece is held under the height its flyers come out at. They are
+   bound by the row's width, so the cap follows the window's width too: 24vw
+   stays under them from 1025px up, and 20rem is where it stops growing,
+   under the 24rem or so they reach once the column is at its widest. */
+@media (min-width: 1025px) {
+  .project-media:not(.project-media--set) img {
+    max-height: min(20rem, 24vw, calc(100svh - 15rem));
+  }
+}
+
+/* A set: the campaign's three flyers in a row, at one height. Each takes a
+   share of the row in proportion to how wide it is for its height — the --r
+   on each is its own width over height — which is what lands all three on a
+   common height without cropping any. No height cap here: the row is bounded
+   by its width, and a cap on one flyer alone would squash it. */
+.project-media--set img {
+  flex: var(--r, 1) 1 0%;
+  min-width: 0;
+  max-height: none;
+}
+
+/* Two projects sharing a row: the shirt and the poster. A card to itself at
+   full width was mostly grey around either of them. Each card takes a share
+   of the row in proportion to its picture's width over height — the --r on
+   it — on top of a fixed allowance for its padding, its gap and a narrower
+   column of words, which is the same trick as the flyers and lands both
+   pictures at one height. */
+.project-row {
+  display: flex;
+  gap: 1rem;
+}
+.project-row .project {
+  /* 2rem of padding, 1.75rem of gap, 13rem of words */
+  flex: var(--r, 1) 1 16.75rem;
+  min-width: 0;
+}
+
+/* A piece that is also a link, holding the client's mark over its cover. */
+.project-shot {
   position: relative;
   display: block;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  border-radius: 0.5rem;
-  background: var(--surface);
+  min-width: 0;
+  border-radius: 0.375rem;
 }
-.tile-shot img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
+.project-shot:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 /* The one piece that carries a client's mark, laid over its cover. White in
    spite of the page being light: what it has to hold against is the artwork
@@ -507,46 +512,154 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   display: block;
 }
 
-/* What each piece is, over the picture rather than under it. Eight paragraphs
-   stacked down the page would be a document about the work instead of the
-   work, and a caption long enough to hold one would set the row height off
-   the wordiest piece. */
-.tile-note {
-  position: absolute;
-  inset: 0;
+/* What the project is. The name at the lede's size and weight, a line of
+   what kind of work it is in the chrome's grey, then the body copy. */
+.project-text {
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+.project-name {
   margin: 0;
-  display: grid;
-  align-content: end;
-  padding: 1.1rem;
-  /* The ink at nearly full strength, because what is behind it is a different
-     photograph on every tile and a light scrim only works over some of them. */
-  background: rgb(11 11 11 / 0.9);
-  color: #ffffff;
+  font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.014em;
+}
+.project-kind {
+  margin: 0.15rem 0 0.85rem;
   font-size: 0.875rem;
-  line-height: 1.45;
+  line-height: 1.4;
   letter-spacing: -0.006em;
-  opacity: 0;
-  transition: opacity 0.25s ease;
+  color: var(--muted);
 }
-.tile-shot:hover .tile-note,
-.tile-shot:focus-visible .tile-note { opacity: 1; }
-.tile-shot:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.project-text .prose + .prose { margin-top: 0.75rem; }
+.project-text .project-link {
+  display: inline-block;
+  margin-top: 1rem;
+  font-size: 0.9375rem;
+}
 
-@media (max-width: 700px) {
-  /* Under this the arrangement stops fitting on one screen at any size worth
-     looking at, so it flows and the section scrolls: rows at full width, two
-     pieces across, the campaign still three in a row because it is a row. */
-  .group { height: auto; justify-content: flex-start; }
-  .grow { height: auto; width: 100%; }
-  .ad-card { width: 100%; }
-  .ad { height: auto; width: calc((100% - 1.5rem) / 3); }
-  /* two across, not four: at this width a quarter of the screen is a thumbnail */
-  .grow--lead { flex-wrap: wrap; }
-  .stack { flex-direction: row; width: 100%; height: auto; }
-  .stack .tile { flex: 1 1 calc(50% - 0.375rem); }
-  .grow--flank { flex-wrap: wrap; }
-  .tile { height: auto; flex: 1 1 calc(50% - 0.375rem); min-width: 0; }
+/* A card holding two projects and a switch between them. Its grid is the
+   usual two columns with a row on top for the switch. Each panel is laid onto
+   that same grid through subgrid — its picture down the first column across
+   both rows, its words under the switch — so switching trades the picture
+   and the words and nothing else on the card moves. */
+.project--switch {
+  grid-template-rows: auto 1fr;
+  row-gap: 0.85rem;
 }
+.project--switch .switch {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  /* over the panel, which spans the switch's cell and leaves it empty */
+  z-index: 1;
+}
+.project-panel {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+  transition: opacity 0.25s ease, visibility 0s;
+}
+/* Both panels stay laid out, one over the other, and the one switched away
+   is only unseen: so the card is always as tall as the taller of the two,
+   nothing under it jumps on a switch, and the two cross-fade. visibility
+   rather than display still takes it out of the tab order and off a screen
+   reader's cursor. The display above already outranks the user agent's own
+   rule for hidden, which is what lets this work. */
+.project-panel[hidden] {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+.project-panel .project-media { grid-column: 1; grid-row: 1 / -1; }
+.project-panel .project-text { grid-column: 2; grid-row: 2; padding-top: 0; }
+
+/* The switch. A pill of the card's grey with the chosen name lifted out of it
+   on white: the one control in the work drawn as a control, because it
+   changes what the card shows rather than going anywhere. The names stand in
+   for the card's heading, so they are set nearly at its size. */
+.switch {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--surface);
+}
+.switch-tab {
+  margin: 0;
+  padding: 0.3rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.switch-tab:hover { color: var(--foreground); }
+.switch-tab[aria-selected="true"] {
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.04);
+}
+.switch-tab:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .tile-note { transition: none; }
+  .project-panel,
+  .project-panel[hidden],
+  .switch-tab { transition: none; }
+}
+
+/* Under this the words go under the pictures, and the pictures take the
+   card's full width. Set where the campaign's flyers, three across beside the
+   words, would drop under about 230px each. */
+@media (max-width: 1024px) {
+  .project {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+  /* the pictures take the card's width; the words keep a reading measure */
+  .project-text { max-width: 38rem; padding: 0 0.25rem 0.25rem; }
+  /* A shared row keeps its two cards side by side, the words under each now,
+     so the allowance on top of each share is only the card's padding. */
+  .project-row .project { flex: var(--r, 1) 1 1.5rem; }
+  /* the switching card in one column: picture, then the switch, then words */
+  .project--switch { grid-template-rows: auto auto auto; }
+  .project--switch .switch { grid-column: 1; grid-row: 2; }
+  .project-panel .project-media { grid-column: 1; grid-row: 1; }
+  .project-panel .project-text { grid-column: 1; grid-row: 3; }
+  /* Held under the campaign here too. Its flyers take the card's full width
+     at this size, and 35vw stays under their height down to where they
+     stack. */
+  .project-media:not(.project-media--set) img {
+    max-height: min(35vw, calc(100svh - 15rem));
+  }
+}
+
+/* And under this the campaign stops being a row: three flyers across a phone
+   is a third of a phone each, which is where they stopped being readable. One
+   under the other, each as wide as the card. */
+@media (max-width: 640px) {
+  .project-media--set {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .project-media--set img {
+    flex: none;
+    width: 100%;
+  }
+  /* A shared row goes back to a card per project, one under the other, and
+     with nothing beside anything any more each piece is as big as the phone
+     allows. */
+  .project-row { flex-direction: column; }
+  .project-row .project { flex: none; }
+  .project-media:not(.project-media--set) img {
+    max-height: min(34rem, calc(100svh - 15rem));
+  }
 }

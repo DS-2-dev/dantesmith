@@ -9,6 +9,10 @@ import test from 'node:test';
 const HTTP_PORT = 4174;
 const DEBUG_PORT = 9223;
 
+/* A section is up once its fade and its lift have run: 0.12s of delay and
+   0.5s of travel, and the mark's 0.55s move to the corner, with room over. */
+const SETTLE = 800;
+
 function chromiumPath() {
   if (process.env.CHROMIUM_PATH && existsSync(process.env.CHROMIUM_PATH)) {
     return process.env.CHROMIUM_PATH;
@@ -34,6 +38,8 @@ function chromiumPath() {
   throw new Error('Set CHROMIUM_PATH to a Chromium or Chrome headless-shell executable.');
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function waitFor(url, timeout = 10_000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -41,7 +47,7 @@ async function waitFor(url, timeout = 10_000) {
       const response = await fetch(url);
       if (response.ok) return response;
     } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await sleep(50);
   }
   throw new Error(`Timed out waiting for ${url}`);
 }
@@ -97,67 +103,122 @@ class Cdp {
   }
 }
 
-async function renderedMetrics(cdp, width, height) {
-  await cdp.send('Emulation.setDeviceMetricsOverride', {
-    width,
-    height,
-    deviceScaleFactor: 1,
-    mobile: false,
-  });
-  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${HTTP_PORT}/` });
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  const { result } = await cdp.send('Runtime.evaluate', {
-    awaitPromise: true,
-    returnByValue: true,
-    expression: `(async () => {
-      if (document.fonts?.ready) {
-        await Promise.race([
-          document.fonts.ready,
-          new Promise((resolve) => setTimeout(resolve, 1500)),
-        ]);
-      }
-      await new Promise(requestAnimationFrame);
-      await new Promise(requestAnimationFrame);
-      const tiles = [...document.querySelectorAll('.tile')]
-        .map((tile) => tile.getBoundingClientRect());
-      const bar = document.querySelector('.bar').getBoundingClientRect();
-      const about = document.getElementById('about');
-      return {
-        viewportWidth: innerWidth,
-        viewportHeight: innerHeight,
-        documentWidth: document.documentElement.scrollWidth,
-        tiles: tiles.length,
-        /* one x per column: the grid puts every tile in a row at the same
-           left edge, so counting the distinct ones counts the columns */
-        columns: new Set(tiles.map((tile) => Math.round(tile.x))).size,
-        minTileWidth: Math.min(...tiles.map((tile) => tile.width)),
-        barHeight: bar.height,
-        /* the bar is fixed, so this is the test that the grid starts under it
-           rather than behind it */
-        firstTileTop: tiles[0].top,
-        /* one line, always: three groups that wrapped would double its height */
-        barWraps: bar.height > 72,
-        aboutHidden: about.hidden,
-        aboutDisplay: getComputedStyle(about).display,
-      };
-    })()`,
-  });
-  return result.value;
-}
-
-/* Runs a sequence of expressions in the page and hands back what the last one
-   returned. The behaviour tests below are all "click this, then read that",
-   which the metrics helper above cannot express because it reloads. */
+/* Runs an expression in the page and hands back what it returned. */
 async function evaluate(cdp, expression) {
-  const { result } = await cdp.send('Runtime.evaluate', {
+  const { result, exceptionDetails } = await cdp.send('Runtime.evaluate', {
     awaitPromise: true,
     returnByValue: true,
     expression,
   });
+  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
   return result.value;
 }
 
-test('the grid, the bar, the theme and the about sheet', async (t) => {
+/* A fresh load at a size. A phone is emulated as one — the viewport meta
+   honoured and touch in place of a mouse — so (hover: none) matches there the
+   way it does in a hand. */
+async function load(cdp, width, height, phone = false) {
+  await cdp.send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile: phone,
+  });
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: phone });
+  await cdp.send('Emulation.setEmulatedMedia', {
+    features: [
+      { name: 'hover', value: phone ? 'none' : 'hover' },
+      { name: 'pointer', value: phone ? 'coarse' : 'fine' },
+    ],
+  });
+  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${HTTP_PORT}/` });
+  await sleep(500);
+  await evaluate(cdp, `(async () => {
+    if (document.fonts?.ready) {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    }
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+  })()`);
+}
+
+async function open(cdp, view) {
+  await evaluate(cdp, `document.querySelector('.menu-item[data-view="${view}"]').click()`);
+  await sleep(SETTLE);
+}
+
+/* Where everything is once a section is up. */
+function metrics(cdp, view) {
+  return evaluate(cdp, `(() => {
+    const rect = (el) => {
+      const b = el.getBoundingClientRect();
+      return { top: b.top, right: b.right, bottom: b.bottom, left: b.left, width: b.width, height: b.height };
+    };
+    const section = document.getElementById('${view}');
+    return {
+      viewportWidth: innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      section: { ...rect(section), clientHeight: section.clientHeight, scrollHeight: section.scrollHeight },
+      mark: rect(document.querySelector('.monogram')),
+      menu: rect(document.querySelector('.menu')),
+      cards: [...section.querySelectorAll('.project')].map((card) => ({
+        card: rect(card),
+        media: rect(card.querySelector('.project-media')),
+        text: rect(card.querySelector('.project-text')),
+        named: !!card.querySelector('.project-name')?.textContent.trim(),
+        /* which shared row the card is in, or -1 for a card with a row to itself */
+        row: [...section.querySelectorAll('.project-row')].indexOf(card.parentElement),
+        /* the ratio from the file's own width and height attributes, not from
+           the drawn box, which is the thing being checked against it */
+        /* the pictures showing: a switched-away panel's are not on the page */
+        pictures: [...card.querySelectorAll('.project-media img')].filter((img) => !img.closest('[hidden]')).map((img) => ({
+          ...rect(img),
+          src: img.getAttribute('src'),
+          ratio: img.getAttribute('width') / img.getAttribute('height'),
+        })),
+      })),
+    };
+  })()`);
+}
+
+/* Where a section's content sits at rest, and where its end lands once the
+   section is scrolled all the way down. */
+function reach(cdp, view) {
+  return evaluate(cdp, `(async () => {
+    const section = document.getElementById('${view}');
+    const content = [...section.children].filter((el) => !el.classList.contains('sr-only'));
+    const frame = () => new Promise(requestAnimationFrame);
+    section.scrollTop = 0;
+    await frame();
+    const top = content[0].getBoundingClientRect().top;
+    section.scrollTop = section.scrollHeight;
+    await frame();
+    const bottom = content.at(-1).getBoundingClientRect().bottom;
+    section.scrollTop = 0;
+    return { top, bottom };
+  })()`);
+}
+
+/* The chrome floats over the sections on glass, so what has to clear it is
+   the content: at rest it starts under the mark's card, and scrolled to the
+   end it finishes above the menu's, so nothing is ever stuck beneath either. */
+async function assertClearOfChrome(cdp, view, m, at) {
+  const { top, bottom } = await reach(cdp, view);
+  assert.ok(top >= m.mark.bottom - 1, `${at} ${view} starts under the mark: ${top} against ${m.mark.bottom}`);
+  assert.ok(bottom <= m.menu.top + 1, `${at} ${view} ends under the menu: ${bottom} against ${m.menu.top}`);
+}
+
+async function pressKey(cdp, key, keyCode) {
+  const event = { key, code: key, windowsVirtualKeyCode: keyCode };
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...event });
+  await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...event });
+}
+const pressTab = (cdp) => pressKey(cdp, 'Tab', 9);
+
+test('the page', async (t) => {
   const profile = mkdtempSync(join(tmpdir(), 'portfolio-chromium-'));
   const server = spawn('python3', ['-m', 'http.server', String(HTTP_PORT), '--bind', '127.0.0.1'], {
     cwd: process.cwd(),
@@ -179,8 +240,9 @@ test('the grid, the bar, the theme and the about sheet', async (t) => {
   });
 
   await waitFor(`http://127.0.0.1:${DEBUG_PORT}/json/version`);
+  await waitFor(`http://127.0.0.1:${HTTP_PORT}/`);
   const page = await fetch(
-    `http://127.0.0.1:${DEBUG_PORT}/json/new?http://127.0.0.1:${HTTP_PORT}/`,
+    `http://127.0.0.1:${DEBUG_PORT}/json/new?about:blank`,
     { method: 'PUT' },
   ).then((response) => response.json());
   const cdp = new Cdp(page.webSocketDebuggerUrl);
@@ -188,92 +250,220 @@ test('the grid, the bar, the theme and the about sheet', async (t) => {
   t.after(() => cdp.close());
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
+  /* the page has to believe it is focused, or nothing inside it can be */
+  await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true });
 
-  /* The grid drops a column rather than narrowing the tiles. Three across is
-     the desktop shape, two on a tablet, one on a phone — and at no width may
-     the page be wider than the window. */
-  for (const [viewport, columns] of [
-    [{ width: 1728, height: 1117 }, 3],
-    [{ width: 1366, height: 900 }, 3],
-    [{ width: 1024, height: 600 }, 3],
-    [{ width: 900, height: 800 }, 2],
-    [{ width: 700, height: 800 }, 2],
-    [{ width: 390, height: 844 }, 1],
-  ]) {
-    const m = await renderedMetrics(cdp, viewport.width, viewport.height);
-    const at = `${viewport.width}x${viewport.height}`;
+  /* Every project a card, every picture at its own file's ratio and big enough
+     to read, none off the side and none taller than the box it scrolls in, so
+     each can be seen whole between the mark and the menu. The words sit beside
+     the pictures on a wide window and under them on a narrow one. */
+  await t.test('the work reads at every size', async () => {
+    for (const [width, height, phone] of [
+      [1728, 1117, false],
+      [1440, 900, false],
+      [1280, 720, false],
+      [1025, 700, false],
+      [1024, 600, false],
+      [700, 800, false],
+      [390, 844, true],
+      [375, 667, true],
+    ]) {
+      await load(cdp, width, height, phone);
+      await open(cdp, 'work');
+      const m = await metrics(cdp, 'work');
+      const at = `${width}x${height}`;
 
-    assert.equal(m.tiles, 8, `${at} did not render every piece`);
-    assert.equal(m.columns, columns, `${at} laid out ${m.columns} columns, wanted ${columns}`);
-    assert.ok(
-      m.documentWidth <= m.viewportWidth + 1,
-      `${at} scrolls sideways: ${JSON.stringify(m)}`,
-    );
-    /* The bar floats over the grid, so a tile that started at the top of the
-       page would be behind it. */
-    assert.ok(
-      m.firstTileTop >= m.barHeight - 1,
-      `${at} put the first tile under the bar: ${JSON.stringify(m)}`,
-    );
-    assert.ok(!m.barWraps, `${at} wrapped the bar onto a second line`);
-    /* Shut, and shut in the way that keeps it out of the tab order. */
-    assert.equal(m.aboutHidden, true, `${at} loaded with the about sheet open`);
-    assert.equal(m.aboutDisplay, 'none', `${at} left the hidden sheet displayed`);
-  }
+      /* Sidq, the Vantage and Weave card, the shirt, the poster */
+      assert.equal(m.cards.length, 4, `${at} did not render every card`);
+      assert.equal(m.cards.flatMap((card) => card.pictures).length, 6, `${at} did not show every picture`);
+      assert.ok(m.documentWidth <= m.viewportWidth + 1, `${at} scrolls sideways`);
+      await assertClearOfChrome(cdp, 'work', m, at);
 
-  /* A tile is a piece of work, not a thumbnail. This is the floor the column
-     count exists to protect. */
-  const wide = await renderedMetrics(cdp, 1728, 1117);
-  assert.ok(wide.minTileWidth >= 400, `wide layout shrank its tiles to ${wide.minTileWidth}`);
-  const laptop = await renderedMetrics(cdp, 1024, 600);
-  assert.ok(laptop.minTileWidth >= 280, `laptop layout shrank its tiles to ${laptop.minTileWidth}`);
+      /* Above a phone the campaign leads, every other piece is under its
+         flyers' height, and the shirt and the poster share a row at one
+         height. */
+      if (width > 640) {
+        const [lead, ...rest] = m.cards;
+        const leadHeight = Math.min(...lead.pictures.map((picture) => picture.height));
+        for (const picture of rest.flatMap((card) => card.pictures)) {
+          assert.ok(
+            picture.height < leadHeight,
+            `${at} ${picture.src} at ${Math.round(picture.height)}px is not under the campaign's ${Math.round(leadHeight)}px`,
+          );
+        }
+        const rows = [...new Set(m.cards.map((card) => card.row))].filter((row) => row >= 0);
+        assert.equal(rows.length, 1, `${at} did not set the shirt and the poster in a row`);
+        for (const row of rows) {
+          const [first, second] = m.cards.filter((card) => card.row === row);
+          assert.ok(
+            Math.abs(first.card.top - second.card.top) <= 1 && second.card.left >= first.card.right,
+            `${at} shared row ${row} is not one row`,
+          );
+          assert.ok(
+            Math.abs(first.pictures[0].height - second.pictures[0].height) <= 2,
+            `${at} shared row ${row} sits at ${Math.round(first.pictures[0].height)} and ${Math.round(second.pictures[0].height)}px`,
+          );
+        }
+      }
 
-  /* The switch flips the theme, says what it will do next, and is remembered. */
-  await renderedMetrics(cdp, 1440, 900);
-  const theme = await evaluate(cdp, `(async () => {
-    const button = document.getElementById('theme');
-    const before = document.documentElement.dataset.theme || 'dark';
-    button.click();
-    const after = document.documentElement.dataset.theme || 'dark';
-    const stored = localStorage.getItem('theme');
-    const label = button.getAttribute('aria-label');
-    button.click();
-    return { before, after, stored, label, back: document.documentElement.dataset.theme || 'dark' };
-  })()`);
-  assert.equal(theme.before, 'dark', 'the page did not start dark');
-  assert.equal(theme.after, 'light', 'the switch did not reach the light theme');
-  assert.equal(theme.stored, 'light', 'the choice was not remembered');
-  assert.match(theme.label, /dark/i, 'the switch did not name what it would do next');
-  assert.equal(theme.back, 'dark', 'the switch did not come back');
+      /* the phone floor is where a flyer's headline is still a headline */
+      const floor = width <= 640 ? 300 : 180;
+      for (const card of m.cards) {
+        assert.ok(card.named, `${at} left a project without a name`);
+        if (width > 1024) {
+          assert.ok(card.text.left >= card.media.right - 1, `${at} did not set the words beside the pictures`);
+        } else {
+          assert.ok(card.text.top >= card.media.bottom - 1, `${at} did not set the words under the pictures`);
+        }
+        for (const picture of card.pictures) {
+          const drawn = picture.width / picture.height;
+          assert.ok(
+            Math.abs(drawn / picture.ratio - 1) < 0.015,
+            `${at} ${picture.src} drawn at ${drawn.toFixed(3)}, the file is ${picture.ratio.toFixed(3)}`,
+          );
+          assert.ok(picture.width >= floor, `${at} ${picture.src} is ${Math.round(picture.width)}px wide`);
+          assert.ok(
+            picture.left >= card.card.left - 1 && picture.right <= card.card.right + 1,
+            `${at} ${picture.src} spills out of its card`,
+          );
+          const band = m.menu.top - m.mark.bottom;
+          assert.ok(
+            picture.height <= band,
+            `${at} ${picture.src} is ${Math.round(picture.height)}px tall between chrome ${Math.round(band)}px apart`,
+          );
+        }
+      }
+    }
+  });
 
-  /* The sheet opens, takes the focus, holds the page still under it, and
-     Escape puts everything back. */
-  const about = await evaluate(cdp, `(async () => {
-    const panel = document.getElementById('about');
-    const open = document.getElementById('about-open');
-    open.click();
-    const opened = {
-      hidden: panel.hidden,
-      expanded: open.getAttribute('aria-expanded'),
-      focus: document.activeElement.id,
-      bodyOverflow: document.body.style.overflow,
-      hasContact: !!panel.querySelector('.deposit-go'),
+  /* The text sections scroll whenever the window is short, and they scroll
+     under the chrome, so theirs is the content that has to clear it. */
+  await t.test('the text sections rest and end clear of the chrome', async () => {
+    for (const [width, height, phone] of [[1440, 900, false], [375, 667, true]]) {
+      for (const view of ['about', 'contact']) {
+        await load(cdp, width, height, phone);
+        await open(cdp, view);
+        const m = await metrics(cdp, view);
+        const at = `${width}x${height}`;
+        assert.ok(m.documentWidth <= m.viewportWidth + 1, `${at} ${view} scrolls sideways`);
+        await assertClearOfChrome(cdp, view, m, at);
+      }
+    }
+  });
+
+  /* The menu sits on glass throughout, so it reads over whatever scrolls
+     under it. The mark floats bare everywhere: it is the name, not a panel. */
+  await t.test('the menu sits on glass and the mark floats bare', async () => {
+    const chrome = `(() => {
+      const look = (el) => {
+        const style = getComputedStyle(el);
+        return { blur: style.backdropFilter.includes('blur'), fill: style.backgroundColor };
+      };
+      return { mark: look(document.getElementById('home')), menu: look(document.querySelector('.menu')) };
+    })()`;
+    await load(cdp, 1440, 900);
+    const home = await evaluate(cdp, chrome);
+    assert.equal(home.mark.blur, false, 'the mark is on glass at home');
+    assert.equal(home.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card at home');
+    assert.equal(home.menu.blur, true, 'the menu is not on glass');
+    await open(cdp, 'work');
+    const away = await evaluate(cdp, chrome);
+    assert.equal(away.mark.blur, false, 'the mark is on glass in a section');
+    assert.equal(away.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card in a section');
+    assert.equal(away.menu.blur, true, 'the menu lost its glass in a section');
+  });
+
+  /* The menu brings a section up and marks it, the mark comes home, and so
+     does Escape. The mark is disabled at home, where it has nowhere to go. */
+  await t.test('the menu, the mark and Escape move between the sections', async () => {
+    const state = `(() => ({
+      view: document.body.dataset.view,
+      on: [...document.querySelectorAll('.view.is-on')].map((view) => view.id),
+      current: [...document.querySelectorAll('.menu-item[aria-current="true"]')].map((item) => item.dataset.view),
+      homeDisabled: document.getElementById('home').disabled,
+    }))()`;
+    const home = { view: 'home', on: [], current: [], homeDisabled: true };
+
+    await load(cdp, 1440, 900);
+    assert.deepEqual(await evaluate(cdp, state), home, 'the page did not open at home');
+
+    for (const view of ['about', 'work', 'contact']) {
+      await evaluate(cdp, `document.querySelector('.menu-item[data-view="${view}"]').click()`);
+      assert.deepEqual(
+        await evaluate(cdp, state),
+        { view, on: [view], current: [view], homeDisabled: false },
+        `the menu did not bring up ${view}`,
+      );
+    }
+
+    await evaluate(cdp, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+    assert.deepEqual(await evaluate(cdp, state), home, 'Escape did not come home');
+
+    await evaluate(cdp, `document.querySelector('.menu-item[data-view="about"]').click()`);
+    await evaluate(cdp, `document.getElementById('home').click()`);
+    assert.deepEqual(await evaluate(cdp, state), home, 'the mark did not come home');
+  });
+
+  /* Vantage and Weave share a card and a switch. The switch is a tab list: the
+     chosen tab is its one stop, the arrow keys move between the two and show
+     as they go, and the demo link is there, once, only while Weave is. */
+  await t.test('the switch trades Vantage for Weave', async () => {
+    await load(cdp, 1440, 900);
+    await open(cdp, 'work');
+    const state = `(() => ({
+      selected: [...document.querySelectorAll('.switch [role="tab"]')]
+        .filter((tab) => tab.getAttribute('aria-selected') === 'true')
+        .map((tab) => tab.textContent.trim()),
+      shown: [...document.querySelectorAll('.project-panel')]
+        .filter((panel) => getComputedStyle(panel).visibility === 'visible')
+        .map((panel) => panel.id),
+      focus: document.activeElement.textContent.trim(),
+      height: document.querySelector('.project--switch').getBoundingClientRect().height,
+    }))()`;
+    /* the panel switched away keeps its visibility for the length of the fade */
+    const FADE = 400;
+    /* one lap from the mark: the chosen tab, anything in the card, the menu */
+    const links = async () => {
+      await evaluate(cdp, `document.getElementById('home').focus()`);
+      const hrefs = [];
+      for (let i = 0; i < 6; i++) {
+        await pressTab(cdp);
+        const href = await evaluate(cdp, `document.activeElement.closest('#work') ? document.activeElement.getAttribute('href') : null`);
+        if (href) hrefs.push(href);
+      }
+      return hrefs;
     };
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-    return { opened, closed: {
-      hidden: panel.hidden,
-      expanded: open.getAttribute('aria-expanded'),
-      focus: document.activeElement.id,
-      bodyOverflow: document.body.style.overflow,
-    } };
-  })()`);
-  assert.equal(about.opened.hidden, false, 'the about control did not open the sheet');
-  assert.equal(about.opened.expanded, 'true', 'the about control did not say it was open');
-  assert.equal(about.opened.focus, 'about-close', 'opening the sheet did not move the focus into it');
-  assert.equal(about.opened.bodyOverflow, 'hidden', 'the page still scrolled behind the sheet');
-  assert.equal(about.opened.hasContact, true, 'the sheet does not carry the contact details');
-  assert.equal(about.closed.hidden, true, 'Escape did not close the sheet');
-  assert.equal(about.closed.expanded, 'false', 'the control still says it is open');
-  assert.equal(about.closed.focus, 'about-open', 'closing the sheet stranded the focus');
-  assert.equal(about.closed.bodyOverflow, '', 'the page was left unable to scroll');
+
+    let now = await evaluate(cdp, state);
+    const height = now.height;
+    assert.deepEqual(now.selected, ['Vantage'], 'the card did not open on Vantage');
+    assert.deepEqual(now.shown, ['work-panel-vantage'], 'the card did not show Vantage alone');
+    assert.deepEqual(await links(), [], 'the demo link was reachable with Weave hidden');
+
+    await evaluate(cdp, `document.getElementById('work-tab-vantage').focus()`);
+    await pressKey(cdp, 'ArrowRight', 39);
+    await sleep(FADE);
+    now = await evaluate(cdp, state);
+    assert.deepEqual(now.selected, ['Weave'], 'the arrow key did not choose Weave');
+    assert.deepEqual(now.shown, ['work-panel-weave'], 'choosing Weave did not show Weave alone');
+    assert.equal(now.focus, 'Weave', 'the focus did not follow the arrow');
+    assert.equal(now.height, height, 'the card changed height on the switch, moving everything under it');
+    assert.deepEqual(await links(), ['https://weave2-demo.vercel.app/'], 'the demo link was not exactly one stop');
+
+    await evaluate(cdp, `document.getElementById('work-tab-vantage').click()`);
+    await sleep(FADE);
+    now = await evaluate(cdp, state);
+    assert.deepEqual(now.selected, ['Vantage'], 'clicking did not choose Vantage again');
+    assert.deepEqual(now.shown, ['work-panel-vantage'], 'clicking did not show Vantage again');
+  });
+
+  /* Either way the button lands, the live region says so in plain words. */
+  await t.test('the copy button says what happened', async () => {
+    await load(cdp, 1440, 900);
+    await open(cdp, 'contact');
+    await evaluate(cdp, `document.querySelector('.copy').click()`);
+    await sleep(200);
+    const said = await evaluate(cdp, `document.querySelector('.sr-only[role="status"]').textContent`);
+    assert.match(said, /^(Email address copied|Could not copy\. The address is \S+@\S+)$/);
+  });
 });
