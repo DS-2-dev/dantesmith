@@ -177,6 +177,122 @@
 })();
 
 
+/* Latest inspo, from Are.na.
+
+   The four newest images in my inspo channel, on the black card at home.
+   The channel is public, so Are.na's API gives up its contents to anyone who
+   asks, and this asks with no token at all. That is on purpose: anything in
+   this file is readable by whoever opens it, and a personal access token can
+   act as the account, not just read it.
+
+   Newest first is the channel's own order turned round. Only picture blocks
+   count — links and text in the channel are skipped. Asked once on load and
+   every minute after while the tab is in front, and straight away on coming
+   back to it. Are.na tells browsers to keep its answers for a week, so this
+   never takes a kept one: a week-old answer is not live. */
+(function () {
+  const card = document.getElementById('inspo');
+  if (!card) return;
+
+  const CHANNEL = 'inspo-syd5sijpqmk';
+  const ENDPOINT = 'https://api.are.na/v2/channels/' + CHANNEL
+    + '/contents?per=24&sort=position&direction=desc';
+  const SHOW = 4;
+  const EVERY = 60000;
+  const PATIENCE = 8000;
+  const FADE = 280;
+
+  const thumbs = Array.from(card.querySelectorAll('.inspo-thumb img'));
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let asking = false;
+  let timer;
+
+  thumbs.forEach((img) => {
+    img.addEventListener('load', () => img.classList.remove('is-missing'));
+    img.addEventListener('error', () => img.classList.add('is-missing'));
+  });
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  function preload(src) {
+    return new Promise((resolve) => {
+      const image = new Image();
+      image.onload = image.onerror = () => resolve();
+      image.src = src;
+      setTimeout(resolve, 1500);
+    });
+  }
+
+  async function check() {
+    if (asking) return;
+    asking = true;
+    const controller = new AbortController();
+    const limit = setTimeout(() => controller.abort(), PATIENCE);
+    try {
+      const response = await fetch(ENDPOINT, { cache: 'no-store', signal: controller.signal });
+      if (!response.ok) return;
+      const data = await response.json();
+      const picks = (Array.isArray(data.contents) ? data.contents : [])
+        .filter((block) => (block.class === 'Image' || block.class === 'Attachment')
+          && block.image && block.image.square && block.image.square.url)
+        .slice(0, SHOW)
+        .map((block) => ({ id: String(block.id), src: block.image.square.url }));
+      if (!picks.length) return;
+
+      /* nothing new since last time, which is most minutes */
+      const key = picks.map((pick) => pick.id).join(',');
+      if (key === card.dataset.blocks) return;
+
+      /* The new set is fetched before anything moves, then morphs in: the
+         old squares fade out, the new are set while nothing shows, and they
+         fade back. The first set, or any with motion turned down, is simply
+         put up. */
+      await Promise.all(picks.map((pick) => preload(pick.src)));
+      const morph = !card.hidden && !still.matches;
+      if (morph) {
+        card.classList.add('is-changing');
+        await wait(FADE);
+      }
+      thumbs.forEach((img, i) => {
+        const pick = picks[i];
+        img.parentElement.hidden = !pick;
+        if (pick) img.src = pick.src;
+        else img.removeAttribute('src');
+      });
+      card.dataset.blocks = key;
+      card.hidden = false;
+      card.classList.remove('is-changing');
+    } catch (error) {
+      /* Offline, blocked or down: whatever is showing stays, and a card that
+         never loaded stays hidden. */
+    } finally {
+      clearTimeout(limit);
+      asking = false;
+    }
+  }
+
+  /* booked before asking, so a question that never comes back cannot end
+     the loop — the same as the listening card's */
+  function schedule() {
+    clearTimeout(timer);
+    if (document.hidden) return;
+    timer = setTimeout(() => {
+      schedule();
+      check();
+    }, EVERY);
+  }
+  function again() {
+    schedule();
+    if (!document.hidden) check();
+  }
+  document.addEventListener('visibilitychange', again);
+  window.addEventListener('focus', again);
+  window.addEventListener('pageshow', again);
+  window.addEventListener('online', again);
+  check();
+  schedule();
+})();
+
+
 /* The email, copied. Not a mailto — see the markup for why — so the button is
    the only way the address leaves the page, and it has to actually work rather
    than fail silently the way a dead mailto does.

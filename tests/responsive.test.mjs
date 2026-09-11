@@ -125,6 +125,32 @@ function recentTrack(extra) {
     },
   };
 }
+/* What Are.na answers for the channel, newest first: a link and a text
+   block among the pictures, which the card has to skip. The pictures are
+   files the test's own server has. */
+function arenaChannel(files) {
+  /* one id per picture, the way Are.na has one per block: the card knows a
+     new picture by its id, so ids by position would make every set look the
+     same */
+  const picture = (file) => ({
+    id: 'block-' + file,
+    class: 'Image',
+    title: file,
+    image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/${file}` } },
+  });
+  const [first, ...rest] = files.map(picture);
+  return {
+    contents: [
+      { id: 999, class: 'Link', title: 'a link', image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/og-card.jpg` } } },
+      first,
+      { id: 998, class: 'Text', title: 'a note', content: 'words' },
+      ...rest,
+    ],
+  };
+}
+const ARENA = arenaChannel(['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp', 'weave-cover.webp']);
+const ARENA_NEXT = arenaChannel(['wsu-ai-lab-poster.webp', 'sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp']);
+
 const NOW_PLAYING = recentTrack({ '@attr': { nowplaying: 'true' } });
 const LAST_PLAYED = recentTrack({ date: { uts: String(Math.floor(Date.now() / 1000) - 300) } });
 
@@ -285,20 +311,24 @@ test('the page', async (t) => {
   /* Every call to Last.fm is answered here, with whatever `lastfm` holds at
      the time. The CORS header is what the real API sends too. */
   let lastfm = { status: 200, body: NOW_PLAYING };
-  cdp.on('Fetch.requestPaused', ({ requestId }) => {
+  let arena = { status: 200, body: ARENA };
+  cdp.on('Fetch.requestPaused', ({ requestId, request }) => {
+    const answer = request.url.includes('api.are.na') ? arena : lastfm;
     /* left unanswered, the way a stalled connection leaves a request */
-    if (lastfm.hang) return;
+    if (answer.hang) return;
     cdp.send('Fetch.fulfillRequest', {
       requestId,
-      responseCode: lastfm.status,
+      responseCode: answer.status,
       responseHeaders: [
         { name: 'Content-Type', value: 'application/json' },
         { name: 'Access-Control-Allow-Origin', value: '*' },
       ],
-      body: Buffer.from(JSON.stringify(lastfm.body)).toString('base64'),
+      body: Buffer.from(JSON.stringify(answer.body)).toString('base64'),
     }).catch(() => {});
   });
-  await cdp.send('Fetch.enable', { patterns: [{ urlPattern: '*ws.audioscrobbler.com*' }] });
+  await cdp.send('Fetch.enable', {
+    patterns: [{ urlPattern: '*ws.audioscrobbler.com*' }, { urlPattern: '*api.are.na*' }],
+  });
 
   /* The card at home: what it says, whether it shows, and where it sits
      against the menu in the other corner. */
@@ -413,6 +443,82 @@ test('the page', async (t) => {
     card = await evaluate(cdp, listening);
     assert.equal(card.hidden, true, 'the card came up with nothing to say');
     lastfm = { status: 200, body: NOW_PLAYING };
+  });
+
+  /* The black card beside it: the four newest pictures in the Are.na channel,
+     newest first, links and text skipped, in the bottom-right corner, above
+     the listening card on a phone, gone in a section, following a new
+     picture without a reload, and not there at all if Are.na is down. */
+  const inspo = `(() => {
+    const card = document.getElementById('inspo');
+    const style = getComputedStyle(card);
+    const box = card.getBoundingClientRect();
+    const chip = document.getElementById('listening').getBoundingClientRect();
+    return {
+      hidden: card.hidden,
+      visibility: style.visibility,
+      fill: style.backgroundColor,
+      thumbs: [...card.querySelectorAll('.inspo-thumb img')].map((img) => (img.getAttribute('src') || '').split('/').pop()),
+      href: card.getAttribute('href'),
+      target: card.getAttribute('target'),
+      left: box.left,
+      right: box.right,
+      top: box.top,
+      bottom: box.bottom,
+      chipTop: chip.top,
+      chipRight: chip.right,
+      width: innerWidth,
+      height: innerHeight,
+    };
+  })()`;
+
+  await t.test('home shows the newest from Are.na', async () => {
+    arena = { status: 200, body: ARENA };
+    lastfm = { status: 200, body: NOW_PLAYING };
+    await load(cdp, 1440, 900);
+    await sleep(SETTLE);
+    let card = await evaluate(cdp, inspo);
+    assert.equal(card.hidden, false, 'the card did not come up with pictures');
+    assert.deepEqual(
+      card.thumbs,
+      ['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp'],
+      'not the four newest pictures, newest first, with the link and the text skipped',
+    );
+    assert.equal(card.fill, 'rgb(0, 0, 0)', 'the card is not pure black');
+    assert.equal(card.href, 'https://www.are.na/dante-smith/inspo-syd5sijpqmk');
+    assert.equal(card.target, '_blank');
+    assert.ok(Math.abs(card.right - (card.width - 16)) <= 1 && Math.abs(card.bottom - (card.height - 16)) <= 1,
+      'the card is not in the bottom-right corner');
+    assert.ok(card.left >= card.chipRight + 8, 'the card runs into the listening card');
+
+    await open(cdp, 'work');
+    assert.equal((await evaluate(cdp, inspo)).visibility, 'hidden', 'the card stayed up in a section');
+
+    /* a new picture, picked up on coming back home and to the window */
+    arena = { status: 200, body: ARENA_NEXT };
+    await evaluate(cdp, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
+    await evaluate(cdp, `window.dispatchEvent(new Event('focus'))`);
+    await sleep(1000);
+    card = await evaluate(cdp, inspo);
+    assert.deepEqual(
+      card.thumbs,
+      ['wsu-ai-lab-poster.webp', 'sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp'],
+      'the card did not follow a new picture without a reload',
+    );
+
+    /* on a phone the two cards stack, the black one on top, both on screen */
+    arena = { status: 200, body: ARENA };
+    await load(cdp, 375, 667, true);
+    await sleep(SETTLE);
+    card = await evaluate(cdp, inspo);
+    assert.ok(card.bottom <= card.chipTop - 4, `the cards overlap on a phone: black ends ${card.bottom}, listening starts ${card.chipTop}`);
+    assert.ok(card.left >= 15 && card.right <= card.width - 15, 'the card runs off the phone');
+
+    arena = { status: 500, body: {} };
+    await load(cdp, 1440, 900);
+    await sleep(SETTLE);
+    assert.equal((await evaluate(cdp, inspo)).hidden, true, 'the card came up with nothing to show');
+    arena = { status: 200, body: ARENA };
   });
 
   /* The card follows the music without a reload: the next scheduled check
