@@ -371,10 +371,9 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
    takes the width of the window instead. */
 .view--wide { max-width: none; }
 
-/* The work, as one arrangement. Three rows stacked and centred: the campaign,
-   then the two wide pieces, then the square and the poster. The campaign leads
-   and is the largest of them — it is three ads for one product, and the rest
-   of the page is one piece at a time.
+/* The work, as one arrangement. Two rows stacked and centred: the campaign,
+   then the other four together. The campaign leads and is the taller — it is
+   three ads for one product, and the rest of the page is one piece at a time.
 
    Every row's height is a multiple of a single unit written by app.js, which
    spends the box's height and width on the rows at once. Widths follow from
@@ -396,7 +395,10 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
      laying the rows out at zero */
   height: calc(var(--u, 9vh) * var(--w));
 }
-.grow--flank { --w: 1; }
+/* The four pieces in one row under the campaign. The weight is the share of
+   the box's height that leaves both rows filling it at a common desktop shape;
+   past that the solver's width term takes over and this is only a ratio. */
+.grow--flank { --w: 1.25; }
 
 /* The campaign. First and twice the height of the rows under it, on the grey
    the page already uses behind a picture, so the three read as one held set. */
@@ -501,7 +503,9 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   .grow { height: auto; width: 100%; }
   .ad-card { width: 100%; }
   .ad { height: auto; width: calc((100% - 1.5rem) / 3); }
-  .tile { height: auto; flex: 1 1 0; min-width: 0; }
+  /* two across, not four: at this width a quarter of the screen is a thumbnail */
+  .grow--flank { flex-wrap: wrap; }
+  .tile { height: auto; flex: 1 1 calc(50% - 0.375rem); min-width: 0; }
   .tile-shot { height: auto; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
