@@ -203,48 +203,36 @@
 
   <main class="view view--wide" id="work" aria-labelledby="work-heading">
     <h2 class="sr-only" id="work-heading">Work</h2>
-    <!-- One tile per piece: the picture, and a strip under it with its number
-         and its name. The writing about each one is over the picture on hover
-         rather than under it always — eight paragraphs stacked down the page
-         would be a document about the work instead of the work. -->
-    <!-- Columns, not grid rows. In a grid every card in a row is pushed down by
-         the tallest one in it, so a landscape piece leaves a void under itself
-         and the next row starts below that. A column only answers to its own
-         cards, which is what puts Jack's directly under Vantage.
+    <!-- Three rows, led by the campaign. It comes first and it is twice the
+         height of the rows under it, so the newest work is what the section
+         opens on and the rest reads as what followed it.
 
-         Every piece is at its own shape again. A square crop took the margins
-         off the posters, and on a piece whose subject is type on a field that
-         margin IS the design.
+         Nothing is cropped: every shot is stated at the ratio of the file it
+         holds, and the pictures are sized by the height their row is given, so
+         a piece is never trimmed to fit a shape it was not drawn at.
 
-         The width is solved in app.js from the height this box has to spend —
-         see there for the arithmetic. The cluster fits; it does not scroll. -->
-    <!-- The campaign sits in its own card rather than as three tiles in the
-         cluster: they are one piece of work in three parts, and split across
-         the stagger they would read as three unrelated posters. The card is
-         the grey the rest of the page uses behind a picture, so it reads as a
-         held set and not as a box drawn for its own sake.
+         The row heights come from app.js, which spends the box on them — see
+         there for the arithmetic. The group fits; it does not scroll. -->
+    <div class="group" id="group">
+      <!-- First, and the biggest thing here. Three ads for one product, held
+           on the grey the page already uses behind a picture. -->
+      <section class="grow ad-card" aria-label="Sidq campaign">
+        <img class="ad" src="images/sidq-switch-ai.webp" width="800" height="952" alt="Sidq ad: the wordmark in white on black over a photograph of an eighties office, colleagues gathered around a green-screen terminal, under the line “Switch AI. Keep the conversation.”" loading="lazy" decoding="async">
+        <img class="ad" src="images/sidq-your-context.webp" width="800" height="1005" alt="Sidq ad: the wordmark above a green-toned photograph of a man on the phone beside a subway entrance signed ChatGPT, under the line “Your Context. Any AI.”" loading="lazy" decoding="async">
+        <img class="ad" src="images/sidq-stop-explaining.webp" width="800" height="1000" alt="Sidq ad: “Stop explaining yourself. Twice.” over an eight-pointed star filled with a smeared green and orange photograph." loading="lazy" decoding="async">
+      </section>
 
-         Height is a share of this box and the posters answer to it, so the
-         band can never grow enough to push the cluster into a scroll. -->
-    <section class="ad-card" aria-label="Sidq campaign">
-      <img class="ad" src="images/sidq-switch-ai.webp" alt="Sidq ad: the wordmark in white on black over a photograph of an eighties office, colleagues gathered around a green-screen terminal, under the line “Switch AI. Keep the conversation.”" loading="lazy" decoding="async">
-      <img class="ad" src="images/sidq-your-context.webp" alt="Sidq ad: the wordmark above a green-toned photograph of a man on the phone beside a subway entrance signed ChatGPT, under the line “Your Context. Any AI.”" loading="lazy" decoding="async">
-      <img class="ad" src="images/sidq-stop-explaining.webp" alt="Sidq ad: “Stop explaining yourself. Twice.” over an eight-pointed star filled with a smeared green and orange photograph." loading="lazy" decoding="async">
-    </section>
-    <div class="cluster" id="cluster">
-      <div class="col">
+      <div class="grow grow--flank">
         <figure class="tile">
           <div class="tile-shot shot--vantage">
-            <img src="images/vantage.webp" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it." loading="lazy" decoding="async">
+            <img src="images/vantage.webp" width="900" height="531" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it." loading="lazy" decoding="async">
             <p class="tile-note">Upcoming &mdash; a brand new take on the current software used for the sport of Fencing: revolutionized UI and AI training to improve your agility&hellip;</p>
           </div>
         </figure>
-      </div>
-      <div class="col">
         <figure class="tile">
-          <a class="tile-shot shot--wide" href="https://weave2-demo.vercel.app/" target="_blank" rel="noopener noreferrer"
+          <a class="tile-shot shot--weave" href="https://weave2-demo.vercel.app/" target="_blank" rel="noopener noreferrer"
              aria-label="Weave — open the live demo (opens in a new tab)">
-            <img src="images/weave-cover.webp" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field." loading="lazy" decoding="async">
+            <img src="images/weave-cover.webp" width="900" height="507" alt="Weave cover art: soft out-of-focus streaks of orange, green and white light spread across a pale blue field." loading="lazy" decoding="async">
           <!-- The client's own mark, centred on the cover. Inline rather than
                an <img src>: one fewer request, and it takes currentColor so it
                cannot fall out of step with the page. Decorative — the piece is
@@ -258,18 +246,17 @@
           </a>
         </figure>
       </div>
-      <div class="col">
+
+      <div class="grow grow--flank">
         <figure class="tile">
           <div class="tile-shot shot--square">
-            <img src="images/mac-os-x-shirt.webp" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid." loading="lazy" decoding="async">
+            <img src="images/mac-os-x-shirt.webp" width="700" height="700" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid." loading="lazy" decoding="async">
             <p class="tile-note">I&rsquo;ve been thinking about starting a small clothing brand where I can express my thoughts even more. Anyways &mdash; a little draft of what I might do&hellip;</p>
           </div>
         </figure>
-      </div>
-      <div class="col">
         <figure class="tile">
           <div class="tile-shot shot--poster">
-            <img src="images/wsu-ai-lab-poster.webp" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot." loading="lazy" decoding="async">
+            <img src="images/wsu-ai-lab-poster.webp" width="810" height="1013" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot." loading="lazy" decoding="async">
             <p class="tile-note">Actual recruiting poster for my college&rsquo;s AI Lab. I wanted that heavy/serious feel, which &mdash; trust me &mdash; goes against the current brand guidelines Weber has. I have become the Website Manager &mdash; I am thus in charge of creating the one thing real businesses will see, and the backend Task Manager web app, cause we don&rsquo;t have money to pay for one.</p>
           </div>
         </figure>

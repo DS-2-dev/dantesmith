@@ -125,104 +125,82 @@ function onResize(fn) {
 })();
 
 
-/* The cluster's width, solved from the height it has to spend.
+/* The row unit, solved from the box the work has to spend.
 
-   The pieces have fixed aspect ratios, so a column's height is a multiple of
-   its own width plus the parts that do not scale — the caption strips, the
-   gaps between stacked cards, and the step an even column carries. That makes
-   a height budget spendable as a width:
+   Every row is a multiple of one unit u: the flanking rows carry --w 1 and the
+   campaign carries 2.2, so the campaign is the middle and the biggest thing on
+   the screen. Each picture keeps the ratio of its own file, so once a row has
+   a height its width follows — which makes both directions solvable at once:
 
-       w = (H - fixed) / (sum of the column's height-per-width ratios)
+       height:  u * SUM(w) + gaps            <= H
+       width:   SUM(ratio) * (u * w - padY)  <= W - gaps - padX   per row
 
-   solved for every column, and the narrowest answer wins because it is the
-   column that would otherwise overflow. Width caps it too: four columns and
-   three gaps cannot exceed the box.
-
-   Nothing here reads a rendered width, so there is no circularity. The ratios
-   and the gaps come from computed styles and the only measured inputs are the
-   box and the caption, which is type and so does not scale with w. */
+   The narrowest answer wins, because it is the row that would otherwise run
+   off the side. Nothing here reads a rendered size, so there is no
+   circularity: the ratios, the gaps and the padding all come from computed
+   styles, and the only measured input is the box itself. */
 (function () {
-  const cluster = document.getElementById('cluster');
+  const group = document.getElementById('group');
   const view = document.getElementById('work');
-  if (!cluster || !view) return;
-  const cols = Array.from(cluster.children);
-  if (!cols.length) return;
+  if (!group || !view) return;
+  const rows = Array.from(group.children);
+  if (!rows.length) return;
 
   const px = (v) => parseFloat(v) || 0;
-  /* computed aspect-ratio comes back as "4 / 3" or "auto"; height per unit of
-     width is the inverse of it */
-  function tallness(shot) {
-    const [w, h] = getComputedStyle(shot).aspectRatio.split('/').map(parseFloat);
-    return w > 0 && h > 0 ? h / w : 0;
+  /* computed aspect-ratio comes back as "900 / 531" or "auto"; an <img> with
+     width and height attributes reports its own, which is how the campaign's
+     three are measured without a class each */
+  function wideness(el) {
+    const [w, h] = getComputedStyle(el).aspectRatio.split('/').map(parseFloat);
+    return w > 0 && h > 0 ? w / h : 0;
   }
 
   function measure() {
-    /* The section is display:none-adjacent while it is down — visibility
-       hidden still lays out, so this measures correctly either way, but a box
-       of zero means the stylesheet has not settled yet. */
+    /* The section lays out even while it is down — visibility: hidden keeps a
+       box — so this measures correctly either way. Zero means the stylesheet
+       has not settled yet. */
     const box = getComputedStyle(view);
-    /* A pixel of slack. Every term below is fractional and the answer is
-       floored, but the caption is type and lands on a subpixel, so a solve
-       that spends the box exactly comes out two or three pixels over and the
-       section takes a scrollbar it is not supposed to have. */
-    /* The campaign band is a share of this same box and its posters answer to
-       it, so its height is settled before the cluster is solved and there is
-       no circle here — it is simply height the cluster does not get to
-       spend. */
-    const band = view.querySelector('.ad-card');
-    const bandH = band
-      ? band.getBoundingClientRect().height + px(getComputedStyle(band).marginBottom)
-      : 0;
-    const height = view.clientHeight - px(box.paddingTop) - px(box.paddingBottom)
-                 - bandH - 1;
+    /* A pixel of slack: every term below is fractional and a solve that spends
+       the box exactly comes out a subpixel over, which is a scrollbar. */
+    const height = view.clientHeight - px(box.paddingTop) - px(box.paddingBottom) - 1;
     const width = view.clientWidth - px(box.paddingLeft) - px(box.paddingRight);
     if (height <= 0 || width <= 0) return;
 
-    const colGap = px(getComputedStyle(cluster).columnGap);
+    const rowGap = px(getComputedStyle(group).rowGap) * (rows.length - 1);
 
+    let weights = 0;
     let best = Infinity;
-    cols.forEach((col, i) => {
-      const tiles = Array.from(col.children);
-      if (!tiles.length) return;
-      const style = getComputedStyle(col);
-      const rowGap = px(style.rowGap);
-      /* The step off the column's own resolved margin, not off --step.
-         getPropertyValue hands back the custom property as it was authored —
-         "2.5rem" — and parseFloat reads that as 2.5, so the stepped columns
-         were being solved as if they carried two and a half pixels instead of
-         forty, and the cluster came out a few pixels over its box every time. */
+    rows.forEach((row) => {
+      const style = getComputedStyle(row);
+      const w = parseFloat(style.getPropertyValue('--w')) || 1;
+      weights += w;
+
+      const items = Array.from(row.children);
       let ratio = 0;
-      let fixed = rowGap * (tiles.length - 1) + px(style.marginTop);
-      tiles.forEach((tile) => {
-        ratio += tallness(tile.querySelector('.tile-shot'));
-        /* A tile is its picture and nothing else today. Anything set under one
-           is type, so it does not scale with w and belongs in the fixed term —
-           measured off the rect rather than offsetHeight, which rounds a
-           fractional line box down and hands the solve height that is not
-           there. Kept because a caption is the obvious thing to put back. */
-        const cap = tile.querySelector('.tile-cap');
-        if (cap) {
-          fixed += cap.getBoundingClientRect().height
-                 + px(getComputedStyle(tile).rowGap);
-        }
+      items.forEach((item) => {
+        /* the piece's shape is on the shot inside the figure, the ad's is on
+           the ad itself */
+        ratio += wideness(item.matches('.tile') ? item.firstElementChild : item);
       });
       if (ratio <= 0) return;
-      best = Math.min(best, (height - fixed) / ratio);
-    });
-    if (!isFinite(best)) return;
 
-    /* and it can never be wider than the box it sits in */
-    best = Math.min(best, (width - colGap * (cols.length - 1)) / cols.length);
+      const padY = px(style.paddingTop) + px(style.paddingBottom);
+      const padX = px(style.paddingLeft) + px(style.paddingRight);
+      const gaps = px(style.columnGap) * (items.length - 1);
+      best = Math.min(best, (width - gaps - padX + ratio * padY) / (ratio * w));
+    });
+    if (!isFinite(best) || weights <= 0) return;
+
+    /* and every row together can never be taller than the box */
+    best = Math.min(best, (height - rowGap) / weights);
     if (best <= 0) return;
 
-    /* Set on the view, not the cluster: the campaign band is a sibling and
-       wants the same measure, so the answer has to inherit to both. */
-    view.style.setProperty('--cluster-w',
-      Math.floor(best * cols.length + colGap * (cols.length - 1)) + 'px');
+    view.style.setProperty('--u', Math.floor(best) + 'px');
   }
 
   measure();
   onResize(measure);
-  /* the caption is type, and its height is not final until the face is in */
+  /* the pictures carry width and height attributes, so their ratios are known
+     before they load; this is for the case where one does not */
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
 })();
