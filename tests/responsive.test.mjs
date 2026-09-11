@@ -399,6 +399,41 @@ test('the page', async (t) => {
     lastfm = { status: 200, body: NOW_PLAYING };
   });
 
+  /* The card follows the music without a reload: the next scheduled check
+     picks up a new track, and so does coming back to the window. The page's
+     long timers are cut to a fifth of a second for this, so the poll comes
+     round within the test rather than in 15 seconds. */
+  await t.test('the card follows a new track without a reload', async () => {
+    const { identifier } = await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: `(() => {
+        const wait = window.setTimeout;
+        window.setTimeout = (fn, ms, ...rest) => wait(fn, ms >= 10000 ? 200 : ms, ...rest);
+      })()`,
+    });
+    try {
+      lastfm = { status: 200, body: NOW_PLAYING };
+      await load(cdp, 1440, 900);
+      await sleep(SETTLE);
+      assert.equal((await evaluate(cdp, listening)).title, 'Nights');
+
+      lastfm = { status: 200, body: recentTrack({ name: 'Ivy', '@attr': { nowplaying: 'true' } }) };
+      await sleep(800);
+      assert.equal((await evaluate(cdp, listening)).title, 'Ivy', 'the scheduled check did not pick up the new track');
+
+      /* with the timers back to their real length, focus alone has to do it */
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
+      await load(cdp, 1440, 900);
+      await sleep(SETTLE);
+      lastfm = { status: 200, body: recentTrack({ name: 'Pink + White', '@attr': { nowplaying: 'true' } }) };
+      await evaluate(cdp, `window.dispatchEvent(new Event('focus'))`);
+      await sleep(400);
+      assert.equal((await evaluate(cdp, listening)).title, 'Pink + White', 'coming back to the window did not check again');
+    } finally {
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
+      lastfm = { status: 200, body: NOW_PLAYING };
+    }
+  });
+
   /* Every project a card, every picture at its own file's ratio and big enough
      to read, none off the side and none taller than the box it scrolls in, so
      each can be seen whole between the mark and the menu. The words sit beside
@@ -556,17 +591,28 @@ test('the page', async (t) => {
     assert.equal(away.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card in a section');
     assert.equal(away.menu.blur, true, 'the menu lost its glass in a section');
 
-    /* The mark's glass is its own layer, and only up while the section has
-       scrolled content under the letters. It comes and goes without the
-       letters moving. */
+    /* The mark's glass is its own layer, and only up while content is
+       actually under the letters — not merely because the section has
+       scrolled. It comes and goes without the letters moving. */
     const glass = `(() => {
       const mark = document.getElementById('home');
       const layer = getComputedStyle(mark, '::before');
       const glyph = mark.querySelector('.glyph').getBoundingClientRect();
       return { opacity: layer.opacity, blur: layer.backdropFilter.includes('blur'), at: [glyph.left, glyph.top] };
     })()`;
+    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the mark has glass with nothing under it');
+
+    /* At 1440 the work's column sits in from the corner, so however far it
+       scrolls only white passes the letters, and the mark stays bare. */
+    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
+    await sleep(450);
+    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the mark took glass with only white under it');
+
+    /* At 1024 the cards run out to the gutter and do pass under it. */
+    await load(cdp, 1024, 768);
+    await open(cdp, 'work');
     const rest = await evaluate(cdp, glass);
-    assert.equal(rest.opacity, '0', 'the mark has glass with nothing under it');
+    assert.equal(rest.opacity, '0', 'the mark has glass before anything reaches it');
     await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
     await sleep(450);
     const under = await evaluate(cdp, glass);

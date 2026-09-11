@@ -52,28 +52,72 @@
 })();
 
 
-/* The mark's glass, only while something is under it.
+/* The mark's glass, only while something is actually under it.
 
-   A section scrolls inside itself, and at rest its content starts a little
-   below the mark; a few pixels of scroll and it is running beneath the
-   letters. So <body> carries is-under while the section that is up has
-   scrolled at all past that little margin, and the stylesheet fades the
-   glass in on that. Checked again whenever the view changes, since the
-   section being opened may already be scrolled from a visit before. */
+   Not whenever a section has scrolled: on a wide window the work sits in from
+   the corner, and scrolling it runs nothing but white past the letters. So
+   what is checked is whether any piece of content that paints — a card, a
+   line of copy, a tool's mark — overlaps the patch of glass behind the mark,
+   and <body> carries is-under only while one does. The stylesheet fades the
+   glass in on that.
+
+   Checked at most once a frame while the section scrolls, and when the
+   window changes size. Not while the mark is moving: opening a section
+   shrinks it from the middle of the page into its corner, and on the way it
+   is large and over the work, which read as something under it and flashed
+   the glass up for the length of the move. So a change of view puts the
+   glass down at once and checks again only once the move is over. */
 (function () {
   const body = document.body;
+  const mark = document.getElementById('home');
+  const monogram = document.querySelector('.monogram');
   const views = Array.from(document.querySelectorAll('.view'));
-  /* at rest the content clears the mark by 1.25rem; glass comes up just
-     before the first line reaches it */
-  const REACH = 12;
+  if (!mark || !monogram) return;
+  /* what counts as something under the letters: things that paint, not the
+     empty boxes that hold them */
+  const CONTENT = '.project, .lede, .prose, .tech-label, .tech-icon';
+  /* the glass reaches this far past the letters; the stylesheet's
+     inset on .monogram-go::before */
+  const PAD_Y = 8;
+  const PAD_X = 12;
+  /* the mark's move between the middle and the corner is 0.55s */
+  const MOVE = 600;
+  let queued = 0;
+  let settling = 0;
+
+  function under() {
+    const view = views.find((section) => section.id === body.dataset.view);
+    if (!view) return false;
+    const box = mark.getBoundingClientRect();
+    const top = box.top - PAD_Y;
+    const bottom = box.bottom + PAD_Y;
+    const left = box.left - PAD_X;
+    const right = box.right + PAD_X;
+    return Array.from(view.querySelectorAll(CONTENT)).some((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.bottom > top && r.top < bottom && r.right > left && r.left < right;
+    });
+  }
 
   function update() {
-    const view = views.find((section) => section.id === body.dataset.view);
-    body.classList.toggle('is-under', !!view && view.scrollTop > REACH);
+    if (settling) return;
+    cancelAnimationFrame(queued);
+    queued = requestAnimationFrame(() => body.classList.toggle('is-under', under()));
+  }
+
+  function settle() {
+    clearTimeout(settling);
+    cancelAnimationFrame(queued);
+    body.classList.remove('is-under');
+    settling = setTimeout(() => {
+      settling = 0;
+      update();
+    }, MOVE);
   }
 
   views.forEach((view) => view.addEventListener('scroll', update, { passive: true }));
-  new MutationObserver(update).observe(body, { attributes: true, attributeFilter: ['data-view'] });
+  window.addEventListener('resize', update);
+  new MutationObserver(settle).observe(body, { attributes: true, attributeFilter: ['data-view'] });
   update();
 })();
 
@@ -207,7 +251,13 @@
   const KEY = '64e3ff29b84b494f673f592156b60a9c';
   const ENDPOINT = 'https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks'
     + '&user=' + encodeURIComponent(USER) + '&api_key=' + KEY + '&format=json&limit=1';
-  const EVERY = 30000;
+  /* Often while something is playing, because the next track can start any
+     moment and Spotify is already a little behind telling Last.fm; seldom
+     once it is only the last one played, which changes when I start again. */
+  const PLAYING_EVERY = 15000;
+  const IDLE_EVERY = 60000;
+  let every = PLAYING_EVERY;
+  let asking = false;
   /* Last.fm's own grey star, sent for a track it has no art for */
   const NO_ART = '2a96cbd8b46e442fc41c2b86b821562f';
 
@@ -296,6 +346,10 @@
   }
 
   async function check() {
+    /* one question at a time: the focus and visibility events can land
+       together, and on top of a scheduled check */
+    if (asking) return;
+    asking = true;
     try {
       const response = await fetch(ENDPOINT, { cache: 'no-store' });
       if (!response.ok) return;
@@ -307,6 +361,7 @@
       const when = track.date && Number(track.date.uts);
       label.textContent = playing ? 'Listening now' : 'Last played' + (when ? ' ' + ago(when) : '');
       card.classList.toggle('is-playing', playing);
+      every = playing ? PLAYING_EVERY : IDLE_EVERY;
 
       /* Last.fm's 174px size covers the card's 56px at three times the
          density; the 300px one would only be more to download */
@@ -326,6 +381,8 @@
     } catch (error) {
       /* Offline, blocked or down: whatever is showing stays, and a card that
          never loaded stays hidden. Nothing here is worth an error. */
+    } finally {
+      asking = false;
     }
   }
 
@@ -335,13 +392,19 @@
     timer = setTimeout(async () => {
       await check();
       schedule();
-    }, EVERY);
+    }, every);
   }
 
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) check();
+  /* Asked straight away whenever the page comes back to the front: the tab
+     showing again, or the window taking focus again after Spotify had it —
+     which on a Mac is often the window that was covering this one, and not
+     a change of visibility at all. */
+  async function again() {
+    if (document.hidden) return schedule();
+    await check();
     schedule();
-  });
-  check();
-  schedule();
+  }
+  document.addEventListener('visibilitychange', again);
+  window.addEventListener('focus', again);
+  check().then(schedule);
 })();
