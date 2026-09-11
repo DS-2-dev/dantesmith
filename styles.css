@@ -227,6 +227,184 @@ body {
 .menu-item[aria-current="true"] { color: var(--foreground); }
 
 
+/* now playing -------------------------------------------------------------
+   Bottom left at home: the menu's twin in the opposite corner, on the same
+   glass, the same gutter and the same radius. The album art, a line saying
+   whether it is playing now, then the track and the artist, each held to one
+   line so a long title cannot push the card into the menu. */
+.listening {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* the menu's card and both gutters come off a phone's width first */
+  max-width: min(20rem, calc(100vw - 11rem));
+  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+  border-radius: 0.875rem;
+  background-color: var(--glass);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  animation: listening-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: opacity 0.35s ease,
+              translate 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              visibility 0s;
+}
+/* the display above outranks the user agent's rule for hidden */
+.listening[hidden] { display: none; }
+/* Home only. It goes down with a section the way a section itself does, and
+   comes back with home. */
+body:not([data-view="home"]) .listening {
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 0.5rem;
+  transition: opacity 0.35s ease,
+              translate 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              visibility 0s linear 0.35s;
+}
+@keyframes listening-in {
+  from { opacity: 0; translate: 0 0.5rem; }
+}
+
+/* The art, or a note on the grey where Last.fm has none — it sends its own
+   grey star for a track it has no art for, and that is left out.
+
+   Fitted to the card: a touch taller than the three lines beside it, so it
+   is what sets the card's height and sits the same 0.5rem in from the top,
+   the left and the bottom. Its corner is the card's less that inset, so the
+   two curves run parallel. */
+.listening-cover {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--muted);
+}
+.listening-note { width: 1rem; height: 1rem; }
+.listening-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.listening:not(.has-art) .listening-art { display: none; }
+
+.listening-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+.listening-state {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  letter-spacing: -0.006em;
+  color: var(--muted);
+}
+/* One line each, the status included: on a phone "Last played 2 hours ago"
+   ran to two, the words stood taller than the art, and the art stopped
+   being fitted to the card. A track or an artist too long for its line
+   scrolls instead (below); the status, and anything when motion is turned
+   down, ends in an ellipsis. */
+.listening-label,
+.listening-title,
+.listening-artist {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The marquee. A name that does not fit is set twice in a row with a gap
+   between, and the pair slides left by exactly one name and one gap, so the
+   last frame is the first frame and the loop has no seam. It holds still at
+   the start of each pass so the name can be read from its first letter.
+   app.js measures the distance and sets the time from it, so a long name
+   and a short overrun move at the same pace. The second copy is hidden from
+   screen readers, which hear the name once. */
+.marquee {
+  display: inline-flex;
+}
+.marquee-copy { flex: none; }
+.marquee-copy + .marquee-copy { padding-left: 2.5rem; }
+
+/* A ticker: it never stops. It used to hold at the start of every pass and
+   ease into and out of that hold, and however seamless the join, the eye
+   read it as the name going back to its place and waiting before it went
+   again. Now it drifts left at one steady pace forever, and since it is
+   always moving, both edges are always soft. */
+.is-long {
+  text-overflow: clip;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 0.75rem, #000 calc(100% - 1.25rem), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 0.75rem, #000 calc(100% - 1.25rem), transparent 100%);
+}
+.is-long .marquee {
+  animation: marquee var(--marquee-time, 10s) linear infinite;
+}
+/* paused under the pointer, for anyone reading it */
+.listening:hover .marquee { animation-play-state: paused; }
+
+/* one name and one gap to the left, at which point the second copy is
+   exactly where the first began and the loop comes round with no seam */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-1 * var(--marquee-distance, 0px))); }
+}
+.listening-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  color: var(--foreground);
+}
+.listening-artist {
+  font-size: 0.875rem;
+  letter-spacing: -0.006em;
+  color: var(--ink-2);
+}
+
+/* Three bars that move while a track is playing now, and are not there when
+   it is only the last one played. In the page's ink: the site has one accent
+   and Spotify's green is not it. */
+.listening-bars {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.6rem;
+}
+.listening.is-playing .listening-bars { display: inline-flex; }
+.listening-bars i {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--foreground);
+  transform-origin: bottom;
+  animation: listening-bar 0.9s ease-in-out infinite alternate;
+}
+.listening-bars i:nth-child(2) { animation-delay: -0.3s; }
+.listening-bars i:nth-child(3) { animation-delay: -0.6s; }
+@keyframes listening-bar {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listening,
+  body:not([data-view="home"]) .listening { animation: none; transition: none; }
+  .listening-bars i { animation: none; transform: scaleY(0.7); }
+}
+
+
 /* contact ----------------------------------------------------------------
    Three ways to reach me, set as lines of a paragraph rather than as a row of
    controls: two links, and an address with a copy mark beside it. */
@@ -469,20 +647,21 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   max-height: none;
 }
 
-/* Two projects sharing a row: the shirt and the poster. A card to itself at
-   full width was mostly grey around either of them. Each card takes a share
-   of the row in proportion to its picture's width over height — the --r on
-   it — on top of a fixed allowance for its padding, its gap and a narrower
-   column of words, which is the same trick as the flyers and lands both
-   pictures at one height. */
+/* Two projects sharing a row: the shirt and the poster. Each card is fitted
+   to its picture the way the campaign's is to its flyers: the picture's
+   column as wide as the picture, then the same 1.75rem to the words that
+   every card keeps, then the words. Both pictures are held at the one cap
+   height, so they land level, and the pair sits in the middle of the row
+   with any spare width shared out either side. */
 .project-row {
   display: flex;
+  justify-content: center;
   gap: 1rem;
 }
 .project-row .project {
-  /* 2rem of padding, 1.75rem of gap, 13rem of words */
-  flex: var(--r, 1) 1 16.75rem;
+  flex: 0 1 auto;
   min-width: 0;
+  grid-template-columns: minmax(0, auto) 13rem;
 }
 
 /* A piece that is also a link, holding the client's mark over its cover. */
@@ -547,6 +726,15 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 .project--switch {
   grid-template-rows: auto 1fr;
   row-gap: 0.85rem;
+  /* Fitted, not stretched. A cover is wide for its height and is held under
+     the campaign's, so a card at the column's full width was a long run of
+     grey with the picture floating in it and the words pinned to the far
+     edge. The picture's column is as wide as the wider of the two covers,
+     and the card is only as wide as that and the words, sitting in the
+     middle of the column with the open space either side of it. */
+  grid-template-columns: minmax(0, auto) 13rem;
+  align-self: center;
+  max-width: 100%;
 }
 .project--switch .switch {
   grid-column: 2;
@@ -576,6 +764,10 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 }
 .project-panel .project-media { grid-column: 1; grid-row: 1 / -1; }
 .project-panel .project-text { grid-column: 2; grid-row: 2; padding-top: 0; }
+/* The cover against the words, so the gap from picture to words is the same
+   1.75rem as every card; the narrower cover's spare width goes to the card's
+   outer edge instead. */
+.project--switch .project-media { justify-content: flex-end; }
 
 /* The switch. A pill of the card's grey with the chosen name lifted out of it
    on white: the one control in the work drawn as a control, because it
@@ -587,6 +779,33 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   padding: 0.2rem;
   border-radius: 999px;
   background: var(--surface);
+  /* the thumb is placed against this box, and painted under the names but
+     over this grey */
+  position: relative;
+  isolation: isolate;
+}
+/* The white under the chosen name: one piece that slides from one name to
+   the other and takes the new one's width on the way, rather than a white
+   that blinks out under one and in under the other. app.js writes where it
+   goes; the transition only switches on once the first place is written, or
+   the thumb would slide in from the corner as the page loads. */
+.switch-thumb {
+  position: absolute;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  left: 0;
+  z-index: -1;
+  width: var(--thumb-w, 0px);
+  translate: var(--thumb-x, 0px) 0;
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.04);
+  opacity: 0;
+}
+.switch.is-ready .switch-thumb {
+  opacity: 1;
+  transition: translate 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+              width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .switch-tab {
   margin: 0;
@@ -603,16 +822,19 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 .switch-tab:hover { color: var(--foreground); }
-.switch-tab[aria-selected="true"] {
+.switch-tab[aria-selected="true"] { color: var(--foreground); }
+/* Until the thumb is placed — or if the script never runs — the chosen name
+   carries its own white, so the switch still says which is chosen. */
+.switch:not(.is-ready) .switch-tab[aria-selected="true"] {
   background: var(--background);
-  color: var(--foreground);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.04);
 }
 .switch-tab:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
   .project-panel,
   .project-panel[hidden],
-  .switch-tab { transition: none; }
+  .switch-tab,
+  .switch.is-ready .switch-thumb { transition: none; }
 }
 
 /* Under this the words go under the pictures, and the pictures take the
@@ -627,10 +849,24 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   /* the pictures take the card's width; the words keep a reading measure */
   .project-text { max-width: 38rem; padding: 0 0.25rem 0.25rem; }
   /* A shared row keeps its two cards side by side, the words under each now,
-     so the allowance on top of each share is only the card's padding. */
-  .project-row .project { flex: var(--r, 1) 1 1.5rem; }
+     each card still fitted to its picture. */
+  .project-row .project { grid-template-columns: minmax(0, auto); }
+  /* In a card fitted to its picture the words must not widen it: left to
+     themselves they ask for the width of their longest line. Contained, they
+     take the picture's width and wrap in it. */
+  .project-row .project-text,
+  .project--switch .project-text { contain: inline-size; }
   /* the switching card in one column: picture, then the switch, then words */
-  .project--switch { grid-template-rows: auto auto auto; }
+  /* still fitted: one column as wide as the covers, so the switch and the
+     words line up under the picture rather than under the card */
+  .project--switch {
+    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, auto);
+  }
+  /* and each cover starts at the column's edge, where the words start, rather
+     than centred in a column the wider cover set — Vantage came in short of
+     the words' left edge by half the difference */
+  .project--switch .project-media { justify-content: flex-start; }
   .project--switch .switch { grid-column: 1; grid-row: 2; }
   .project-panel .project-media { grid-column: 1; grid-row: 1; }
   .project-panel .project-text { grid-column: 1; grid-row: 3; }
@@ -658,7 +894,10 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
      with nothing beside anything any more each piece is as big as the phone
      allows. */
   .project-row { flex-direction: column; }
-  .project-row .project { flex: none; }
+  .project-row .project {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
   .project-media:not(.project-media--set) img {
     max-height: min(34rem, calc(100svh - 15rem));
   }

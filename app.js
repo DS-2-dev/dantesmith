@@ -62,6 +62,16 @@
 (function () {
   document.querySelectorAll('.switch').forEach((list) => {
     const tabs = Array.from(list.querySelectorAll('[role="tab"]'));
+    const thumb = list.querySelector('.switch-thumb');
+
+    /* Puts the thumb under the chosen name. The stylesheet slides it there;
+       this only says where, in the two numbers the names' own boxes give. */
+    function place() {
+      const tab = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+      if (!thumb || !tab) return;
+      list.style.setProperty('--thumb-x', tab.offsetLeft + 'px');
+      list.style.setProperty('--thumb-w', tab.offsetWidth + 'px');
+    }
 
     function choose(next, focus) {
       tabs.forEach((tab) => {
@@ -70,8 +80,19 @@
         tab.tabIndex = on ? 0 : -1;
         document.getElementById(tab.getAttribute('aria-controls')).hidden = !on;
       });
+      place();
       if (focus) next.focus();
     }
+
+    /* The first place is written and laid out before the transition is
+       switched on, so the thumb starts where it belongs instead of sliding
+       in from the corner. The section is only unseen while it is down, not
+       unlaid, so the names already have their widths. Watched after that,
+       because a name changes width when the web font lands. */
+    place();
+    void list.offsetWidth;
+    list.classList.add('is-ready');
+    if ('ResizeObserver' in window) new ResizeObserver(place).observe(list);
 
     tabs.forEach((tab, i) => {
       tab.addEventListener('click', () => choose(tab, false));
@@ -139,4 +160,162 @@
     }
     said(legacy() ? 'copied' : 'failed');
   });
+})();
+
+
+/* Now playing, from Last.fm.
+
+   Spotify scrobbles every track to Last.fm, and Last.fm marks the one playing
+   right now, so the latest scrobble is either what is on or what was on
+   last. Asked once on load and every 30 seconds after, and only while the
+   tab is in front: a tab in the background has nobody to show it to.
+
+   The API key, not the shared secret. This is a public read that needs no
+   signing, and anything in this file is readable by whoever opens it; the
+   secret has no business in a file that is served. */
+(function () {
+  const card = document.getElementById('listening');
+  if (!card) return;
+
+  const USER = 'kid_chino08';
+  const KEY = '64e3ff29b84b494f673f592156b60a9c';
+  const ENDPOINT = 'https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks'
+    + '&user=' + encodeURIComponent(USER) + '&api_key=' + KEY + '&format=json&limit=1';
+  const EVERY = 30000;
+  /* Last.fm's own grey star, sent for a track it has no art for */
+  const NO_ART = '2a96cbd8b46e442fc41c2b86b821562f';
+
+  const art = card.querySelector('.listening-art');
+  const label = card.querySelector('.listening-label');
+  const title = card.querySelector('.listening-title');
+  const artist = card.querySelector('.listening-artist');
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* pixels a second: slow enough to read as it goes by */
+  const SPEED = 28;
+  let timer;
+
+  /* Sets a line's text, and if it runs past the line, turns it into a
+     marquee: a second copy after a gap, and the distance and time for the
+     stylesheet's loop. Left alone when the text has not changed, so a poll
+     every 30 seconds does not restart a name halfway across. */
+  function fit(line, text, force) {
+    if (!force && line.dataset.text === text) return;
+    line.dataset.text = text;
+    line.classList.remove('is-long');
+    line.textContent = text;
+    if (still.matches || line.scrollWidth <= line.clientWidth + 1) return;
+
+    const track = document.createElement('span');
+    track.className = 'marquee';
+    const copy = document.createElement('span');
+    copy.className = 'marquee-copy';
+    copy.textContent = text;
+    const echo = copy.cloneNode(true);
+    echo.setAttribute('aria-hidden', 'true');
+    track.append(copy, echo);
+    line.replaceChildren(track);
+
+    /* Measured from the boxes, not from offsetLeft: offsetLeft is a whole
+       number and the text is not, and the loop jumped by the difference
+       every time it came round. */
+    const distance = gap(line);
+    line.style.setProperty('--marquee-distance', distance + 'px');
+    line.style.setProperty('--marquee-time', (distance / SPEED).toFixed(2) + 's');
+    line.classList.add('is-long');
+  }
+
+  /* how far the second copy starts from the first, to the fraction */
+  function gap(line) {
+    const copies = line.querySelectorAll('.marquee-copy');
+    if (copies.length < 2) return 0;
+    return copies[1].getBoundingClientRect().left - copies[0].getBoundingClientRect().left;
+  }
+
+  /* The line's width moves with the window, and the name's own width with
+   the web font landing; either can turn a name that fitted into one that
+   does not, or throw the loop's distance out. A line is only rebuilt when
+   one of those has actually changed, because rebuilding restarts the
+   scroll, and a restart mid-pass is a jump. */
+  function refit() {
+    [title, artist].forEach((line) => {
+      const long = line.classList.contains('is-long');
+      const moved = long
+        ? Math.abs(gap(line) - parseFloat(line.style.getPropertyValue('--marquee-distance'))) > 0.25
+        : !still.matches && line.scrollWidth > line.clientWidth + 1;
+      if (moved || String(line.clientWidth) !== line.dataset.width) fit(line, line.dataset.text || '', true);
+      line.dataset.width = String(line.clientWidth);
+    });
+  }
+  let queued = 0;
+  window.addEventListener('resize', () => {
+    cancelAnimationFrame(queued);
+    queued = requestAnimationFrame(refit);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+  still.addEventListener('change', () => {
+    [title, artist].forEach((line) => fit(line, line.dataset.text || '', true));
+  });
+
+  /* Short, because the status line has a phone's width to fit in beside the
+     art: "Last played 2 hours ago" ran out of room and ended in an ellipsis
+     there, and "Last played 2h ago" does not. */
+  function ago(uts) {
+    const minutes = Math.max(0, Math.round((Date.now() / 1000 - uts) / 60));
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return minutes + 'm ago';
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return hours + 'h ago';
+    const days = Math.round(hours / 24);
+    return days === 1 ? 'yesterday' : days + 'd ago';
+  }
+
+  async function check() {
+    try {
+      const response = await fetch(ENDPOINT, { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const track = data && data.recenttracks && data.recenttracks.track && data.recenttracks.track[0];
+      if (!track) return;
+
+      const playing = !!(track['@attr'] && track['@attr'].nowplaying === 'true');
+      const when = track.date && Number(track.date.uts);
+      label.textContent = playing ? 'Listening now' : 'Last played' + (when ? ' ' + ago(when) : '');
+      card.classList.toggle('is-playing', playing);
+
+      /* Last.fm's 174px size covers the card's 56px at three times the
+         density; the 300px one would only be more to download */
+      const images = Array.isArray(track.image) ? track.image : [];
+      const pick = images.find((image) => image.size === 'large') || images[images.length - 1];
+      const src = pick && pick['#text'];
+      const real = !!src && !src.includes(NO_ART);
+      if (real && art.getAttribute('src') !== src) art.src = src;
+      card.classList.toggle('has-art', real);
+
+      /* shown before the names are set, so their lines have a width to be
+         measured against */
+      card.hidden = false;
+      fit(title, track.name || '');
+      fit(artist, (track.artist && track.artist['#text']) || '');
+      [title, artist].forEach((line) => { line.dataset.width = String(line.clientWidth); });
+    } catch (error) {
+      /* Offline, blocked or down: whatever is showing stays, and a card that
+         never loaded stays hidden. Nothing here is worth an error. */
+    }
+  }
+
+  function schedule() {
+    clearTimeout(timer);
+    if (document.hidden) return;
+    timer = setTimeout(async () => {
+      await check();
+      schedule();
+    }, EVERY);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) check();
+    schedule();
+  });
+  check();
+  schedule();
 })();

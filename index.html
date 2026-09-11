@@ -232,6 +232,9 @@
            heads the words' column at every width. -->
       <article class="project project--switch" aria-label="Vantage and Weave">
         <div class="switch" role="tablist" aria-label="Project">
+          <!-- the white under the chosen name, one piece that slides between
+               the two; app.js places it -->
+          <span class="switch-thumb" aria-hidden="true"></span>
           <button class="switch-tab" type="button" role="tab" id="work-tab-vantage"
                   aria-controls="work-panel-vantage" aria-selected="true">Vantage</button>
           <button class="switch-tab" type="button" role="tab" id="work-tab-weave"
@@ -242,7 +245,7 @@
              through the page by heading. -->
         <div class="project-panel" role="tabpanel" id="work-panel-vantage" aria-labelledby="work-tab-vantage">
           <div class="project-media">
-            <img src="images/vantage.webp" width="900" height="531" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it." loading="lazy" decoding="async">
+            <img src="images/vantage.webp" width="900" height="507" alt="Vantage brand cover: the wordmark set wide in white across rippled grey silk, with six small fencing photographs floating around it." loading="lazy" decoding="async">
           </div>
           <div class="project-text">
             <h3 class="project-name sr-only">Vantage</h3>
@@ -285,16 +288,15 @@
         </div>
       </article>
 
-      <!-- The shirt and the poster share a row. --r on each card is its
-           picture's width over height, which is what sets the two at one
-           height side by side. -->
+      <!-- The shirt and the poster share a row, each card fitted to its
+           picture and the pair centred. -->
       <div class="project-row">
-        <article class="project" aria-labelledby="work-shirt" style="--r: 1">
+        <article class="project" aria-labelledby="work-shirt">
           <div class="project-media">
             <img src="images/mac-os-x-shirt.webp" width="700" height="700" alt="Apparel draft: the Mac OS X 10.0 install disc sealed in its clear jewel case, shot square against black, the blue X on the silver disc reading through the scuffed lid." loading="lazy" decoding="async">
           </div>
           <div class="project-text">
-            <h3 class="project-name" id="work-shirt">Mac OS X shirt</h3>
+            <h3 class="project-name" id="work-shirt">T-Shirt Mockup</h3>
             <p class="project-kind">Apparel &mdash; draft</p>
             <p class="prose">I&rsquo;ve been thinking about starting a small clothing
               brand where I can express my thoughts even more. Anyways &mdash; a
@@ -302,7 +304,7 @@
           </div>
         </article>
 
-        <article class="project" aria-labelledby="work-ai-lab" style="--r: calc(810 / 1013)">
+        <article class="project" aria-labelledby="work-ai-lab">
           <div class="project-media">
             <img src="images/wsu-ai-lab-poster.webp" width="810" height="1013" alt="Weber State University AI Lab recruiting poster: “WSU AI Lab” in wide light grey caps on near-black, over a note that local businesses bring the lab real problems and students build the fix with AI tools, with the meeting time and room at the foot." loading="lazy" decoding="async">
           </div>
@@ -317,6 +319,22 @@
       </div>
     </div>
   </main>
+
+  <!-- What I'm listening to, live. Spotify scrobbles to Last.fm and app.js
+       reads the latest track from there. Home only, and hidden until the
+       first answer lands, so with the script off or Last.fm down there is
+       nothing on the page that looks missing. -->
+  <aside class="listening" id="listening" aria-label="What I'm listening to" hidden>
+    <span class="listening-cover" aria-hidden="true">
+      <svg class="listening-note" viewBox="0 0 16 16" focusable="false"><path d="M6 12.2a2 2 0 1 1-1.5-1.94V3.6l7-1.6v8.2a2 2 0 1 1-1.5-1.94V4.9L6 5.9z" fill="currentColor"/></svg>
+      <img class="listening-art" alt="" width="56" height="56" decoding="async">
+    </span>
+    <span class="listening-text">
+      <span class="listening-state"><span class="listening-bars" aria-hidden="true"><i></i><i></i><i></i></span><span class="listening-label">Listening now</span></span>
+      <span class="listening-title"></span>
+      <span class="listening-artist"></span>
+    </span>
+  </aside>
 
   <!-- Bottom right. The first three bring their section up — app.js does the
        switching — and the fourth leaves for Stripe. -->
