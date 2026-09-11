@@ -127,18 +127,26 @@ function onResize(fn) {
 
 /* The row unit, solved from the box the work has to spend.
 
-   Every row is a multiple of one unit u: the flanking rows carry --w 1 and the
-   campaign carries 2.2, so the campaign is the middle and the biggest thing on
-   the screen. Each picture keeps the ratio of its own file, so once a row has
-   a height its width follows — which makes both directions solvable at once:
+   Every row is a multiple of one unit u — the lead row carries --w 2.2 and the
+   row under it 1 — and every picture keeps the ratio of its own file, so once
+   a row has a height its width follows. Which makes both directions solvable
+   at once:
 
-       height:  u * SUM(w) + gaps            <= H
-       width:   SUM(ratio) * (u * w - padY)  <= W - gaps - padX   per row
+       height:  u * SUM(w) + gaps  <= H
+       width:   A * (u * w) + B    <= W      per row
+
+   where a row's width is linear in its height: A is how many widths of itself
+   the row is per unit of height, B the parts that do not scale — padding, and
+   the gaps between what is inside. Both come out of one walk of the row:
+
+     a picture      A = its ratio,             B = 0
+     a row of them  A = SUM,                   B = SUM(B) - A*padY + gaps + padX
+     a column       A = the tallest child's/n, B likewise, + padX
 
    The narrowest answer wins, because it is the row that would otherwise run
    off the side. Nothing here reads a rendered size, so there is no
-   circularity: the ratios, the gaps and the padding all come from computed
-   styles, and the only measured input is the box itself. */
+   circularity: ratios, gaps and padding all come from computed styles, and the
+   only measured input is the box itself. */
 (function () {
   const group = document.getElementById('group');
   const view = document.getElementById('work');
@@ -147,12 +155,53 @@ function onResize(fn) {
   if (!rows.length) return;
 
   const px = (v) => parseFloat(v) || 0;
-  /* computed aspect-ratio comes back as "900 / 531" or "auto"; an <img> with
-     width and height attributes reports its own, which is how the campaign's
-     three are measured without a class each */
+  /* Computed aspect-ratio comes back three ways: "900 / 531" where a rule sets
+     it, "auto 800 / 952" for an <img> carrying width and height attributes —
+     which is how the campaign's three are measured without a class each — and
+     a bare "auto" for anything with neither. The pair is picked out of all
+     three rather than split on the slash, because parseFloat("auto 800") is
+     NaN and that read the ads as having no width at all. */
   function wideness(el) {
-    const [w, h] = getComputedStyle(el).aspectRatio.split('/').map(parseFloat);
+    const pair = getComputedStyle(el).aspectRatio.match(/([\d.]+)\s*\/\s*([\d.]+)/);
+    if (!pair) return 0;
+    const w = parseFloat(pair[1]);
+    const h = parseFloat(pair[2]);
     return w > 0 && h > 0 ? w / h : 0;
+  }
+
+  /* width = A * height + B, for anything in the group */
+  function span(el) {
+    if (el.matches('.ad')) return [wideness(el), 0];
+    if (el.matches('.tile')) return [wideness(el), 0];
+
+    const style = getComputedStyle(el);
+    const kids = Array.from(el.children).filter((k) => k.matches('.tile, .ad, .ad-card, .stack'));
+    if (!kids.length) return [0, 0];
+    const padY = px(style.paddingTop) + px(style.paddingBottom);
+    const padX = px(style.paddingLeft) + px(style.paddingRight);
+
+    if (style.flexDirection.startsWith('column')) {
+      /* stacked: each child gets an equal share of what is left, and the row
+         is as wide as the widest of them */
+      const inner = padY + px(style.rowGap) * (kids.length - 1);
+      let best = [0, 0];
+      kids.forEach((kid) => {
+        const [a, b] = span(kid);
+        const A = a / kids.length;
+        if (A > best[0]) best = [A, b - (a * inner) / kids.length];
+      });
+      return [best[0], best[1] + padX];
+    }
+
+    /* side by side: each child gets the full height less this box's padding */
+    let A = 0;
+    let B = px(style.columnGap) * (kids.length - 1) + padX;
+    kids.forEach((kid) => {
+      const [a, b] = span(kid);
+      A += a;
+      B += b - a * padY;
+    });
+    return [A, B];
   }
 
   function measure() {
@@ -171,23 +220,11 @@ function onResize(fn) {
     let weights = 0;
     let best = Infinity;
     rows.forEach((row) => {
-      const style = getComputedStyle(row);
-      const w = parseFloat(style.getPropertyValue('--w')) || 1;
+      const w = parseFloat(getComputedStyle(row).getPropertyValue('--w')) || 1;
       weights += w;
-
-      const items = Array.from(row.children);
-      let ratio = 0;
-      items.forEach((item) => {
-        /* the piece's shape is on the shot inside the figure, the ad's is on
-           the ad itself */
-        ratio += wideness(item.matches('.tile') ? item.firstElementChild : item);
-      });
-      if (ratio <= 0) return;
-
-      const padY = px(style.paddingTop) + px(style.paddingBottom);
-      const padX = px(style.paddingLeft) + px(style.paddingRight);
-      const gaps = px(style.columnGap) * (items.length - 1);
-      best = Math.min(best, (width - gaps - padX + ratio * padY) / (ratio * w));
+      const [A, B] = span(row);
+      if (A <= 0) return;
+      best = Math.min(best, (width - B) / (A * w));
     });
     if (!isFinite(best) || weights <= 0) return;
 

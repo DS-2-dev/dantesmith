@@ -371,9 +371,10 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
    takes the width of the window instead. */
 .view--wide { max-width: none; }
 
-/* The work, as one arrangement. Two rows stacked and centred: the campaign,
-   then the other four together. The campaign leads and is the taller — it is
-   three ads for one product, and the rest of the page is one piece at a time.
+/* The work, as one arrangement. Two rows stacked and centred: the campaign
+   with the two wide pieces beside it, then the square and the poster. The
+   campaign leads and is the largest — it is three ads for one product, and the
+   rest of the page is one piece at a time.
 
    Every row's height is a multiple of a single unit written by app.js, which
    spends the box's height and width on the rows at once. Widths follow from
@@ -395,15 +396,45 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
      laying the rows out at zero */
   height: calc(var(--u, 9vh) * var(--w));
 }
-/* The four pieces in one row under the campaign. The weight is the share of
-   the box's height that leaves both rows filling it at a common desktop shape;
-   past that the solver's width term takes over and this is only a ratio. */
-.grow--flank { --w: 1.25; }
+/* The weights are the two rows' share of the box's height. They are set where
+   both rows fill it at a common desktop shape; past that the solver's width
+   term takes over and these are only a ratio. */
+.grow--lead  { --w: 2.2; }
+.grow--flank { --w: 1.4; }
 
-/* The campaign. First and twice the height of the rows under it, on the grey
-   the page already uses behind a picture, so the three read as one held set. */
+/* The two wide pieces, stacked beside the campaign. They are the only
+   landscape work here, so two of them one over the other stand as tall as the
+   campaign does and the lead row squares off. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* not the default stretch: a piece here has a height from the row and a
+     ratio of its own, and stretching it to the column's width overrides the
+     second with the first */
+  align-items: center;
+  gap: 0.75rem;
+  height: 100%;
+  /* Stated, not inferred. Asked for its own width this column reports the
+     900px the files are drawn at — a flex item's intrinsic width is worked out
+     before its children have a height to take a ratio against — and the row
+     then reserves hundreds of pixels it does not draw in. The width is the
+     taller-per-width of the two pieces at half the row, which is what it
+     actually paints. */
+  width: calc((var(--u, 9vh) * var(--w) - 0.75rem) / 2 * (900 / 507));
+}
+.stack .tile {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* The campaign. The grey the page already uses behind a picture, so the three
+   read as one held set rather than three adjacent posters. */
 .ad-card {
-  --w: 2.2;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 100%;
   box-sizing: border-box;
   padding: 0.85rem;
   border-radius: 0.75rem;
@@ -417,10 +448,15 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 }
 
 /* Each piece at the ratio of its own file, stated in the pixels the file is
-   rather than rounded to a tidy fraction. The shape is here so the box is
-   right on the first frame, before the picture has loaded; the picture is
-   contained inside it, so a ratio out by a pixel shows as air and never as a
-   crop. */
+   rather than rounded to a tidy fraction. The shape is on the figure rather
+   than on the picture inside it: a figure is not a replaced element, so with a
+   height to go on the browser takes its width from this ratio. Left on the
+   picture, the width came off the file's own 900px instead and the row laid
+   itself out hundreds of pixels wider than what it drew.
+
+   It also means the box is right on the first frame, before the picture has
+   loaded; the picture is contained inside it, so a ratio out by a pixel shows
+   as air and never as a crop. */
 .shot--vantage { aspect-ratio: 900 / 531; }
 .shot--weave   { aspect-ratio: 900 / 507; }
 .shot--square  { aspect-ratio: 1 / 1; }
@@ -431,16 +467,17 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 .tile {
   margin: 0;
   height: 100%;
+  width: auto;
 }
 
 /* The picture. Its shape comes from the shot-- class beside this one, so what
-   is here is everything the eight have in common and nothing about any one of
+   is here is everything the pieces have in common and nothing about any one of
    them. */
 .tile-shot {
   position: relative;
   display: block;
   height: 100%;
-  width: auto;
+  width: 100%;
   overflow: hidden;
   border-radius: 0.5rem;
   background: var(--surface);
@@ -504,9 +541,11 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   .ad-card { width: 100%; }
   .ad { height: auto; width: calc((100% - 1.5rem) / 3); }
   /* two across, not four: at this width a quarter of the screen is a thumbnail */
+  .grow--lead { flex-wrap: wrap; }
+  .stack { flex-direction: row; width: 100%; height: auto; }
+  .stack .tile { flex: 1 1 calc(50% - 0.375rem); }
   .grow--flank { flex-wrap: wrap; }
   .tile { height: auto; flex: 1 1 calc(50% - 0.375rem); min-width: 0; }
-  .tile-shot { height: auto; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tile-note { transition: none; }
