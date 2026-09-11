@@ -62,7 +62,8 @@ body {
      flow the hidden one still kept its full height — visibility: hidden
      keeps a box — and the second one opened halfway down the page.
 
-     The mark floats over it bare and the menu on glass. The box used to stop
+     The mark floats over it, taking glass only while something runs under
+     it, and the menu sits on glass throughout. The box used to stop
      short of both, which kept a photograph from running under the menu at
      the price of a blank band across the top and the bottom of every
      section. Frosted, the menu stays readable over whatever passes beneath,
@@ -176,8 +177,9 @@ body {
 
 /* the menu ---------------------------------------------------------------
    Bottom right, stacked, on glass, on the same 1rem gutter as the mark in
-   the opposite corner. The mark goes without a card, because it is the name
-   and not a control panel; the menu needs one to be read over the work.
+   the opposite corner. The mark only takes the same glass while something is
+   under it, because it is the name and not a control panel; the menu needs
+   it all the time to be read over the work.
 
    Buttons, because the three sections are views of this one page rather than
    places to go. The deposit is the one real destination and the one anchor,
@@ -523,8 +525,36 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   background: none;
   color: var(--foreground);
   cursor: pointer;
+  /* the glass below is placed against this box, and painted under the
+     letters but inside it */
+  position: relative;
+  isolation: isolate;
 }
 .monogram-go:disabled { cursor: default; }
+
+/* Glass behind the mark, only while something is passing under it. Bare at
+   rest, because it is the name and not a panel; but once a section scrolls
+   and its content runs beneath the letters, black on a photograph gets lost,
+   and the menu's glass is what keeps that readable. app.js says when.
+
+   On a layer of its own rather than on the button, so it comes and goes
+   without the letters moving at all: padding on the button would push them
+   in each time. Out past the letters by the menu's own padding. */
+.monogram-go::before {
+  content: '';
+  position: absolute;
+  inset: -0.5rem -0.75rem;
+  z-index: -1;
+  border-radius: 0.875rem;
+  background-color: var(--glass);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
 .monogram-go:focus-visible { outline: 2px solid currentColor; outline-offset: 0.4rem; }
 
 /* Both traces are tight to their ink, so an equal height is an equal cap
@@ -560,6 +590,7 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .monogram,
+  .monogram-go::before,
   .glyph,
   .dot { transition: none; }
 }

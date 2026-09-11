@@ -535,8 +535,9 @@ test('the page', async (t) => {
   });
 
   /* The menu sits on glass throughout, so it reads over whatever scrolls
-     under it. The mark floats bare everywhere: it is the name, not a panel. */
-  await t.test('the menu sits on glass and the mark floats bare', async () => {
+     under it. The mark floats bare, and takes glass only while something is
+     under it: it is the name, not a panel. */
+  await t.test('the menu sits on glass and the mark takes it only when needed', async () => {
     const chrome = `(() => {
       const look = (el) => {
         const style = getComputedStyle(el);
@@ -554,6 +555,32 @@ test('the page', async (t) => {
     assert.equal(away.mark.blur, false, 'the mark is on glass in a section');
     assert.equal(away.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card in a section');
     assert.equal(away.menu.blur, true, 'the menu lost its glass in a section');
+
+    /* The mark's glass is its own layer, and only up while the section has
+       scrolled content under the letters. It comes and goes without the
+       letters moving. */
+    const glass = `(() => {
+      const mark = document.getElementById('home');
+      const layer = getComputedStyle(mark, '::before');
+      const glyph = mark.querySelector('.glyph').getBoundingClientRect();
+      return { opacity: layer.opacity, blur: layer.backdropFilter.includes('blur'), at: [glyph.left, glyph.top] };
+    })()`;
+    const rest = await evaluate(cdp, glass);
+    assert.equal(rest.opacity, '0', 'the mark has glass with nothing under it');
+    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
+    await sleep(450);
+    const under = await evaluate(cdp, glass);
+    assert.equal(under.opacity, '1', 'the mark took no glass with the work under it');
+    assert.equal(under.blur, true, 'the mark\'s glass does not blur what is under it');
+    assert.deepEqual(under.at, rest.at, 'the letters moved when the glass came up');
+    await evaluate(cdp, `document.getElementById('work').scrollTop = 0`);
+    await sleep(450);
+    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the glass stayed once the work scrolled back');
+    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
+    await sleep(100);
+    await evaluate(cdp, `document.getElementById('home').click()`);
+    await sleep(450);
+    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the glass came home with the mark');
   });
 
   /* The menu brings a section up and marks it, the mark comes home, and so

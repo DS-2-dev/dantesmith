@@ -52,6 +52,32 @@
 })();
 
 
+/* The mark's glass, only while something is under it.
+
+   A section scrolls inside itself, and at rest its content starts a little
+   below the mark; a few pixels of scroll and it is running beneath the
+   letters. So <body> carries is-under while the section that is up has
+   scrolled at all past that little margin, and the stylesheet fades the
+   glass in on that. Checked again whenever the view changes, since the
+   section being opened may already be scrolled from a visit before. */
+(function () {
+  const body = document.body;
+  const views = Array.from(document.querySelectorAll('.view'));
+  /* at rest the content clears the mark by 1.25rem; glass comes up just
+     before the first line reaches it */
+  const REACH = 12;
+
+  function update() {
+    const view = views.find((section) => section.id === body.dataset.view);
+    body.classList.toggle('is-under', !!view && view.scrollTop > REACH);
+  }
+
+  views.forEach((view) => view.addEventListener('scroll', update, { passive: true }));
+  new MutationObserver(update).observe(body, { attributes: true, attributeFilter: ['data-view'] });
+  update();
+})();
+
+
 /* The switch between Vantage and Weave.
 
    A tab list, because that is what it is: two panels, one showing, and a
