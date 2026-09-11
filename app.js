@@ -165,7 +165,16 @@ function onResize(fn) {
        floored, but the caption is type and lands on a subpixel, so a solve
        that spends the box exactly comes out two or three pixels over and the
        section takes a scrollbar it is not supposed to have. */
-    const height = view.clientHeight - px(box.paddingTop) - px(box.paddingBottom) - 1;
+    /* The campaign band is a share of this same box and its posters answer to
+       it, so its height is settled before the cluster is solved and there is
+       no circle here — it is simply height the cluster does not get to
+       spend. */
+    const band = view.querySelector('.ad-card');
+    const bandH = band
+      ? band.getBoundingClientRect().height + px(getComputedStyle(band).marginBottom)
+      : 0;
+    const height = view.clientHeight - px(box.paddingTop) - px(box.paddingBottom)
+                 - bandH - 1;
     const width = view.clientWidth - px(box.paddingLeft) - px(box.paddingRight);
     if (height <= 0 || width <= 0) return;
 
@@ -206,7 +215,9 @@ function onResize(fn) {
     best = Math.min(best, (width - colGap * (cols.length - 1)) / cols.length);
     if (best <= 0) return;
 
-    cluster.style.setProperty('--cluster-w',
+    /* Set on the view, not the cluster: the campaign band is a sibling and
+       wants the same measure, so the answer has to inherit to both. */
+    view.style.setProperty('--cluster-w',
       Math.floor(best * cols.length + colGap * (cols.length - 1)) + 'px');
   }
 

@@ -371,6 +371,38 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
    takes the width of the window instead. */
 .view--wide { max-width: none; }
 
+/* The campaign, held. Three posters in a row on the grey the page already
+   uses behind a picture, so the set reads as one piece of work rather than
+   three tiles that happen to be adjacent.
+
+   Height is a share of the work box, not a function of the posters: the
+   pictures answer to the band instead of setting it, which is what keeps the
+   band from growing on a short window and pushing the cluster into a scroll.
+   Each poster keeps its own ratio — they were drawn at three of them, and
+   forcing a common crop would take the margins off two. */
+.ad-card {
+  display: flex;
+  align-items: center;
+  /* Spread, not huddled. The three are the same set, and centring them in a
+     band this wide left them as one lump with two empty grey wings. */
+  justify-content: space-evenly;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  width: min(100%, var(--cluster-w, 62rem));
+  height: 40%;
+  margin: 0 auto 1rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+.ad {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  border-radius: 0.25rem;
+  display: block;
+}
+
 /* Four columns, and four is the line. Past that a piece would go into a column
    rather than making a fifth one, so the cards never get narrower as the set
    grows — they stack instead.
@@ -487,6 +519,8 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
 .tile-shot:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
 
 @media (max-width: 700px) {
+  .ad-card { height: auto; width: 100%; }
+  .ad { height: auto; width: calc((100% - 1.5rem) / 3); max-width: none; }
   .cluster { flex-wrap: wrap; --step: 0rem; width: 100%; }
   .col { flex: 1 1 calc(50% - 0.375rem); }
 }
