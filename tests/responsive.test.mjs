@@ -895,6 +895,68 @@ test('the page', async (t) => {
     assert.deepEqual(now.shown, ['work-panel-vantage'], 'clicking did not show Vantage again');
   });
 
+  /* At home a mouse near the initials bends them: the outline moves, the
+     letters stay where they are laid out, and with the mouse gone the trace
+     comes back exactly. In a section, on a phone, or with motion turned down,
+     nothing bends. */
+  await t.test('the mark bends around the pointer at home', async () => {
+    const shape = `(() => {
+      const path = document.querySelector('.glyph--d path');
+      const box = path.getBBox();
+      return {
+        d: path.getAttribute('d'),
+        box: [box.x, box.y, box.width, box.height].map(Math.round),
+        at: [...document.querySelectorAll('.glyph')].map((glyph) => Math.round(glyph.getBoundingClientRect().left)),
+      };
+    })()`;
+    const mouse = (x, y) => cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+    const overD = `(() => {
+      const b = document.querySelector('.glyph--d').getBoundingClientRect();
+      return [Math.round(b.left + b.width * 0.35), Math.round(b.top + b.height * 0.5)];
+    })()`;
+
+    await load(cdp, 1440, 900);
+    const trace = await evaluate(cdp, shape);
+    const [x, y] = await evaluate(cdp, overD);
+    await mouse(x - 60, y);
+    await sleep(100);
+    await mouse(x, y);
+    await sleep(700);
+    const bent = await evaluate(cdp, shape);
+    assert.notEqual(bent.d, trace.d, 'the D did not bend with the mouse on it');
+    assert.notDeepEqual(bent.box, trace.box, 'the D bent without its outline going anywhere');
+    assert.deepEqual(bent.at, trace.at, 'the letters moved in the layout rather than bending');
+    assert.ok(!/NaN/.test(bent.d), 'the bent outline has holes in its numbers');
+
+    await mouse(5, 890);
+    await sleep(1200);
+    assert.equal((await evaluate(cdp, shape)).d, trace.d, 'the D did not come back to its trace');
+
+    await open(cdp, 'about');
+    const corner = await evaluate(cdp, overD);
+    await mouse(...corner);
+    await sleep(500);
+    assert.equal((await evaluate(cdp, shape)).d, trace.d, 'the mark bent in a section');
+
+    await load(cdp, 375, 667, true);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 187, y: 333 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await sleep(500);
+    assert.equal((await evaluate(cdp, shape)).d, trace.d, 'the mark bent under a finger');
+
+    await load(cdp, 1440, 900);
+    await cdp.send('Emulation.setEmulatedMedia', {
+      features: [
+        { name: 'hover', value: 'hover' },
+        { name: 'pointer', value: 'fine' },
+        { name: 'prefers-reduced-motion', value: 'reduce' },
+      ],
+    });
+    await mouse(x, y);
+    await sleep(500);
+    assert.equal((await evaluate(cdp, shape)).d, trace.d, 'the mark bent with motion turned down');
+  });
+
   /* Either way the button lands, the live region says so in plain words. */
   await t.test('the copy button says what happened', async () => {
     await load(cdp, 1440, 900);

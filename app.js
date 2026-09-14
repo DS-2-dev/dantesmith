@@ -122,6 +122,248 @@
 })();
 
 
+/* The mark, bent by the pointer.
+
+   At home the initials are the page, and a pointer near them presses into the
+   lettering: the outline swells away from it, trails it a little as it moves,
+   and springs back once it goes. No colour, only shape.
+
+   Each trace's outline is cut into short cubic pieces once, on load, so a long
+   straight edge of the D can curve rather than only tip at its two ends. Every
+   frame, each point of those pieces is pushed out from the pointer by
+
+     (p − c) · s · e^(−|p − c|² / 2σ²)
+
+   which is smooth everywhere, nothing at the pointer itself, and most at σ
+   out. Under s ≈ 2.2 it never folds an edge over its neighbour, so the letters
+   bulge and bend but never tear or cross. The dots ride the same field.
+
+   Only at home, only with a mouse, and never with motion turned down. When
+   the pointer is well clear the outline goes back to the trace exactly, and
+   nothing runs. */
+(function () {
+  const body = document.body;
+  const mark = document.getElementById('home');
+  if (!mark) return;
+  const glyphs = Array.from(mark.querySelectorAll('.glyph path'));
+  const dots = Array.from(mark.querySelectorAll('.dot'));
+  if (!glyphs.length) return;
+  const fine = window.matchMedia('(hover: hover) and (pointer: fine)');
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /* how hard, and how far out, as fractions of the letters' height */
+  const STRENGTH = 0.85;
+  const REACH = 0.3;
+  /* the longest piece an outline is cut into, in the trace's own units: about
+     six pixels at the largest the mark is drawn */
+  const STEP = 240;
+  /* the pointer's lag, a little under critically damped so it wobbles once;
+     and how fast the bend comes and goes */
+  const FOLLOW = { stiffness: 180, damping: 19 };
+  const FADE = { stiffness: 110, damping: 21 };
+
+  /* A trace's outline as subpaths of cubics: each subpath one flat list,
+     its start point and then three points for every piece. Potrace writes
+     only M, m, l, c and z. A line becomes a cubic with its handles on it. */
+  function outline(d) {
+    const tokens = d.match(/[a-z]|[-+]?(?:\d+\.?\d*|\.\d+)/gi);
+    const subpaths = [];
+    let points = null;
+    let x = 0, y = 0, sx = 0, sy = 0;
+    let command = '';
+    let i = 0;
+    const num = () => parseFloat(tokens[i++]);
+    const piece = (x1, y1, x2, y2, x3, y3) => {
+      cut(points, x, y, x1, y1, x2, y2, x3, y3);
+      x = x3; y = y3;
+    };
+    const line = (x3, y3) => piece(x + (x3 - x) / 3, y + (y3 - y) / 3, x + (x3 - x) * 2 / 3, y + (y3 - y) * 2 / 3, x3, y3);
+
+    while (i < tokens.length) {
+      if (/[a-z]/i.test(tokens[i])) command = tokens[i++];
+      const relative = command === command.toLowerCase();
+      const ox = relative ? x : 0;
+      const oy = relative ? y : 0;
+      switch (command.toLowerCase()) {
+        case 'm':
+          x = sx = ox + num();
+          y = sy = oy + num();
+          points = [x, y];
+          subpaths.push(points);
+          /* pairs after a move are lines */
+          command = relative ? 'l' : 'L';
+          break;
+        case 'l':
+          line(ox + num(), oy + num());
+          break;
+        case 'c':
+          piece(ox + num(), oy + num(), ox + num(), oy + num(), ox + num(), oy + num());
+          break;
+        case 'z':
+          if (x !== sx || y !== sy) line(sx, sy);
+          x = sx; y = sy;
+          command = '';
+          break;
+        default:
+          return null;
+      }
+    }
+    return subpaths.map((list) => Float64Array.from(list));
+  }
+
+  /* Adds a cubic to a subpath in as many equal-parameter pieces as its length
+     needs, each split off the front by de Casteljau. */
+  function cut(points, x0, y0, x1, y1, x2, y2, x3, y3) {
+    const length = Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(x3 - x2, y3 - y2);
+    for (let n = Math.max(1, Math.ceil(length / STEP)); n > 1; n--) {
+      const t = 1 / n;
+      const ax = x0 + (x1 - x0) * t, ay = y0 + (y1 - y0) * t;
+      const bx = x1 + (x2 - x1) * t, by = y1 + (y2 - y1) * t;
+      const cx = x2 + (x3 - x2) * t, cy = y2 + (y3 - y2) * t;
+      const dx = ax + (bx - ax) * t, dy = ay + (by - ay) * t;
+      const ex = bx + (cx - bx) * t, ey = by + (cy - by) * t;
+      const fx = dx + (ex - dx) * t, fy = dy + (ey - dy) * t;
+      points.push(ax, ay, dx, dy, fx, fy);
+      x0 = fx; y0 = fy; x1 = ex; y1 = ey; x2 = cx; y2 = cy;
+    }
+    points.push(x1, y1, x2, y2, x3, y3);
+  }
+
+  const traces = glyphs.map((path) => {
+    const d = path.getAttribute('d');
+    return { path, d, subpaths: outline(d) };
+  }).filter((trace) => trace.subpaths);
+
+  /* the pointer, and the lagging point the field is centred on */
+  const pointer = { x: 0, y: 0, near: false };
+  const centre = { x: 0, y: 0, vx: 0, vy: 0 };
+  const bend = { value: 0, velocity: 0 };
+  let frame = 0;
+  let last = 0;
+  let bent = false;
+
+  function allowed() {
+    return body.dataset.view === 'home' && fine.matches && !still.matches;
+  }
+
+  function warp(trace, cx, cy, sigma, s) {
+    /* past four σ the push is under a thousandth of the distance */
+    const far = 16 * sigma * sigma;
+    const fall = 1 / (2 * sigma * sigma);
+    let d = '';
+    for (const list of trace.subpaths) {
+      for (let k = 0; k < list.length; k += 2) {
+        let x = list[k];
+        let y = list[k + 1];
+        const dx = x - cx;
+        const dy = y - cy;
+        const r2 = dx * dx + dy * dy;
+        if (r2 < far) {
+          const push = s * Math.exp(-r2 * fall);
+          x += dx * push;
+          y += dy * push;
+        }
+        d += (k === 0 ? 'M' : k % 6 === 2 ? 'C' : ' ') + x.toFixed(1) + ' ' + y.toFixed(1);
+      }
+      d += 'Z';
+    }
+    trace.path.setAttribute('d', d);
+  }
+
+  function rest() {
+    traces.forEach((trace) => trace.path.setAttribute('d', trace.d));
+    dots.forEach((dot) => { dot.style.translate = ''; });
+    bent = false;
+  }
+
+  function draw() {
+    const s = STRENGTH * bend.value;
+    const height = mark.getBoundingClientRect().height;
+    const sigmaPx = REACH * height;
+    traces.forEach((trace) => {
+      const ctm = trace.path.getScreenCTM();
+      if (!ctm) return;
+      const inverse = ctm.inverse();
+      const cx = inverse.a * centre.x + inverse.c * centre.y + inverse.e;
+      const cy = inverse.b * centre.x + inverse.d * centre.y + inverse.f;
+      warp(trace, cx, cy, sigmaPx / Math.hypot(ctm.a, ctm.b), s);
+    });
+    dots.forEach((dot) => {
+      /* measured where it would be with nothing applied */
+      dot.style.translate = '';
+      const box = dot.getBoundingClientRect();
+      const dx = box.left + box.width / 2 - centre.x;
+      const dy = box.top + box.height / 2 - centre.y;
+      const push = s * Math.exp(-(dx * dx + dy * dy) / (2 * sigmaPx * sigmaPx));
+      dot.style.translate = (dx * push).toFixed(2) + 'px ' + (dy * push).toFixed(2) + 'px';
+    });
+    bent = true;
+  }
+
+  function spring(state, key, speed, target, { stiffness, damping }, dt) {
+    const force = stiffness * (target - state[key]) - damping * state[speed];
+    state[speed] += force * dt;
+    state[key] += state[speed] * dt;
+  }
+
+  function tick(now) {
+    frame = 0;
+    const dt = Math.min(0.032, (now - (last || now)) / 1000) || 1 / 60;
+    last = now;
+    const target = pointer.near && allowed() ? 1 : 0;
+
+    spring(centre, 'x', 'vx', pointer.x, FOLLOW, dt);
+    spring(centre, 'y', 'vy', pointer.y, FOLLOW, dt);
+    spring(bend, 'value', 'velocity', target, FADE, dt);
+
+    const moving = Math.abs(centre.vx) + Math.abs(centre.vy) > 0.5
+      || Math.abs(pointer.x - centre.x) + Math.abs(pointer.y - centre.y) > 0.5
+      || Math.abs(bend.velocity) > 0.002
+      || Math.abs(target - bend.value) > 0.002;
+
+    if (!target && !moving) {
+      bend.value = bend.velocity = 0;
+      if (bent) rest();
+      last = 0;
+      return;
+    }
+    draw();
+    if (moving) frame = requestAnimationFrame(tick);
+    else last = 0;
+  }
+
+  function wake() {
+    if (!frame) frame = requestAnimationFrame(tick);
+  }
+
+  window.addEventListener('pointermove', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    const box = mark.getBoundingClientRect();
+    const reach = 4 * REACH * box.height;
+    const near = event.clientX > box.left - reach && event.clientX < box.right + reach
+      && event.clientY > box.top - reach && event.clientY < box.bottom + reach;
+    /* coming in from far away, the field starts where the pointer is rather
+       than sliding over from where it was last */
+    if (near && !pointer.near && !bent) {
+      centre.x = event.clientX;
+      centre.y = event.clientY;
+      centre.vx = centre.vy = 0;
+    }
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+    pointer.near = near;
+    if (near || bent) wake();
+  }, { passive: true });
+  document.documentElement.addEventListener('pointerleave', () => {
+    pointer.near = false;
+    wake();
+  });
+  /* opening a section lets the letters go as they shrink into the corner */
+  new MutationObserver(wake).observe(body, { attributes: true, attributeFilter: ['data-view'] });
+  still.addEventListener('change', wake);
+})();
+
+
 /* The switch between Vantage and Weave.
 
    A tab list, because that is what it is: two panels, one showing, and a

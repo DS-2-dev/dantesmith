@@ -708,6 +708,9 @@ body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
   height: var(--glyph);
   width: auto;
   display: block;
+  /* the traces are tight to their ink, and the pointer bends the ink out past
+     them (app.js); clipped, a bulge would read as a cut */
+  overflow: visible;
   transition: height 0.55s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
