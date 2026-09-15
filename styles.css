@@ -295,6 +295,7 @@ body:not([data-view="home"]) .home-cards {
   padding: 0.5rem 0.9rem 0.5rem 0.5rem;
   border-radius: 0.875rem;
   color: var(--foreground);
+  text-decoration: none;
   background-color: var(--glass);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -302,6 +303,8 @@ body:not([data-view="home"]) .home-cards {
   animation: card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
   transition: width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* the card is the link to the track on Last.fm, focused the way inspo is */
+.listening:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
 
 /* A new track: the art and the words fade out with a little blur, and the
    new ones fade back in the same way once app.js has set them — a morph

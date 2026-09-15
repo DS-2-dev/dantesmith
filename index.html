@@ -327,8 +327,12 @@
        their first answer lands, so with the script off, or either service
        down, there is nothing on the page that looks missing. -->
   <div class="home-cards">
-    <!-- Spotify scrobbles to Last.fm and app.js reads the latest track. -->
-    <aside class="listening" id="listening" aria-label="What I'm listening to" hidden>
+    <!-- Spotify scrobbles to Last.fm, my now-playing Worker reads the latest
+         track (the API key stays on the Worker), and app.js asks the Worker.
+         The whole card goes to the track on Last.fm. -->
+    <a class="listening" id="listening" href="https://www.last.fm/user/kid_chino08"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="What I'm listening to, on Last.fm (opens in a new tab)" hidden>
       <span class="listening-cover" aria-hidden="true">
         <svg class="listening-note" viewBox="0 0 16 16" focusable="false"><path d="M6 12.2a2 2 0 1 1-1.5-1.94V3.6l7-1.6v8.2a2 2 0 1 1-1.5-1.94V4.9L6 5.9z" fill="currentColor"/></svg>
         <img class="listening-art" alt="" width="56" height="56" decoding="async">
@@ -338,7 +342,11 @@
         <span class="listening-title"></span>
         <span class="listening-artist"></span>
       </span>
-    </aside>
+    </a>
+    <!-- A new track, said to a screen reader. Outside the card, which is
+         hidden until its first answer, and a live region inside something
+         hidden says nothing. -->
+    <span class="sr-only" id="listening-said" aria-live="polite"></span>
 
     <!-- The four newest images in the channel, read from Are.na's public
          API by app.js. The whole card goes to the channel. The pictures are

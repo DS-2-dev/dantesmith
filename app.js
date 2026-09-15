@@ -591,39 +591,33 @@
 })();
 
 
-/* Now playing, from Last.fm.
+/* Now playing, from Last.fm by way of my Worker.
 
    Spotify scrobbles every track to Last.fm, and Last.fm marks the one playing
    right now, so the latest scrobble is either what is on or what was on
-   last. Asked once on load and every 30 seconds after, and only while the
-   tab is in front: a tab in the background has nobody to show it to.
-
-   The API key, not the shared secret. This is a public read that needs no
-   signing, and anything in this file is readable by whoever opens it; the
-   secret has no business in a file that is served. */
+   last. The now-playing Worker holds the Last.fm key, finds the art, and
+   answers with a small fixed shape. Asked once on load and every 30 seconds
+   after, and only while the tab is in front: a tab in the background has
+   nobody to show it to. */
 (function () {
   const card = document.getElementById('listening');
   if (!card) return;
 
-  const USER = 'kid_chino08';
-  const KEY = '64e3ff29b84b494f673f592156b60a9c';
-  const ENDPOINT = 'https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks'
-    + '&user=' + encodeURIComponent(USER) + '&api_key=' + KEY + '&format=json&limit=1';
-  /* Every 15 seconds, playing or not. It used to wait a minute between
-     questions once the card said "last played", and that is exactly when a
-     song starting matters most: pressing play meant a minute's wait, and a
-     reload looked like the only way to see it. */
-  const EVERY = 15000;
+  const ENDPOINT = 'https://now-playing.now-playing.workers.dev/';
+  /* where the card goes before it knows a track */
+  const PROFILE = 'https://www.last.fm/user/kid_chino08';
+  /* Every 30 seconds, which is also how long the Worker keeps an answer:
+     asking more often would only get the same answer back. */
+  const EVERY = 30000;
   /* how long a question gets before it is given up on */
   const PATIENCE = 8000;
   let asking = false;
-  /* Last.fm's own grey star, sent for a track it has no art for */
-  const NO_ART = '2a96cbd8b46e442fc41c2b86b821562f';
 
   const art = card.querySelector('.listening-art');
   const label = card.querySelector('.listening-label');
   const title = card.querySelector('.listening-title');
   const artist = card.querySelector('.listening-artist');
+  const aloud = document.getElementById('listening-said');
   const still = window.matchMedia('(prefers-reduced-motion: reduce)');
   /* pixels a second: slow enough to read as it goes by */
   const SPEED = 28;
@@ -694,14 +688,25 @@
   /* Short, because the status line has a phone's width to fit in beside the
      art: "Last played 2 hours ago" ran out of room and ended in an ellipsis
      there, and "Last played 2h ago" does not. */
-  function ago(uts) {
+  function ago(uts, spoken) {
     const minutes = Math.max(0, Math.round((Date.now() / 1000 - uts) / 60));
     if (minutes < 1) return 'just now';
-    if (minutes < 60) return minutes + 'm ago';
+    if (minutes < 60) return (spoken ? count(minutes, 'minute') : minutes + 'm') + ' ago';
     const hours = Math.round(minutes / 60);
-    if (hours < 24) return hours + 'h ago';
+    if (hours < 24) return (spoken ? count(hours, 'hour') : hours + 'h') + ' ago';
     const days = Math.round(hours / 24);
-    return days === 1 ? 'yesterday' : days + 'd ago';
+    return days === 1 ? 'yesterday' : (spoken ? count(days, 'day') : days + 'd') + ' ago';
+  }
+  /* The same, in words, for a screen reader, which would read "2h" as it is */
+  const count = (n, unit) => n + ' ' + unit + (n === 1 ? '' : 's');
+
+  /* The Worker sends art big enough for the desktop app: 600px from iTunes,
+     300px from Last.fm. The card draws it at 56px, 168 at three times the
+     density, so both are asked for near that size instead. */
+  function sized(src) {
+    return src
+      .replace(/\/600x600bb\.(\w+)$/, '/180x180bb.$1')
+      .replace('/i/u/300x300/', '/i/u/174s/');
   }
 
   /* Puts a track on the card as it stands. Shown before the names are set,
@@ -733,6 +738,12 @@
     fit(title, next.name);
     fit(artist, next.by);
     [title, artist].forEach((line) => { line.dataset.width = String(line.clientWidth); });
+    card.href = next.href;
+    card.setAttribute('aria-label', next.spoken + ', on Last.fm (opens in a new tab)');
+    /* A new track is said aloud, politely. Not the first, which arrives with
+       the page, and not the "last played" time ticking over each minute,
+       which is why this has its own region rather than the card being live. */
+    if (aloud && card.dataset.track && card.dataset.track !== next.key) aloud.textContent = next.spoken;
     card.dataset.track = next.key;
   }
 
@@ -794,27 +805,28 @@
       const response = await fetch(ENDPOINT, { cache: 'no-store', signal: controller.signal });
       if (!response.ok) return;
       const data = await response.json();
-      const track = data && data.recenttracks && data.recenttracks.track && data.recenttracks.track[0];
-      if (!track) return;
+      /* No track: an account with nothing played yet. Whatever is showing
+         stays, and a card that never loaded stays hidden. An answer marked
+         stale is shown as it is — a slightly old track is still a fine one. */
+      if (!data || !data.track) return;
 
-      const playing = !!(track['@attr'] && track['@attr'].nowplaying === 'true');
-      const when = track.date && Number(track.date.uts);
-
-      /* Last.fm's 174px size covers the card's 56px at three times the
-         density; the 300px one would only be more to download */
-      const images = Array.isArray(track.image) ? track.image : [];
-      const pick = images.find((image) => image.size === 'large') || images[images.length - 1];
-      const src = (pick && pick['#text']) || '';
-      const name = track.name || '';
-      const by = (track.artist && track.artist['#text']) || '';
+      const playing = data.playing === true;
+      const when = data.playedAt ? Date.parse(data.playedAt) / 1000 : 0;
+      const name = data.track;
+      const by = data.artist || '';
+      /* The Worker has already turned Last.fm's grey star into no art */
+      const src = data.art ? sized(data.art) : '';
+      const status = (spoken) => (playing ? 'Listening now' : 'Last played' + (when ? ' ' + ago(when, spoken) : ''));
       const next = {
         key: name + '\n' + by,
         name,
         by,
-        label: playing ? 'Listening now' : 'Last played' + (when ? ' ' + ago(when) : ''),
+        label: status(false),
+        spoken: status(true) + ': ' + name + (by ? ' by ' + by : ''),
+        href: data.url || PROFILE,
         playing,
         src,
-        real: !!src && !src.includes(NO_ART),
+        real: !!src,
       };
 
       /* A new track morphs in. The first one, the same one again — which

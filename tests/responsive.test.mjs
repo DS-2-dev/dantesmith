@@ -109,20 +109,20 @@ class Cdp {
   }
 }
 
-/* What Last.fm answers, stood in for so the test neither depends on the
-   network nor on what happens to be playing. The art is a file the test's
-   own server has. */
-function recentTrack(extra) {
+/* What the now-playing Worker answers, stood in for so the test neither
+   depends on the network nor on what happens to be playing. The art is a
+   file the test's own server has. */
+function nowPlaying(extra) {
   return {
-    recenttracks: {
-      track: [{
-        name: 'Nights',
-        artist: { '#text': 'Frank Ocean' },
-        album: { '#text': 'Blonde' },
-        image: [{ size: 'large', '#text': `http://127.0.0.1:${HTTP_PORT}/images/apple-touch-icon.png` }],
-        ...extra,
-      }],
-    },
+    playing: false,
+    track: 'Nights',
+    artist: 'Frank Ocean',
+    album: 'Blonde',
+    url: 'https://www.last.fm/music/Frank+Ocean/_/Nights',
+    art: `http://127.0.0.1:${HTTP_PORT}/images/apple-touch-icon.png`,
+    playedAt: null,
+    stale: false,
+    ...extra,
   };
 }
 /* What Are.na answers for the channel, newest first: a link and a text
@@ -151,8 +151,8 @@ function arenaChannel(files) {
 const ARENA = arenaChannel(['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp', 'weave-cover.webp']);
 const ARENA_NEXT = arenaChannel(['wsu-ai-lab-poster.webp', 'sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp']);
 
-const NOW_PLAYING = recentTrack({ '@attr': { nowplaying: 'true' } });
-const LAST_PLAYED = recentTrack({ date: { uts: String(Math.floor(Date.now() / 1000) - 300) } });
+const NOW_PLAYING = nowPlaying({ playing: true });
+const LAST_PLAYED = nowPlaying({ playedAt: new Date(Date.now() - 300 * 1000).toISOString() });
 
 /* Runs an expression in the page and hands back what it returned. */
 async function evaluate(cdp, expression) {
@@ -308,12 +308,13 @@ test('the page', async (t) => {
   /* the page has to believe it is focused, or nothing inside it can be */
   await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true });
 
-  /* Every call to Last.fm is answered here, with whatever `lastfm` holds at
-     the time. The CORS header is what the real API sends too. */
-  let lastfm = { status: 200, body: NOW_PLAYING };
+  /* Every call to the now-playing Worker is answered here, with whatever
+     `worker` holds at the time. The Worker names the page's origin rather
+     than a wildcard; either lets the page read the answer. */
+  let worker = { status: 200, body: NOW_PLAYING };
   let arena = { status: 200, body: ARENA };
   cdp.on('Fetch.requestPaused', ({ requestId, request }) => {
-    const answer = request.url.includes('api.are.na') ? arena : lastfm;
+    const answer = request.url.includes('api.are.na') ? arena : worker;
     /* left unanswered, the way a stalled connection leaves a request */
     if (answer.hang) return;
     cdp.send('Fetch.fulfillRequest', {
@@ -327,7 +328,7 @@ test('the page', async (t) => {
     }).catch(() => {});
   });
   await cdp.send('Fetch.enable', {
-    patterns: [{ urlPattern: '*ws.audioscrobbler.com*' }, { urlPattern: '*api.are.na*' }],
+    patterns: [{ urlPattern: '*now-playing.now-playing.workers.dev*' }, { urlPattern: '*api.are.na*' }],
   });
 
   /* The card at home: what it says, whether it shows, and where it sits
@@ -343,6 +344,10 @@ test('the page', async (t) => {
       hidden: card.hidden,
       visibility: style.visibility,
       opacity: style.opacity,
+      href: card.getAttribute('href'),
+      target: card.getAttribute('target'),
+      name: card.getAttribute('aria-label'),
+      said: document.getElementById('listening-said').textContent,
       label: card.querySelector('.listening-label').textContent,
       /* a marquee sets the name twice; the first copy is the one read out */
       title: (card.querySelector('.listening-title .marquee-copy') || card.querySelector('.listening-title')).textContent,
@@ -376,8 +381,8 @@ test('the page', async (t) => {
     };
   })()`;
 
-  await t.test('home shows what is playing, from Last.fm', async () => {
-    lastfm = { status: 200, body: NOW_PLAYING };
+  await t.test('home shows what is playing, from the now-playing Worker', async () => {
+    worker = { status: 200, body: NOW_PLAYING };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     let card = await evaluate(cdp, listening);
@@ -394,27 +399,37 @@ test('the page', async (t) => {
     /* the menu's white glass */
     const [red, green, blue] = card.fill.match(/[\d.]+/g).map(Number);
     assert.ok(Math.min(red, green, blue) > 240, `the card is not on the white glass: ${card.fill}`);
+    /* the whole card goes to the track on Last.fm, in a new tab, and its
+       name says what is playing rather than leaving the title on its own */
+    assert.equal(card.href, 'https://www.last.fm/music/Frank+Ocean/_/Nights');
+    assert.equal(card.target, '_blank');
+    assert.equal(card.name, 'Listening now: Nights by Frank Ocean, on Last.fm (opens in a new tab)');
+    assert.equal(card.said, '', 'the first track was announced along with the page');
 
     await open(cdp, 'work');
     card = await evaluate(cdp, listening);
     assert.equal(card.visibility, 'hidden', 'the card stayed up in a section');
 
-    lastfm = { status: 200, body: LAST_PLAYED };
+    worker = { status: 200, body: LAST_PLAYED };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
     assert.equal(card.label, 'Last played 5m ago');
     assert.equal(card.playing, false, 'the bars move for a track that is over');
+    assert.equal(card.name, 'Last played 5 minutes ago: Nights by Frank Ocean, on Last.fm (opens in a new tab)');
 
-    lastfm = { status: 200, body: recentTrack({ image: [{ size: 'large', '#text': 'https://lastfm.freetls.fastly.net/i/u/174s/2a96cbd8b46e442fc41c2b86b821562f.png' }] }) };
+    /* The Worker turns Last.fm's grey star into no art, so no art is what
+       arrives here: the note shows, and no picture */
+    worker = { status: 200, body: nowPlaying({ art: null }) };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
-    assert.equal(card.art, false, 'Last.fm\'s blank star was shown as album art');
+    assert.equal(card.hidden, false, 'a track with no art kept the card down');
+    assert.equal(card.art, false, 'a track with no art showed a picture');
 
     /* an address that turns out to be nothing leaves the note, not a
        broken-image mark */
-    lastfm = { status: 200, body: recentTrack({ image: [{ size: 'large', '#text': `http://127.0.0.1:${HTTP_PORT}/images/not-there.png` }] }) };
+    worker = { status: 200, body: nowPlaying({ art: `http://127.0.0.1:${HTTP_PORT}/images/not-there.png` }) };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
@@ -422,7 +437,7 @@ test('the page', async (t) => {
     assert.equal(card.art, false, 'art that failed to load was shown anyway');
 
     /* the longest line cannot push it off a phone */
-    lastfm = { status: 200, body: recentTrack({ name: 'A title long enough to run the whole width of a phone and then some more', '@attr': { nowplaying: 'true' } }) };
+    worker = { status: 200, body: nowPlaying({ track: 'A title long enough to run the whole width of a phone and then some more', playing: true }) };
     await load(cdp, 375, 667, true);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
@@ -437,12 +452,29 @@ test('the page', async (t) => {
     assert.equal(card.steady, true, 'the name does not move at one steady pace');
     assert.equal(card.artistScrolls, false, 'the artist scrolls though it fits');
 
-    lastfm = { status: 500, body: {} };
+    /* an answer marked stale, from while Last.fm was down, is shown as it is */
+    worker = { status: 200, body: nowPlaying({ ...LAST_PLAYED, stale: true }) };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     card = await evaluate(cdp, listening);
-    assert.equal(card.hidden, true, 'the card came up with nothing to say');
-    lastfm = { status: 200, body: NOW_PLAYING };
+    assert.equal(card.hidden, false, 'a stale track kept the card down');
+    assert.equal(card.title, 'Nights');
+
+    /* an account with nothing played yet, or the Worker down with nothing
+       to fall back on: no card at all */
+    const nothing = [
+      { status: 200, body: nowPlaying({ track: null, artist: null, album: null, url: null, art: null }) },
+      { status: 503, body: { error: 'unavailable' } },
+      { status: 500, body: {} },
+    ];
+    for (const answer of nothing) {
+      worker = answer;
+      await load(cdp, 1440, 900);
+      await sleep(SETTLE);
+      card = await evaluate(cdp, listening);
+      assert.equal(card.hidden, true, `the card came up with nothing to say (${answer.status})`);
+    }
+    worker = { status: 200, body: NOW_PLAYING };
   });
 
   /* The black card beside it: the four newest pictures in the Are.na channel,
@@ -474,7 +506,7 @@ test('the page', async (t) => {
 
   await t.test('home shows the newest from Are.na', async () => {
     arena = { status: 200, body: ARENA };
-    lastfm = { status: 200, body: NOW_PLAYING };
+    worker = { status: 200, body: NOW_PLAYING };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
     let card = await evaluate(cdp, inspo);
@@ -534,20 +566,22 @@ test('the page', async (t) => {
       })()`,
     });
     try {
-      lastfm = { status: 200, body: NOW_PLAYING };
+      worker = { status: 200, body: NOW_PLAYING };
       await load(cdp, 1440, 900);
       await sleep(SETTLE);
       assert.equal((await evaluate(cdp, listening)).title, 'Nights');
 
-      lastfm = { status: 200, body: recentTrack({ name: 'Ivy', '@attr': { nowplaying: 'true' } }) };
+      worker = { status: 200, body: nowPlaying({ track: 'Ivy', playing: true }) };
       await sleep(1200);
-      assert.equal((await evaluate(cdp, listening)).title, 'Ivy', 'the scheduled check did not pick up the new track');
+      const followed = await evaluate(cdp, listening);
+      assert.equal(followed.title, 'Ivy', 'the scheduled check did not pick up the new track');
+      assert.equal(followed.said, 'Listening now: Ivy by Frank Ocean', 'the new track was not said to a screen reader');
 
-      /* Last.fm stops answering for a while, then answers with a new song:
-         the card has to pick it up without anyone reloading */
-      lastfm = { hang: true };
+      /* the Worker stops answering for a while, then answers with a new
+         song: the card has to pick it up without anyone reloading */
+      worker = { hang: true };
       await sleep(700);
-      lastfm = { status: 200, body: recentTrack({ name: 'Solo', '@attr': { nowplaying: 'true' } }) };
+      worker = { status: 200, body: nowPlaying({ track: 'Solo', playing: true }) };
       await sleep(1500);
       assert.equal((await evaluate(cdp, listening)).title, 'Solo', 'a request that never answered stopped the card following the music');
 
@@ -555,7 +589,7 @@ test('the page', async (t) => {
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
       await load(cdp, 1440, 900);
       await sleep(SETTLE);
-      lastfm = { status: 200, body: recentTrack({ name: 'Pink + White', '@attr': { nowplaying: 'true' } }) };
+      worker = { status: 200, body: nowPlaying({ track: 'Pink + White', playing: true }) };
       await evaluate(cdp, `window.dispatchEvent(new Event('focus'))`);
       /* partway through, the old track is fading out rather than swapped */
       await sleep(150);
@@ -574,7 +608,7 @@ test('the page', async (t) => {
       assert.deepEqual(settled, { changing: false, width: '' }, 'the card did not settle after the morph');
     } finally {
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier }).catch(() => {});
-      lastfm = { status: 200, body: NOW_PLAYING };
+      worker = { status: 200, body: NOW_PLAYING };
     }
   });
 
