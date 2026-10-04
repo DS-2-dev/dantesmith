@@ -126,6 +126,28 @@ function nowPlaying(extra) {
   };
 }
 
+/* What Are.na answers for the inspo channel, newest first: a link and a
+   text block among the pictures, which the stack has to skip. The pictures
+   are files the test's own server has. */
+function arenaChannel(files) {
+  const picture = (file) => ({
+    id: 'block-' + file,
+    class: 'Image',
+    title: file,
+    image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/${file}` } },
+  });
+  const [first, ...rest] = files.map(picture);
+  return {
+    contents: [
+      { id: 999, class: 'Link', title: 'a link', image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/og-card.jpg` } } },
+      first,
+      { id: 998, class: 'Text', title: 'a note', content: 'words' },
+      ...rest,
+    ],
+  };
+}
+const ARENA = arenaChannel(['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp', 'weave-cover.webp']);
+
 const NOW_PLAYING = nowPlaying({ playing: true });
 const LAST_PLAYED = nowPlaying({ playedAt: new Date(Date.now() - 300 * 1000).toISOString() });
 
@@ -287,8 +309,9 @@ test('the page', async (t) => {
      `worker` holds at the time. The Worker names the page's origin rather
      than a wildcard; either lets the page read the answer. */
   let worker = { status: 200, body: NOW_PLAYING };
+  let arena = { status: 200, body: ARENA };
   cdp.on('Fetch.requestPaused', ({ requestId, request }) => {
-    const answer = worker;
+    const answer = request.url.includes('api.are.na') ? arena : worker;
     /* left unanswered, the way a stalled connection leaves a request */
     if (answer.hang) return;
     cdp.send('Fetch.fulfillRequest', {
@@ -302,7 +325,7 @@ test('the page', async (t) => {
     }).catch(() => {});
   });
   await cdp.send('Fetch.enable', {
-    patterns: [{ urlPattern: '*now-playing.now-playing.workers.dev*' }],
+    patterns: [{ urlPattern: '*now-playing.now-playing.workers.dev*' }, { urlPattern: '*api.are.na*' }],
   });
 
   /* The card at home: what it says, whether it shows, and where it sits
@@ -370,9 +393,9 @@ test('the page', async (t) => {
     assert.equal(card.art, true, 'the album art is not showing');
     assert.ok(Math.abs(card.left - 16) <= 1 && Math.abs(card.bottom - (card.innerHeight - 16)) <= 1,
       'the card is not in the bottom-left corner');
-    /* the menu's white glass */
+    /* a black pill, like the island on a phone */
     const [red, green, blue] = card.fill.match(/[\d.]+/g).map(Number);
-    assert.ok(Math.min(red, green, blue) > 240, `the card is not on the white glass: ${card.fill}`);
+    assert.ok(Math.max(red, green, blue) < 20, `the card is not black: ${card.fill}`);
     /* the whole card goes to the track on Last.fm, in a new tab, and its
        name says what is playing rather than leaving the title on its own */
     assert.equal(card.href, 'https://www.last.fm/music/Frank+Ocean/_/Nights');
@@ -449,6 +472,50 @@ test('the page', async (t) => {
       assert.equal(card.hidden, true, `the card came up with nothing to say (${answer.status})`);
     }
     worker = { status: 200, body: NOW_PLAYING };
+  });
+
+  /* The inspo stack beside it: the four newest pictures in the Are.na
+     channel, links and text skipped, right of the music, fanned out under
+     the pointer, gone in a section, and not there at all if Are.na is down. */
+  await t.test('home stacks the newest from Are.na beside the music', async () => {
+    const inspo = `(() => {
+      const card = document.getElementById('inspo');
+      const box = card.getBoundingClientRect();
+      const chip = document.getElementById('listening').getBoundingClientRect();
+      const thumbs = [...card.querySelectorAll('.inspo-thumb')];
+      return {
+        hidden: card.hidden,
+        visibility: getComputedStyle(card).visibility,
+        files: thumbs.map((t) => (t.querySelector('img').getAttribute('src') || '').split('/').pop()),
+        href: card.getAttribute('href'),
+        left: box.left,
+        chipRight: chip.right,
+        spread: Math.max(...thumbs.map((t) => t.getBoundingClientRect().right)) - Math.min(...thumbs.map((t) => t.getBoundingClientRect().left)),
+      };
+    })()`;
+    arena = { status: 200, body: ARENA };
+    worker = { status: 200, body: NOW_PLAYING };
+    await load(cdp, 1440, 900);
+    await sleep(SETTLE);
+    let card = await evaluate(cdp, inspo);
+    assert.equal(card.hidden, false, 'the stack did not come up with pictures');
+    assert.deepEqual(card.files, ['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp'],
+      'not the four newest pictures, newest first, with the link and the text skipped');
+    assert.equal(card.href, 'https://www.are.na/dante-smith/inspo-syd5sijpqmk');
+    assert.ok(card.left >= card.chipRight, 'the stack is not beside the music');
+    const stacked = card.spread;
+    await evaluate(cdp, `document.getElementById('inspo').focus()`);
+    await sleep(700);
+    assert.ok((await evaluate(cdp, inspo)).spread > stacked * 2, 'the stack did not fan out');
+
+    await open(cdp, 'work');
+    assert.equal((await evaluate(cdp, inspo)).visibility, 'hidden', 'the stack stayed up in a section');
+
+    arena = { status: 500, body: {} };
+    await load(cdp, 1440, 900);
+    await sleep(SETTLE);
+    assert.equal((await evaluate(cdp, inspo)).hidden, true, 'the stack came up with nothing to show');
+    arena = { status: 200, body: ARENA };
   });
 
   /* Someone from EarthBound beside it: in the bottom-right corner, above
