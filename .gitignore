@@ -17,3 +17,7 @@ Screenshot *.png
 # Tool scratch, and this repo is served as-is — anything committed here is
 # published at dantesmith.studio.
 graphify-out/
+
+# Brainstorm and planning scratch from the superpowers skills. Tool output,
+# and like everything else here it would be published if committed.
+.superpowers/

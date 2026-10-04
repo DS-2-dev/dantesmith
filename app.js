@@ -3,7 +3,9 @@
 
    The previous script is on the makeover branch: the game, the pointer-following
    panels and the name cards all live there and can be brought across one block
-   at a time. This file is what the page needs today. */
+   at a time. This file is what the page needs today; who stands in the corner
+   of home, and what they say, is in cast.js. */
+import { CAST } from './cast.js';
 
 
 /* The views.
@@ -419,119 +421,321 @@
 })();
 
 
-/* Latest inspo, from Are.na.
+/* The visitor.
 
-   The four newest images in my inspo channel, on the black card at home.
-   The channel is public, so Are.na's API gives up its contents to anyone who
-   asks, and this asks with no token at all. That is on purpose: anything in
-   this file is readable by whoever opens it, and a personal access token can
-   act as the account, not just read it.
+   Someone from EarthBound in the bottom-right corner of home, picked at
+   random from cast.js on every visit. They potter about their yard the way
+   Mr. Saturn does in Saturn Valley: a few slow steps somewhere, a stop, a
+   look around. Clicked, they hop, turn to face you and say something,
+   typed into the game's window a letter at a time, and said to a screen
+   reader too. With motion turned down they stay put, and the words land
+   whole. Nothing walks while a section is up.
 
-   Newest first is the channel's own order turned round. Only picture blocks
-   count — links and text in the channel are skipped. Asked once on load and
-   every minute after while the tab is in front, and straight away on coming
-   back to it. Are.na tells browsers to keep its answers for a week, so this
-   never takes a kept one: a week-old answer is not live. */
+   A strip runs back, right, front, left, two frames each; the stylesheet
+   picks the frame from --frame, and the place from --x, which counts back
+   from the right end of the yard. */
 (function () {
-  const card = document.getElementById('inspo');
-  if (!card) return;
-
-  const CHANNEL = 'inspo-syd5sijpqmk';
-  const ENDPOINT = 'https://api.are.na/v2/channels/' + CHANNEL
-    + '/contents?per=24&sort=position&direction=desc';
-  const SHOW = 4;
-  const EVERY = 60000;
-  const PATIENCE = 8000;
-  const FADE = 280;
-
-  const thumbs = Array.from(card.querySelectorAll('.inspo-thumb img'));
+  const visitor = document.getElementById('visitor');
+  const said = document.getElementById('visitor-said');
+  if (!visitor) return;
+  const yard = visitor.parentElement;
+  const say = visitor.querySelector('.visitor-say');
+  const canvas = say.querySelector('canvas');
   const still = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let asking = false;
-  let timer;
 
-  thumbs.forEach((img) => {
-    img.addEventListener('load', () => img.classList.remove('is-missing'));
-    img.addEventListener('error', () => img.classList.add('is-missing'));
+  /* ?visitor=<id> asks for someone in particular, for the tests and for
+     showing someone off */
+  const asked = new URLSearchParams(location.search).get('visitor');
+  function drawLots() {
+    /* weighted: Mr. Saturn and the party turn up often, most people now and
+       then, and a few (the Runaway Five, the Star Master) hardly ever */
+    const total = CAST.reduce((sum, c) => sum + (c.weight ?? 1), 0);
+    let roll = Math.random() * total;
+    return CAST.find((c) => (roll -= c.weight ?? 1) < 0) || CAST[0];
+  }
+  const who = CAST.find((c) => c.id === asked) || drawLots();
+  /* What they say is kept apart from who they are, in one file for the
+     whole cast, and fetched once the page is up rather than with it. */
+  const linesReady = fetch('cast-lines.json')
+    .then((response) => (response.ok ? response.json() : {}))
+    .then((all) => all[who.id] || [])
+    .catch(() => []);
+  /* three times for the small, two for the big, so nobody towers */
+  const scale = who.h <= 24 ? 3 : 2;
+  const SIZE = who.w * scale;
+  yard.style.setProperty('--w', SIZE + 'px');
+  yard.style.setProperty('--h', who.h * scale + 'px');
+  visitor.style.setProperty('--sheet', `url("${who.src}")`);
+  visitor.setAttribute('aria-label', who.name + '. Say hello');
+  visitor.dataset.who = who.id;
+
+  /* The game's font: a sheet of 16-pixel cells in three rows 24 apart. A
+     letter is as wide as its ink plus a column, measured off the sheet once
+     it loads. The bullet is the game's own, in the @ slot. Anything the
+     sheet lacks is set in Orange Kid, the nearest face. */
+  const ROWS = [
+    '!"·$%¢\'()*+,-./0123456789:;“=”?•ABCDE',
+    'FGHIJKLMNOPQRSTUVWXYZαβγΣΩabcdefghijk',
+    'lmnopqrstuvwxyz[♪]~',
+  ];
+  const GLYPHS = {};
+  const SPACE = 3;
+  const SATURN = who.font === 'saturn';
+  const SATURN_FONT = '16px "Senor Saturno"';
+  const SPARE = '15px "Orange Kid"';
+  const UI = 2;              /* css pixels to a game pixel */
+  const font = new Image();
+  font.src = 'images/eb/ui/font.png';
+  const board = document.createElement('canvas');
+  const ink = board.getContext('2d', { willReadFrequently: true });
+  const pen = canvas.getContext('2d');
+
+  function measure() {
+    const c = document.createElement('canvas');
+    c.width = font.naturalWidth;
+    c.height = font.naturalHeight;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(font, 0, 0);
+    const data = g.getImageData(0, 0, c.width, c.height).data;
+    ROWS.forEach((row, r) => [...row].forEach((ch, col) => {
+      let right = -1;
+      for (let x = 0; x < 16; x += 1) {
+        for (let y = 0; y < 16; y += 1) {
+          if (data[((r * 24 + y) * c.width + col * 16 + x) * 4 + 3]) right = Math.max(right, x);
+        }
+      }
+      GLYPHS[ch] = { x: col * 16, y: r * 24, w: right + 2 };
+    }));
+  }
+  const fontReady = new Promise((resolve) => {
+    if (font.complete && font.naturalWidth) resolve();
+    else font.addEventListener('load', resolve, { once: true });
+  }).then(measure);
+
+  /* only what the font has: curly quotes, dashes and the like come in as
+     their plain cousins */
+  function plain(text) {
+    return text
+      .replace(/[‘’]/g, "'")
+      .replace(/[–—]/g, '-')
+      .replace(/…/g, '...')
+      .replace(/&/g, 'and')
+      .replace(/[éè]/g, 'e');
+  }
+  function spareWidth(ch) {
+    ink.font = SPARE;
+    return Math.ceil(ink.measureText(ch).width) + 1;
+  }
+  function width(text) {
+    if (SATURN) { ink.font = SATURN_FONT; return Math.ceil(ink.measureText(text).width); }
+    let w = 0;
+    for (const ch of text) w += ch === ' ' ? SPACE : (GLYPHS[ch] ? GLYPHS[ch].w : spareWidth(ch));
+    return w;
+  }
+  const BULLET = () => (GLYPHS['•'] ? GLYPHS['•'].w : 6);
+
+  /* a line into the window's lines: the first opens on the bullet, the
+     rest sit under its words */
+  function wrap(text, room) {
+    const lines = [];
+    let line = '';
+    text.split(' ').forEach((word) => {
+      const next = line ? line + ' ' + word : word;
+      if (line && width(next) > room) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = next;
+      }
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  let lines = [];
+  let typed = 0;             /* letters showing, across every line */
+  let CW = 0;
+  let K = 2;
+  /* The game rarely says anything on one line, so the words are broken
+     across two: the narrowest width that still fits them in two lines is
+     found, and the window hugs whatever that makes, with the same small
+     margin all round. A single word gets a single line. */
+  const ROWS_MIN = 2;
+  const INSET = 3;           /* game pixels of margin inside the frame */
+  function layout(text) {
+    const most = Math.min(184, Math.floor((window.innerWidth - 32) / UI) - 16) - 2 * INSET;
+    const pad = BULLET() + 1;
+    let room = Math.min(most - pad, Math.ceil(width(text) / ROWS_MIN));
+    lines = wrap(text, room);
+    while (lines.length > ROWS_MIN && room < most - pad) {
+      room += 4;
+      lines = wrap(text, room);
+    }
+    lines = lines.slice(0, 4);
+    CW = Math.max(...lines.map(width)) + pad + 2 * INSET;
+    K = Math.max(1, Math.round(UI * (window.devicePixelRatio || 1)));
+    board.width = CW;
+    board.height = 16 * lines.length - 4 + 2 * INSET;
+    canvas.width = CW * K;
+    canvas.height = board.height * K;
+    canvas.style.width = CW * UI + 'px';
+    canvas.style.height = board.height * UI + 'px';
+  }
+  function render() {
+    ink.clearRect(0, 0, board.width, board.height);
+    let left = typed;
+    lines.forEach((text, row) => {
+      if (left <= 0) return;
+      const part = text.slice(0, left);
+      left -= text.length;
+      const y = INSET - 1 + 16 * row;
+      let x = INSET;
+      if (row === 0) {
+        const g = GLYPHS['•'];
+        if (g) ink.drawImage(font, g.x, g.y, g.w, 16, x, y, g.w, 16);
+      }
+      x = INSET + BULLET() + 1;
+      if (SATURN) {
+        /* Senor Saturno is drawn on a 16-pixel grid: at 16px, on a whole
+           pixel, each of its squares lands on one of ours */
+        ink.font = SATURN_FONT;
+        ink.fillStyle = '#f8f8f8';
+        ink.textBaseline = 'alphabetic';
+        ink.fillText(part, x, y + 11);
+        return;
+      }
+      for (const ch of part) {
+        if (ch === ' ') { x += SPACE; continue; }
+        const g = GLYPHS[ch];
+        if (g) {
+          ink.drawImage(font, g.x, g.y, g.w, 16, x, y, g.w, 16);
+          x += g.w;
+        } else {
+          ink.font = SPARE;
+          ink.fillStyle = '#f8f8f8';
+          ink.textBaseline = 'top';
+          ink.fillText(ch, x, y);
+          x += spareWidth(ch);
+        }
+      }
+    });
+    if (SATURN) {
+      /* whatever edge the browser still softened is made hard again */
+      const image = ink.getImageData(0, 0, board.width, board.height);
+      const d = image.data;
+      for (let i = 3; i < d.length; i += 4) d[i] = d[i] > 100 ? 255 : 0;
+      ink.putImageData(image, 0, 0);
+    }
+    pen.imageSmoothingEnabled = false;
+    pen.clearRect(0, 0, canvas.width, canvas.height);
+    pen.drawImage(board, 0, 0, canvas.width, canvas.height);
+  }
+
+  const FACING = { up: 0, right: 2, down: 4, left: 6 };
+  const SPEED = 40;          /* px a second, about Mr. Saturn's pace */
+  let x = 0;                 /* 0 is the right end of the yard; they walk into minus */
+  let goal = null;
+  let rest = 1.5;
+  let face = 'down';
+  let clock = 0;
+  let talking = false;
+  let last = -1;
+  let then = 0;
+  let typing = 0;
+  let quiet = 0;
+
+  function draw(walking) {
+    const step = walking ? Math.floor(clock / 0.25) % 2 : (still.matches ? 0 : Math.floor(clock / 0.6) % 2);
+    visitor.style.setProperty('--frame', FACING[face] + step);
+    /* whole device pixels only: on a fraction the browser blends in the
+       edge of the next frame along the strip, and it trails behind them */
+    const dpr = window.devicePixelRatio || 1;
+    visitor.style.setProperty('--x', Math.round(x * dpr) / dpr + 'px');
+  }
+
+  function tick(now) {
+    const dt = Math.min((now - (then || now)) / 1000, 0.1);
+    then = now;
+    requestAnimationFrame(tick);
+    if (document.body.dataset.view !== 'home' || still.matches) return;
+    clock += dt;
+    const room = Math.max(yard.clientWidth - SIZE, 0);
+    x = Math.max(Math.min(x, 0), -room);
+
+    let walking = false;
+    if (talking) {
+      face = 'down';
+    } else if (goal !== null) {
+      const d = goal - x;
+      if (Math.abs(d) < 1) {
+        goal = null;
+        rest = 1.2 + Math.random() * 3;
+        face = Math.random() < 0.25 ? 'up' : 'down';
+      } else {
+        x += Math.sign(d) * Math.min(SPEED * dt, Math.abs(d));
+        face = d < 0 ? 'left' : 'right';
+        walking = true;
+      }
+    } else if ((rest -= dt) <= 0) {
+      goal = -Math.random() * room;
+      if (Math.abs(goal - x) < 12) { goal = null; rest = 0.8; }
+    }
+    draw(walking);
+  }
+
+  function hush() {
+    say.classList.remove('is-on');
+    talking = false;
+    if (said) said.textContent = '';
+  }
+
+  visitor.addEventListener('click', async () => {
+    const sayings = await linesReady;
+    const choices = sayings.length ? sayings : ['...'];
+    let pick;
+    do { pick = Math.floor(Math.random() * choices.length); } while (pick === last && choices.length > 1);
+    last = pick;
+    const text = choices[pick];
+    if (said) said.textContent = who.name + ': ' + text;
+    goal = null;
+    talking = true;
+    face = 'down';
+    draw(false);
+    visitor.classList.remove('is-boing');
+    void visitor.offsetWidth;
+    visitor.classList.add('is-boing');
+
+    clearInterval(typing);
+    clearTimeout(quiet);
+    await fontReady;
+    if (SATURN) await document.fonts.load(SATURN_FONT).catch(() => {});
+    else await document.fonts.load(SPARE).catch(() => {});
+    if (last !== pick) return;   /* clicked again while the fonts came in */
+    layout(plain(text));
+    const total = lines.reduce((n, line) => n + line.length, 0);
+    typed = still.matches ? total : 0;
+    render();
+
+    /* back on screen if they have wandered left enough to push it off */
+    say.style.setProperty('--nudge', '0px');
+    const over = 16 - say.getBoundingClientRect().left;
+    if (over > 0) say.style.setProperty('--nudge', over + 'px');
+    say.classList.add('is-on');
+
+    const linger = () => { quiet = setTimeout(hush, 1800 + total * 25); };
+    if (typed >= total) return linger();
+    typing = setInterval(() => {
+      typed += 1;
+      render();
+      if (typed >= total) {
+        clearInterval(typing);
+        linger();
+      }
+    }, 30);
   });
 
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  function preload(src) {
-    return new Promise((resolve) => {
-      const image = new Image();
-      image.onload = image.onerror = () => resolve();
-      image.src = src;
-      setTimeout(resolve, 1500);
-    });
-  }
-
-  async function check() {
-    if (asking) return;
-    asking = true;
-    const controller = new AbortController();
-    const limit = setTimeout(() => controller.abort(), PATIENCE);
-    try {
-      const response = await fetch(ENDPOINT, { cache: 'no-store', signal: controller.signal });
-      if (!response.ok) return;
-      const data = await response.json();
-      const picks = (Array.isArray(data.contents) ? data.contents : [])
-        .filter((block) => (block.class === 'Image' || block.class === 'Attachment')
-          && block.image && block.image.square && block.image.square.url)
-        .slice(0, SHOW)
-        .map((block) => ({ id: String(block.id), src: block.image.square.url }));
-      if (!picks.length) return;
-
-      /* nothing new since last time, which is most minutes */
-      const key = picks.map((pick) => pick.id).join(',');
-      if (key === card.dataset.blocks) return;
-
-      /* The new set is fetched before anything moves, then morphs in: the
-         old squares fade out, the new are set while nothing shows, and they
-         fade back. The first set, or any with motion turned down, is simply
-         put up. */
-      await Promise.all(picks.map((pick) => preload(pick.src)));
-      const morph = !card.hidden && !still.matches;
-      if (morph) {
-        card.classList.add('is-changing');
-        await wait(FADE);
-      }
-      thumbs.forEach((img, i) => {
-        const pick = picks[i];
-        img.parentElement.hidden = !pick;
-        if (pick) img.src = pick.src;
-        else img.removeAttribute('src');
-      });
-      card.dataset.blocks = key;
-      card.hidden = false;
-      card.classList.remove('is-changing');
-    } catch (error) {
-      /* Offline, blocked or down: whatever is showing stays, and a card that
-         never loaded stays hidden. */
-    } finally {
-      clearTimeout(limit);
-      asking = false;
-    }
-  }
-
-  /* booked before asking, so a question that never comes back cannot end
-     the loop — the same as the listening card's */
-  function schedule() {
-    clearTimeout(timer);
-    if (document.hidden) return;
-    timer = setTimeout(() => {
-      schedule();
-      check();
-    }, EVERY);
-  }
-  function again() {
-    schedule();
-    if (!document.hidden) check();
-  }
-  document.addEventListener('visibilitychange', again);
-  window.addEventListener('focus', again);
-  window.addEventListener('pageshow', again);
-  window.addEventListener('online', again);
-  check();
-  schedule();
+  draw(false);
+  requestAnimationFrame(tick);
 })();
 
 

@@ -125,31 +125,6 @@ function nowPlaying(extra) {
     ...extra,
   };
 }
-/* What Are.na answers for the channel, newest first: a link and a text
-   block among the pictures, which the card has to skip. The pictures are
-   files the test's own server has. */
-function arenaChannel(files) {
-  /* one id per picture, the way Are.na has one per block: the card knows a
-     new picture by its id, so ids by position would make every set look the
-     same */
-  const picture = (file) => ({
-    id: 'block-' + file,
-    class: 'Image',
-    title: file,
-    image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/${file}` } },
-  });
-  const [first, ...rest] = files.map(picture);
-  return {
-    contents: [
-      { id: 999, class: 'Link', title: 'a link', image: { square: { url: `http://127.0.0.1:${HTTP_PORT}/images/og-card.jpg` } } },
-      first,
-      { id: 998, class: 'Text', title: 'a note', content: 'words' },
-      ...rest,
-    ],
-  };
-}
-const ARENA = arenaChannel(['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp', 'weave-cover.webp']);
-const ARENA_NEXT = arenaChannel(['wsu-ai-lab-poster.webp', 'sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp']);
 
 const NOW_PLAYING = nowPlaying({ playing: true });
 const LAST_PLAYED = nowPlaying({ playedAt: new Date(Date.now() - 300 * 1000).toISOString() });
@@ -312,9 +287,8 @@ test('the page', async (t) => {
      `worker` holds at the time. The Worker names the page's origin rather
      than a wildcard; either lets the page read the answer. */
   let worker = { status: 200, body: NOW_PLAYING };
-  let arena = { status: 200, body: ARENA };
   cdp.on('Fetch.requestPaused', ({ requestId, request }) => {
-    const answer = request.url.includes('api.are.na') ? arena : worker;
+    const answer = worker;
     /* left unanswered, the way a stalled connection leaves a request */
     if (answer.hang) return;
     cdp.send('Fetch.fulfillRequest', {
@@ -328,7 +302,7 @@ test('the page', async (t) => {
     }).catch(() => {});
   });
   await cdp.send('Fetch.enable', {
-    patterns: [{ urlPattern: '*now-playing.now-playing.workers.dev*' }, { urlPattern: '*api.are.na*' }],
+    patterns: [{ urlPattern: '*now-playing.now-playing.workers.dev*' }],
   });
 
   /* The card at home: what it says, whether it shows, and where it sits
@@ -477,26 +451,31 @@ test('the page', async (t) => {
     worker = { status: 200, body: NOW_PLAYING };
   });
 
-  /* The black card beside it: the four newest pictures in the Are.na channel,
-     newest first, links and text skipped, in the bottom-right corner, above
-     the listening card on a phone, gone in a section, following a new
-     picture without a reload, and not there at all if Are.na is down. */
-  const inspo = `(() => {
-    const card = document.getElementById('inspo');
-    const style = getComputedStyle(card);
-    const box = card.getBoundingClientRect();
+  /* Someone from EarthBound beside it: in the bottom-right corner, above
+     the listening card on a phone, gone in a section, and saying something
+     in the game's window when clicked, to the eye and to a screen reader. */
+  const visitor = `(() => {
+    const yard = document.querySelector('.visitor-yard');
+    const button = document.getElementById('visitor');
+    const say = button.querySelector('.visitor-say');
+    const box = button.getBoundingClientRect();
+    const area = yard.getBoundingClientRect();
+    const words = say.getBoundingClientRect();
     const chip = document.getElementById('listening').getBoundingClientRect();
     return {
-      hidden: card.hidden,
-      visibility: style.visibility,
-      fill: style.backgroundColor,
-      thumbs: [...card.querySelectorAll('.inspo-thumb img')].map((img) => (img.getAttribute('src') || '').split('/').pop()),
-      href: card.getAttribute('href'),
-      target: card.getAttribute('target'),
+      who: button.dataset.who,
+      label: button.getAttribute('aria-label'),
+      visibility: getComputedStyle(button).visibility,
+      said: document.getElementById('visitor-said').textContent,
+      sayOn: say.classList.contains('is-on'),
+      sayLeft: words.left,
+      sayWidth: words.width,
       left: box.left,
       right: box.right,
       top: box.top,
       bottom: box.bottom,
+      yardRight: area.right,
+      yardLeft: area.left,
       chipTop: chip.top,
       chipRight: chip.right,
       width: innerWidth,
@@ -504,53 +483,39 @@ test('the page', async (t) => {
     };
   })()`;
 
-  await t.test('home shows the newest from Are.na', async () => {
-    arena = { status: 200, body: ARENA };
+  await t.test('home has someone from EarthBound in the corner', async () => {
     worker = { status: 200, body: NOW_PLAYING };
     await load(cdp, 1440, 900);
     await sleep(SETTLE);
-    let card = await evaluate(cdp, inspo);
-    assert.equal(card.hidden, false, 'the card did not come up with pictures');
-    assert.deepEqual(
-      card.thumbs,
-      ['sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp', 'vantage.webp'],
-      'not the four newest pictures, newest first, with the link and the text skipped',
-    );
-    assert.equal(card.fill, 'rgb(0, 0, 0)', 'the card is not pure black');
-    assert.equal(card.href, 'https://www.are.na/dante-smith/inspo-syd5sijpqmk');
-    assert.equal(card.target, '_blank');
-    assert.ok(Math.abs(card.right - (card.width - 16)) <= 1 && Math.abs(card.bottom - (card.height - 16)) <= 1,
-      'the card is not in the bottom-right corner');
-    assert.ok(card.left >= card.chipRight + 8, 'the card runs into the listening card');
+    let them = await evaluate(cdp, visitor);
+    assert.ok(them.who, 'nobody came');
+    assert.ok(Math.abs(them.yardRight - (them.width - 16)) <= 1 && Math.abs(them.bottom - (them.height - 16)) <= 1,
+      `the yard is not in the bottom-right corner: ${JSON.stringify(them)}`);
+    assert.ok(them.left >= them.yardLeft - 1 && them.right <= them.yardRight + 1, 'they wandered out of the yard');
+    assert.ok(them.yardLeft >= them.chipRight + 8, 'the yard runs into the listening card');
+
+    await evaluate(cdp, `document.getElementById('visitor').click()`);
+    await sleep(1200);
+    them = await evaluate(cdp, visitor);
+    const name = them.label.replace(/\. Say hello$/, '');
+    assert.ok(them.sayOn && them.sayWidth > 40, 'nothing came up in the window when clicked');
+    assert.ok(them.said.startsWith(name + ': ') && them.said.length > name.length + 2,
+      `a screen reader did not hear what they said: ${them.said}`);
 
     await open(cdp, 'work');
-    assert.equal((await evaluate(cdp, inspo)).visibility, 'hidden', 'the card stayed up in a section');
+    assert.equal((await evaluate(cdp, visitor)).visibility, 'hidden', 'they stayed up in a section');
 
-    /* a new picture, picked up on coming back home and to the window */
-    arena = { status: 200, body: ARENA_NEXT };
-    await evaluate(cdp, `document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`);
-    await evaluate(cdp, `window.dispatchEvent(new Event('focus'))`);
-    await sleep(1000);
-    card = await evaluate(cdp, inspo);
-    assert.deepEqual(
-      card.thumbs,
-      ['wsu-ai-lab-poster.webp', 'sidq-switch-ai.webp', 'sidq-your-context.webp', 'sidq-stop-explaining.webp'],
-      'the card did not follow a new picture without a reload',
-    );
-
-    /* on a phone the two cards stack, the black one on top, both on screen */
-    arena = { status: 200, body: ARENA };
+    /* on a phone they go up above the card, both on screen, and so do
+       their words, even from the far end of the yard */
     await load(cdp, 375, 667, true);
     await sleep(SETTLE);
-    card = await evaluate(cdp, inspo);
-    assert.ok(card.bottom <= card.chipTop - 4, `the cards overlap on a phone: black ends ${card.bottom}, listening starts ${card.chipTop}`);
-    assert.ok(card.left >= 15 && card.right <= card.width - 15, 'the card runs off the phone');
-
-    arena = { status: 500, body: {} };
-    await load(cdp, 1440, 900);
-    await sleep(SETTLE);
-    assert.equal((await evaluate(cdp, inspo)).hidden, true, 'the card came up with nothing to show');
-    arena = { status: 200, body: ARENA };
+    them = await evaluate(cdp, visitor);
+    assert.ok(them.bottom <= them.chipTop - 4, `they overlap the card on a phone: they end ${them.bottom}, listening starts ${them.chipTop}`);
+    assert.ok(them.left >= 15 && them.right <= them.width - 15, 'they run off the phone');
+    await evaluate(cdp, `document.getElementById('visitor').click()`);
+    await sleep(1200);
+    them = await evaluate(cdp, visitor);
+    assert.ok(them.sayLeft >= 15, `their words run off the phone: ${them.sayLeft}`);
   });
 
   /* The card follows the music without a reload: the next scheduled check

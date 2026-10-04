@@ -102,8 +102,11 @@ body {
   .view.is-on { translate: none; transition: opacity 0.2s ease, visibility 0s; }
 }
 
+/* Balanced and pretty: the short lines here wrapped wherever the width ran
+   out, leaving a word or two alone on the last line. */
 .lede {
   margin: 0 0 1.5rem;
+  text-wrap: balance;
   font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
   font-weight: 500;
   line-height: 1.3;
@@ -116,6 +119,7 @@ body {
 }
 .prose {
   margin: 0;
+  text-wrap: pretty;
   font-size: 0.9375rem;
   line-height: 1.5;
   letter-spacing: -0.011em;
@@ -252,8 +256,8 @@ body {
    The album art, a line saying whether it is playing now, then the track and
    the artist, each held to one line. */
 /* The row the two home cards sit in, along the bottom: listening at the
-   start, inspo pushed to the end. It wraps in reverse, so when a phone is
-   too narrow for both the second card goes up above the first. Clicks go
+   start, the visitor pushed to the end. It wraps in reverse, so when a
+   phone is too narrow for both they go up above the card. Clicks go
    through the row's own empty width; only the cards take them. */
 .home-cards {
   position: fixed;
@@ -303,7 +307,7 @@ body:not([data-view="home"]) .home-cards {
   animation: card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
   transition: width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
 }
-/* the card is the link to the track on Last.fm, focused the way inspo is */
+/* the card is the link to the track on Last.fm */
 .listening:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
 
 /* A new track: the art and the words fade out with a little blur, and the
@@ -456,97 +460,98 @@ body:not([data-view="home"]) .home-cards {
   body:not([data-view="home"]) .home-cards,
   .listening,
   .listening-cover > *,
-  .listening-text,
-  .inspo,
-  .inspo-thumb img { animation: none; transition: none; }
+  .listening-text { animation: none; transition: none; }
   .listening-bars i { animation: none; transform: scaleY(0.7); }
 }
 
 
-/* latest inspo ------------------------------------------------------------
-   Bottom right at home: the four newest images in my Are.na inspo channel,
-   on pure black. No glass: nothing passes under it at home, and flat black
-   is what sets small pictures off. The listening card's height, radius and
-   gutter, so the two read as a pair along the bottom. */
-.inspo {
-  display: flex;
-  flex: 0 1 auto;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-  max-width: 100%;
+/* the visitor ---------------------------------------------------------------
+   Bottom right at home, on the bare white floor: no card, they live there.
+   The yard is the strip they wander, and the button inside it is them, at
+   its right end until app.js moves them across it. A sprite is a strip of
+   eight frames — back, right, front, left, two each — drawn at a whole
+   multiple with no smoothing; app.js sets the strip, the frame's size on
+   screen (--w, --h) and which frame shows. Mr. Saturn is the default, so
+   the page without its script still has him. */
+@font-face {
+  font-family: "Senor Saturno";
+  src: url(fonts/senor-saturno.woff2) format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Orange Kid";
+  src: url(fonts/orange-kid.woff2) format("woff2");
+  font-display: swap;
+}
+.visitor-yard {
+  --w: 54px;
+  --h: 66px;
+  position: relative;
+  flex: 0 1 12rem;
+  min-width: 4rem;
+  height: var(--h);
   margin-left: auto;
-  padding: 0.5rem 0.9rem 0.5rem 0.5rem;
-  border-radius: 0.875rem;
-  background: #000000;
-  color: #ffffff;
-  text-decoration: none;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+  /* the row wraps in reverse, which turns its cross axis over: flex-start
+     is the bottom here */
+  align-self: flex-start;
+  pointer-events: none;
+}
+.visitor {
+  --frame: 4;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--w);
+  height: var(--h);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  translate: var(--x, 0px) 0;
   animation: card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.inspo[hidden] { display: none; }
-.inspo:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
-
-/* Four squares, the listening card's art size, giving way a little on the
-   narrowest phones rather than pushing the card off the edge. */
-.inspo-thumbs {
-  display: flex;
-  flex: 0 1 auto;
-  gap: 0.375rem;
-  min-width: 0;
-}
-.inspo-thumb {
-  flex: 0 1 3.5rem;
-  min-width: 2.5rem;
-  aspect-ratio: 1;
-  border-radius: 0.375rem;
-  overflow: hidden;
-  background: rgb(255 255 255 / 0.1);
-}
-.inspo-thumb[hidden] { display: none; }
-.inspo-thumb img {
+.visitor:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; border-radius: 0.375rem; }
+.visitor-sprite {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: opacity 0.28s ease, filter 0.28s ease, scale 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  width: var(--w);
+  height: var(--h);
+  background: var(--sheet, url(images/eb/saturn.png)) no-repeat;
+  background-size: calc(var(--w) * 8) var(--h);
+  background-position: calc(var(--frame) * var(--w) * -1) 0;
+  image-rendering: pixelated;
 }
-/* a picture that failed leaves its dark square, not a broken-image mark */
-.inspo-thumb img.is-missing { visibility: hidden; }
-.inspo:hover .inspo-thumb img { scale: 1.06; }
-/* a new image in the channel: the squares fade out with a little blur and
-   the new set fades in, the same morph as the listening card's */
-.inspo.is-changing .inspo-thumb img {
-  opacity: 0;
-  filter: blur(6px);
+/* a little hop when clicked */
+.visitor.is-boing .visitor-sprite { animation: boing 0.32s cubic-bezier(0.3, 0.7, 0.4, 1); }
+@keyframes boing {
+  40% { translate: 0 -10px; }
 }
 
-.inspo-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.3;
+/* What they say, over their head, in the game's own window: its 8-pixel
+   frame from images/eb/ui/window.png round a canvas the words are typed
+   into, which carries its own even margin, a letter at a time, in the game's font (Mr. Saturn's in his own).
+   --ui is the size of one game pixel. Pinned to their right side so it
+   opens leftward, and app.js nudges it back on screen if they have
+   wandered far enough left to push it off. */
+.visitor-say {
+  --ui: 2px;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  border: calc(var(--ui) * 8) solid transparent;
+  border-image: url(images/eb/ui/window.png) 8 fill stretch;
+  image-rendering: pixelated;
+  pointer-events: none;
+  opacity: 0;
+  translate: var(--nudge, 0px) 4px;
+  transition: opacity 0.15s ease, translate 0.15s ease;
 }
-.inspo-label,
-.inspo-where {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.inspo-label {
-  font-size: 0.75rem;
-  letter-spacing: -0.006em;
-  color: rgb(255 255 255 / 0.6);
-}
-.inspo-title {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: -0.011em;
-}
-.inspo-where {
-  font-size: 0.875rem;
-  letter-spacing: -0.006em;
-  color: rgb(255 255 255 / 0.75);
+.visitor-say canvas { display: block; image-rendering: pixelated; }
+.visitor-say.is-on { opacity: 1; translate: var(--nudge, 0px) 0; }
+@media (prefers-reduced-motion: reduce) {
+  .visitor,
+  .visitor.is-boing .visitor-sprite,
+  .visitor-say { animation: none; transition: none; }
 }
 
 
@@ -883,6 +888,7 @@ body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
 }
 .project-kind {
   margin: 0.15rem 0 0.85rem;
+  text-wrap: balance;
   font-size: 0.875rem;
   line-height: 1.4;
   letter-spacing: -0.006em;
