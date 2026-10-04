@@ -143,7 +143,7 @@ async function evaluate(cdp, expression) {
 /* A fresh load at a size. A phone is emulated as one — the viewport meta
    honoured and touch in place of a mouse — so (hover: none) matches there the
    way it does in a hand. */
-async function load(cdp, width, height, phone = false) {
+async function load(cdp, width, height, phone = false, query = '') {
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width,
     height,
@@ -157,7 +157,7 @@ async function load(cdp, width, height, phone = false) {
       { name: 'pointer', value: phone ? 'coarse' : 'fine' },
     ],
   });
-  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${HTTP_PORT}/` });
+  await cdp.send('Page.navigate', { url: `http://127.0.0.1:${HTTP_PORT}/${query}` });
   await sleep(500);
   await evaluate(cdp, `(async () => {
     if (document.fonts?.ready) {
@@ -472,7 +472,6 @@ test('the page', async (t) => {
       sayWidth: words.width,
       left: box.left,
       right: box.right,
-      top: box.top,
       bottom: box.bottom,
       yardRight: area.right,
       yardLeft: area.left,
@@ -483,12 +482,14 @@ test('the page', async (t) => {
     };
   })()`;
 
-  await t.test('home has someone from EarthBound in the corner', async () => {
+  /* once in his own lettering and once in the game's, since the two are
+     set differently */
+  for (const id of ['saturn', 'paula']) await t.test(`home has someone from EarthBound in the corner (${id})`, async () => {
     worker = { status: 200, body: NOW_PLAYING };
-    await load(cdp, 1440, 900);
+    await load(cdp, 1440, 900, false, `?visitor=${id}`);
     await sleep(SETTLE);
     let them = await evaluate(cdp, visitor);
-    assert.ok(them.who, 'nobody came');
+    assert.equal(them.who, id, 'someone else came');
     assert.ok(Math.abs(them.yardRight - (them.width - 16)) <= 1 && Math.abs(them.bottom - (them.height - 16)) <= 1,
       `the yard is not in the bottom-right corner: ${JSON.stringify(them)}`);
     assert.ok(them.left >= them.yardLeft - 1 && them.right <= them.yardRight + 1, 'they wandered out of the yard');
@@ -507,7 +508,7 @@ test('the page', async (t) => {
 
     /* on a phone they go up above the card, both on screen, and so do
        their words, even from the far end of the yard */
-    await load(cdp, 375, 667, true);
+    await load(cdp, 375, 667, true, `?visitor=${id}`);
     await sleep(SETTLE);
     them = await evaluate(cdp, visitor);
     assert.ok(them.bottom <= them.chipTop - 4, `they overlap the card on a phone: they end ${them.bottom}, listening starts ${them.chipTop}`);
@@ -712,64 +713,44 @@ test('the page', async (t) => {
     }
   });
 
-  /* The menu sits on glass throughout, so it reads over whatever scrolls
-     under it. The mark floats bare, and takes glass only while something is
-     under it: it is the name, not a panel. */
-  await t.test('the menu sits on glass and the mark takes it only when needed', async () => {
+  /* The menu and the mark are bare words at home. In a section both sit on
+     one strip of glass across the top, the whole width of the window, and
+     the letters do not move when it comes up. */
+  await t.test('the header is one strip of glass in a section, and bare at home', async () => {
     const chrome = `(() => {
       const look = (el) => {
         const style = getComputedStyle(el);
         return { blur: style.backdropFilter.includes('blur'), fill: style.backgroundColor };
       };
-      return { mark: look(document.getElementById('home')), menu: look(document.querySelector('.menu')) };
+      const bar = document.querySelector('.bar');
+      const box = bar.getBoundingClientRect();
+      const mark = document.getElementById('home').getBoundingClientRect();
+      const menu = document.querySelector('.menu').getBoundingClientRect();
+      return {
+        mark: look(document.getElementById('home')),
+        menu: look(document.querySelector('.menu')),
+        bar: { ...look(bar), opacity: getComputedStyle(bar).opacity, left: box.left, right: box.right, top: box.top, bottom: box.bottom },
+        holds: mark.bottom <= box.bottom && menu.bottom <= box.bottom,
+        width: innerWidth,
+      };
     })()`;
     await load(cdp, 1440, 900);
     const home = await evaluate(cdp, chrome);
-    assert.equal(home.mark.blur, false, 'the mark is on glass at home');
+    assert.equal(home.bar.opacity, '0', 'the bar is up at home');
     assert.equal(home.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card at home');
-    assert.equal(home.menu.blur, true, 'the menu is not on glass');
-    await open(cdp, 'work');
-    const away = await evaluate(cdp, chrome);
-    assert.equal(away.mark.blur, false, 'the mark is on glass in a section');
-    assert.equal(away.mark.fill, 'rgba(0, 0, 0, 0)', 'the mark has a card in a section');
-    assert.equal(away.menu.blur, true, 'the menu lost its glass in a section');
-
-    /* The mark's glass is its own layer, and only up while content is
-       actually under the letters — not merely because the section has
-       scrolled. It comes and goes without the letters moving. */
-    const glass = `(() => {
-      const mark = document.getElementById('home');
-      const layer = getComputedStyle(mark, '::before');
-      const glyph = mark.querySelector('.glyph').getBoundingClientRect();
-      return { opacity: layer.opacity, blur: layer.backdropFilter.includes('blur'), at: [glyph.left, glyph.top] };
-    })()`;
-    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the mark has glass with nothing under it');
-
-    /* At 1440 the work's column sits in from the corner, so however far it
-       scrolls only white passes the letters, and the mark stays bare. */
-    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
-    await sleep(450);
-    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the mark took glass with only white under it');
-
-    /* At 1024 the cards run out to the gutter and do pass under it. */
-    await load(cdp, 1024, 768);
-    await open(cdp, 'work');
-    const rest = await evaluate(cdp, glass);
-    assert.equal(rest.opacity, '0', 'the mark has glass before anything reaches it');
-    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
-    await sleep(450);
-    const under = await evaluate(cdp, glass);
-    assert.equal(under.opacity, '1', 'the mark took no glass with the work under it');
-    assert.equal(under.blur, true, 'the mark\'s glass does not blur what is under it');
-    assert.deepEqual(under.at, rest.at, 'the letters moved when the glass came up');
-    await evaluate(cdp, `document.getElementById('work').scrollTop = 0`);
-    await sleep(450);
-    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the glass stayed once the work scrolled back');
-    await evaluate(cdp, `document.getElementById('work').scrollTop = 300`);
-    await sleep(100);
-    await evaluate(cdp, `document.getElementById('home').click()`);
-    await sleep(450);
-    assert.equal((await evaluate(cdp, glass)).opacity, '0', 'the glass came home with the mark');
+    assert.equal(home.menu.fill, 'rgba(0, 0, 0, 0)', 'the menu has a card');
+    for (const [width, height, phone] of [[1440, 900, false], [390, 844, true]]) {
+      await load(cdp, width, height, phone);
+      await open(cdp, 'work');
+      const away = await evaluate(cdp, chrome);
+      assert.equal(away.bar.opacity, '1', `${width}: no bar in a section`);
+      assert.equal(away.bar.blur, true, `${width}: the bar does not blur what is under it`);
+      assert.ok(away.bar.left === 0 && Math.abs(away.bar.right - away.width) <= 1 && away.bar.top === 0,
+        `${width}: the bar is not the width of the window along the top`);
+      assert.ok(away.holds, `${width}: the mark or the menu hangs out of the bar`);
+      assert.equal(away.mark.fill, 'rgba(0, 0, 0, 0)', `${width}: the mark has a card of its own`);
+      assert.equal(away.menu.blur, false, `${width}: the menu has glass of its own`);
+    }
   });
 
   /* The menu is a row of glass across the top: in the top-right corner,

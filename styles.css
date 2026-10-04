@@ -20,7 +20,7 @@
   --ink-2: #3a3a3a;
   --hairline: #e2e2e0;
   --surface: rgb(0 0 0 / 0.05);
-  /* The glass the menu sits on. White at a little over half, so
+  /* The glass the bar and the cards sit on. White at a little over half, so
      on the white ground it is only the ring and the shadow that show, and over
      a photograph it frosts what passes under rather than hiding it. */
   --glass: rgb(255 255 255 / 0.6);
@@ -62,12 +62,12 @@ body {
      flow the hidden one still kept its full height — visibility: hidden
      keeps a box — and the second one opened halfway down the page.
 
-     The mark floats over it, taking glass only while something runs under
-     it, and the menu sits on glass throughout. The box used to stop
-     short of both, which kept a photograph from running under the menu at
-     the price of a blank band across the top and the bottom of every
-     section. Frosted, the menu stays readable over whatever passes beneath,
-     so the band is gone and the padding does what it was for: at rest the
+     The mark and the menu sit over it on one strip of glass, the bar. The
+     box used to stop short of them, which kept a photograph from running
+     under the menu at the price of a blank band across the top and the
+     bottom of every section. Frosted, the bar keeps them readable over
+     whatever passes beneath, so the band is gone and the padding does what
+     it was for: at rest the
      content starts clear of the mark and the menu, which share the top of
      the window. The bottom needs only a little air, with nothing there.
 
@@ -164,6 +164,32 @@ body {
 /* the one mark that is a wordmark rather than a glyph, so it needs its width */
 .tech-icon--wide { width: 1.667rem; }
 
+/* The same marks as solid things heaped along the bottom of the window
+   (pile.js), behind everything and taking no clicks of their own. While
+   they are, the rows above are kept for a screen reader only. */
+.pile {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.pile.is-on { opacity: 1; }
+/* the canvas takes no pointer of its own, so the hand is shown on the page */
+.is-over-pile, .is-over-pile * { cursor: grab; }
+.is-holding, .is-holding * { cursor: grabbing; user-select: none; }
+.has-pile #about .tech {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Said to a screen reader and to nobody else. Not display:none, which would
    take it out of the accessibility tree along with everything else. */
 .sr-only {
@@ -179,19 +205,56 @@ body {
 }
 
 
+/* the bar ----------------------------------------------------------------
+   In a section, a strip of glass the width of the window behind the mark
+   and the menu: as tall as the pair plus the same 0.75rem below them that
+   sits above, with a hairline under it. It fades in as the mark reaches
+   its corner and out as it leaves for home. */
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9;
+  height: 4rem;
+  background-color: var(--glass);
+  border-bottom: 1px solid rgb(0 0 0 / 0.06);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+}
+body:not([data-view="home"]) .bar {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.4s ease 0.15s, visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  body:not([data-view="home"]) .bar { transition: none; }
+}
+
+
 /* the menu ---------------------------------------------------------------
-   Top right, one row, on glass: the header, with the mark at the other end
-   of it on the same 1rem gutter. The mark only takes the same glass while
-   something is under it, because it is the name and not a control panel;
-   the menu needs it all the time to be read over the work.
+   Top right, one row, bare words on the page: the header, with the mark at
+   the other end of it on the same 1rem gutter. Set in ABC Areal, the
+   variable superfamily, at the one weight.
 
    Level with the mark: the mark is 2.25rem tall at 1rem from the top, this
-   card is 2.5rem tall, so it starts an eighth of a rem higher and the two
+   row is 2.5rem tall, so it starts an eighth of a rem higher and the two
    share a centre line.
 
    Buttons, because the three sections are views of this one page rather than
    places to go. The deposit is the one real destination and the one anchor,
    and everything here applies to it all the same. */
+@font-face {
+  font-family: "ABC Areal";
+  src: url(fonts/abc-areal-variable.woff2) format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
 .menu {
   position: fixed;
   top: 0.875rem;
@@ -201,12 +264,6 @@ body {
   align-items: center;
   gap: 1.1rem;
   height: 2.5rem;
-  padding: 0 0.9rem;
-  border-radius: 0.875rem;
-  background-color: var(--glass);
-  box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
 }
 .menu-item {
   display: block;
@@ -215,7 +272,7 @@ body {
   border: 0;
   background: none;
   text-decoration: none;
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-family: "ABC Areal", "Inter", ui-sans-serif, system-ui, sans-serif;
   font-size: 0.9375rem;
   font-weight: 500;
   /* "pay deposit" is two words and must never break onto a second line */
@@ -242,23 +299,24 @@ body {
    the desktop size do not fit it: smaller, and closer together, in two steps
    so a 390 phone keeps as much size as it can and a 360 one still fits. */
 @media (max-width: 480px) {
-  .menu { gap: 0.6rem; padding: 0 0.65rem; }
+  .menu { gap: 0.6rem; }
   .menu-item { font-size: 0.8125rem; }
 }
 @media (max-width: 370px) {
-  .menu { gap: 0.5rem; padding: 0 0.55rem; }
+  .menu { gap: 0.5rem; }
   .menu-item { font-size: 0.75rem; }
 }
 
 
 /* now playing -------------------------------------------------------------
-   Bottom left at home, on the menu's glass, gutter and radius.
+   Bottom left at home, on glass, on the page's gutter.
    The album art, a line saying whether it is playing now, then the track and
    the artist, each held to one line. */
 /* The row the two home cards sit in, along the bottom: listening at the
    start, the visitor pushed to the end. It wraps in reverse, so when a
-   phone is too narrow for both they go up above the card. Clicks go
-   through the row's own empty width; only the cards take them. */
+   phone is too narrow for both they go up above the card. Wrapping in
+   reverse turns the cross axis over too, so flex-start is the bottom.
+   Clicks go through the row's own empty width; only the cards take them. */
 .home-cards {
   position: fixed;
   left: 1rem;
@@ -267,7 +325,7 @@ body {
   z-index: 10;
   display: flex;
   flex-wrap: wrap-reverse;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 0.5rem;
   pointer-events: none;
   transition: opacity 0.35s ease,
@@ -307,8 +365,9 @@ body:not([data-view="home"]) .home-cards {
   animation: card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
   transition: width 0.42s cubic-bezier(0.32, 0.72, 0, 1);
 }
-/* the card is the link to the track on Last.fm */
-.listening:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
+/* the card is the link to the track on Last.fm; the visitor is a button */
+.listening:focus-visible,
+.visitor:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; }
 
 /* A new track: the art and the words fade out with a little blur, and the
    new ones fade back in the same way once app.js has set them — a morph
@@ -478,11 +537,6 @@ body:not([data-view="home"]) .home-cards {
   src: url(fonts/senor-saturno.woff2) format("woff2");
   font-display: swap;
 }
-@font-face {
-  font-family: "Orange Kid";
-  src: url(fonts/orange-kid.woff2) format("woff2");
-  font-display: swap;
-}
 .visitor-yard {
   --w: 54px;
   --h: 66px;
@@ -491,9 +545,6 @@ body:not([data-view="home"]) .home-cards {
   min-width: 4rem;
   height: var(--h);
   margin-left: auto;
-  /* the row wraps in reverse, which turns its cross axis over: flex-start
-     is the bottom here */
-  align-self: flex-start;
   pointer-events: none;
 }
 .visitor {
@@ -511,7 +562,7 @@ body:not([data-view="home"]) .home-cards {
   translate: var(--x, 0px) 0;
   animation: card-in 0.45s cubic-bezier(0.32, 0.72, 0, 1);
 }
-.visitor:focus-visible { outline: 2px solid var(--foreground); outline-offset: 3px; border-radius: 0.375rem; }
+.visitor:focus-visible { border-radius: 0.375rem; }
 .visitor-sprite {
   display: block;
   width: var(--w);
@@ -529,12 +580,11 @@ body:not([data-view="home"]) .home-cards {
 
 /* What they say, over their head, in the game's own window: its 8-pixel
    frame from images/eb/ui/window.png round a canvas the words are typed
-   into, which carries its own even margin, a letter at a time, in the game's font (Mr. Saturn's in his own).
-   --ui is the size of one game pixel. Pinned to their right side so it
-   opens leftward, and app.js nudges it back on screen if they have
+   into a letter at a time, in the game's font (Mr. Saturn's in his own).
+   The canvas carries its own even margin. --ui, the size of one game
+   pixel, is set by app.js. Pinned to their right side so it opens leftward, and app.js nudges it back on screen if they have
    wandered far enough left to push it off. */
 .visitor-say {
-  --ui: 2px;
   position: absolute;
   right: 0;
   bottom: calc(100% + 6px);
@@ -673,36 +723,9 @@ body:not([data-view="home"]) .monogram { translate: 0 0; }
   background: none;
   color: var(--foreground);
   cursor: pointer;
-  /* the glass below is placed against this box, and painted under the
-     letters but inside it */
-  position: relative;
-  isolation: isolate;
 }
 .monogram-go:disabled { cursor: default; }
 
-/* Glass behind the mark, only while something is passing under it. Bare at
-   rest, because it is the name and not a panel; but once a section scrolls
-   and its content runs beneath the letters, black on a photograph gets lost,
-   and the menu's glass is what keeps that readable. app.js says when.
-
-   On a layer of its own rather than on the button, so it comes and goes
-   without the letters moving at all: padding on the button would push them
-   in each time. Out past the letters by the menu's own padding. */
-.monogram-go::before {
-  content: '';
-  position: absolute;
-  inset: -0.5rem -0.75rem;
-  z-index: -1;
-  border-radius: 0.875rem;
-  background-color: var(--glass);
-  box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
 .monogram-go:focus-visible { outline: 2px solid currentColor; outline-offset: 0.4rem; }
 
 /* Both traces are tight to their ink, so an equal height is an equal cap
@@ -741,7 +764,6 @@ body.is-under:not([data-view="home"]) .monogram-go::before { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
   .monogram,
-  .monogram-go::before,
   .glyph,
   .dot { transition: none; }
 }
