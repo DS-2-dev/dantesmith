@@ -36,30 +36,34 @@
   .meta { display: flex; justify-content: space-between; gap: 16px; }
   .meta-name { font-weight: 500; color: rgba(0, 0, 0, 0.8); }
   .meta-year { flex: none; }
-  .widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; }
+  .widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; padding-bottom: 56px; }
   .widget { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; }
   .widget-label { position: absolute; left: 8.4%; bottom: 7%; color: #6b6b6b; }
-  .widget--clock { background: #eff6fa; }
+  .widget--clock { border-radius: 14px; background: #eff6fa; }
   .widget--clock svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .widget--clock .hand { stroke-width: 0.8; stroke-linecap: round; }
   .widget--clock .hand--h, .widget--clock .hand--m { stroke: #111; }
   .widget--clock .hand--s { stroke: #e5483d; }
-  .widget--album { grid-column: 2; grid-row: 2; display: block; background: #f2f2f2; color: #6b6b6b; text-decoration: none; }
-  .widget--album img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s ease; }
-  .widget--album.has-art img { opacity: 1; }
-  .widget--album::after { content: ''; position: absolute; inset: 50% 0 0; background: linear-gradient(transparent, rgba(0, 0, 0, 0.55)); opacity: 0; transition: opacity 0.4s ease; }
-  .widget--album.has-art::after { opacity: 1; }
-  .widget--album .widget-label { z-index: 1; right: 8.4%; }
-  .widget--album.has-art .widget-label { color: #fff; }
-  .widget-label .album-name, .widget-label .album-by { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  .widget--album.has-art .album-by { color: rgba(255, 255, 255, 0.7); }
-  .album-live { position: absolute; z-index: 1; top: 8.4%; left: 8.4%; display: none; align-items: flex-end; gap: 2px; height: 10px; padding: 5px 7px; border-radius: 999px; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
-  .widget--album.is-playing .album-live { display: flex; }
+  .widget--album { grid-column: 2; grid-row: 2; display: block; overflow: visible; color: #fff; text-decoration: none; }
+  .album-cover { position: absolute; z-index: 1; inset: 0; border-radius: 14px; overflow: hidden; background: #f2f2f2; }
+  .album-cover img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.4s ease; }
+  .widget--album.has-art .album-cover img { opacity: 1; }
+  .album-tab { position: absolute; left: 0; right: 0; bottom: 0; height: 62px; transition: translate 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; align-items: flex-end; padding: 0 12px 9px; border-radius: 0 0 14px 14px; background: #000; }
+  .album-tab { gap: 8px; justify-content: space-between; }
+  .album-text { min-width: 0; font-family: 'Areal', sans-serif; font-weight: 400; }
+  .album-name, .album-by { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .album-name { font-weight: 400; }
+  .album-by { color: rgba(255, 255, 255, 0.55); }
+  .album-live { flex: none; display: none; align-items: flex-end; gap: 2px; height: 10px; margin-bottom: 2px; }
   .album-live i { width: 2px; height: 100%; border-radius: 1px; background: #fff; transform-origin: bottom; animation: album-bar 0.9s ease-in-out infinite alternate; }
   .album-live i:nth-child(2) { animation-delay: -0.3s; }
   .album-live i:nth-child(3) { animation-delay: -0.6s; }
+  .album-live i:nth-child(4) { animation-delay: -0.5s; }
   @keyframes album-bar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
-  @media (prefers-reduced-motion: reduce) { .album-live i { animation: none; } }
+  .widget--album.is-playing .album-live { display: flex; }
+  .widget--album.is-playing .album-tab { translate: 0 46px; }
+  .widget--album:hover .album-tab, .widget--album:focus-visible .album-tab { translate: 0 46px; }
+  @media (prefers-reduced-motion: reduce) { .album-tab { transition: none; } .album-live i { animation: none; } }
   .colophon { position: fixed; bottom: 16px; left: calc((100% - min(97%, 1443px)) / 2); z-index: 11; }
   .colophon span { color: #b8b8b8; }
   /* Scroll blur, switched off for now: delete the display: none to bring it back,
@@ -123,7 +127,7 @@
     .col { flex: none; width: 100%; }
   }
   @media (max-width: 833.98px) {
-    body { padding-bottom: 40px; }
+    body { padding-bottom: 56px; }
     .page { flex-direction: column; gap: 20px; width: 92%; }
     .intro { position: static; flex: none; min-width: 0; width: 100%; max-height: none; }
     .work { flex: none; width: 100%; margin-left: 0; padding-top: 0; }
@@ -160,9 +164,8 @@
       <p class="widget-label">Utah <span class="widget-time"></span></p>
     </div>
     <a class="widget widget--album" href="https://www.last.fm/user/kid_chino08" target="_blank" rel="noopener noreferrer" aria-label="Recently played on Last.fm (opens in a new tab)">
-      <img alt="" decoding="async">
-      <span class="album-live" aria-hidden="true"><i></i><i></i><i></i></span>
-      <p class="widget-label"><span class="album-name">Recently played</span><span class="album-by"></span></p>
+      <span class="album-tab"><span class="album-text"><span class="album-name">Recently played</span><span class="album-by"></span></span><span class="album-live" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span>
+      <span class="album-cover"><img alt="" decoding="async"></span>
     </a>
   </div>
   </aside>
