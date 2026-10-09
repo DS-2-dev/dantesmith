@@ -135,6 +135,18 @@
     .colophon { position: static; }
   }
   @media (prefers-reduced-motion: reduce) { .project { opacity: 1; translate: none; transition: none; } }
+  @font-face { font-family: "Senor Saturno"; src: url(fonts/senor-saturno.woff2) format("woff2"); font-display: swap; }
+  .visitor-yard { --w: 54px; --h: 66px; position: fixed; z-index: 20; right: calc((100% - min(97%, 1443px)) / 2); bottom: 28px; width: 12rem; height: var(--h); pointer-events: none; }
+  .visitor { --frame: 4; position: absolute; right: 0; bottom: 0; width: var(--w); height: var(--h); padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; translate: var(--x, 0px) 0; animation: visitor-in 0.45s cubic-bezier(0.32, 0.72, 0, 1); }
+  .visitor:focus-visible { border-radius: 0.375rem; outline: 2px solid #0b0b0b; outline-offset: 3px; }
+  .visitor-sprite { display: block; width: var(--w); height: var(--h); background: var(--sheet, url(images/eb/saturn.png)) no-repeat; background-size: calc(var(--w) * 8) var(--h); background-position: calc(var(--frame) * var(--w) * -1) 0; image-rendering: pixelated; }
+  .visitor.is-boing .visitor-sprite { animation: boing 0.32s cubic-bezier(0.3, 0.7, 0.4, 1); }
+  @keyframes boing { 40% { translate: 0 -10px; } }
+  @keyframes visitor-in { from { opacity: 0; translate: 0 0.5rem; } }
+  .visitor-say { position: absolute; right: 0; bottom: calc(100% + 6px); border: calc(var(--ui) * 8) solid transparent; border-image: url(images/eb/ui/window.png) 8 fill stretch; image-rendering: pixelated; pointer-events: none; opacity: 0; translate: var(--nudge, 0px) 4px; transition: opacity 0.15s ease, translate 0.15s ease; }
+  .visitor-say canvas { display: block; image-rendering: pixelated; }
+  .visitor-say.is-on { opacity: 1; translate: var(--nudge, 0px) 0; }
+  @media (prefers-reduced-motion: reduce) { .visitor, .visitor.is-boing .visitor-sprite, .visitor-say { animation: none; transition: none; } }
 </style>
 </head>
 <body>
@@ -233,6 +245,14 @@
     <p class="colophon">&copy;2026 Dante Smith <span>| Last updated 10.06.2026</span></p>
   </main>
   </div>
+  <div class="visitor-yard">
+    <button class="visitor" id="visitor" type="button" aria-label="Mr. Saturn. Say hello">
+      <span class="visitor-say" aria-hidden="true"><canvas></canvas></span>
+      <span class="visitor-sprite" aria-hidden="true"></span>
+    </button>
+  </div>
+  <span class="sr-only" id="visitor-said" aria-live="polite"></span>
+  <script type="module" src="visitor.js"></script>
   <script>
     (function () {
       const btn = document.querySelector('.copy');
