@@ -1,0 +1,15 @@
+{
+  "name": "guestbook",
+  "version": "1.0.0",
+  "description": "The message board on dantesmith.studio: notes visitors leave, kept for good",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test"
+  },
+  "type": "module",
+  "devDependencies": {
+    "wrangler": "^4.131.2"
+  },
+  "private": true
+}
