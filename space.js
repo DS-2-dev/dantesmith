@@ -316,7 +316,7 @@ function expand(i) {
   const board = items[i].board;
   if (board) boardFly(true);
   gsap.to(open, { e: 1, duration: 0.8, ease: "power4.out", overwrite: true });
-  if (!board) showLabel(true);
+  showLabel(true);
 }
 
 function collapse() {
@@ -418,8 +418,6 @@ function go(p) {
     gsap.to(root, { xPercent: 0, ...tl });
   }
 }
-
-window.addEventListener("board:closed", () => { if (open.index >= 0) collapse(); });
 
 /* The board card. Two halves of one trick:
    - in the sphere, the card is a picture of the real window, painted from the
@@ -632,6 +630,14 @@ function boardSync() {
   winEl.style.transform = s === 1 ? `translate(${Math.round(x)}px, ${Math.round(y)}px)` : `translate(${x}px, ${y}px) scale(${s})`;
 }
 window.addEventListener("board:closed", () => { if (open.index >= 0) collapse(); });
+// Like any open card: "Close" follows the pointer off the window, and gets
+// out of the way while the pointer is on it.
+winEl?.addEventListener("pointerenter", () => { if (open.index === boardIndex) showLabel(false); });
+winEl?.addEventListener("pointerleave", () => { if (open.index === boardIndex && open.e > 0) showLabel(true); });
+// Like any open card: "Close" follows the pointer off the window, and gets
+// out of the way while the pointer is on it.
+winEl?.addEventListener("pointerenter", () => { if (open.index === boardIndex) showLabel(false); });
+winEl?.addEventListener("pointerleave", () => { if (open.index === boardIndex && open.e > 0) showLabel(true); });
 
 /* about: the time in Utah, ticking, and when the site last changed (the
    server's Last-Modified, which is the last deploy; the date written in the
