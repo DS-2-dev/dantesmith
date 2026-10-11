@@ -397,7 +397,7 @@ function setActive(active, instant) {
     p.toggleAttribute("aria-current", on);
     const d = instant ? 0 : 0.7;
     gsap.to(room, { width: on ? text.offsetWidth : 0, duration: d, ease: "power3.inOut", overwrite: true });
-    gsap.to(text, { opacity: on ? 1 : 0, x: on ? 0 : -8, duration: on ? d : d * 0.6, delay: on && !instant ? 0.12 : 0, ease: on ? "power3.out" : "power2.in", overwrite: true });
+    gsap.to(text, { opacity: on ? 1 : 0, x: on ? 0 : 8, duration: on ? d : d * 0.6, delay: on && !instant ? 0.12 : 0, ease: on ? "power3.out" : "power2.in", overwrite: true });
   });
 }
 pills.forEach((p) => {
@@ -661,6 +661,19 @@ if (!isNaN(mod) && Date.now() - mod > 60000) {
   updated.dateTime = mod.toISOString().slice(0, 10);
 }
 
+/* about: Email copies the address rather than opening a mail app */
+const copyBtn = document.querySelector(".about-copy");
+const copySaid = copyBtn.nextElementSibling;
+let copyTimer;
+copyBtn.addEventListener("click", async () => {
+  let ok = false;
+  try { await navigator.clipboard.writeText(copyBtn.dataset.copy); ok = true; } catch {}
+  copyBtn.classList.toggle("is-done", ok);
+  copySaid.textContent = ok ? "Email address copied" : "Could not copy. The address is " + copyBtn.dataset.copy;
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => { copyBtn.classList.remove("is-done"); copySaid.textContent = ""; }, 1800);
+});
+
 /* now playing */
 const ENDPOINT = "https://now-playing.now-playing.workers.dev/";
 const ago = (t) => {
@@ -674,8 +687,8 @@ async function listen() {
     const d = await r.json();
     if (!d || !d.track) return;
     MUSIC.name = d.track;
-    MUSIC.kind = d.artist || "";
-    MUSIC.text = d.playing ? "Listening now." : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "") + (d.album ? ", from " + d.album + "." : ".");
+    MUSIC.kind = d.playing ? (d.artist ? d.artist + " \u00b7 " : "") + "Currently listening!" : d.artist || "";
+    MUSIC.text = d.playing ? "Currently listening!" : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "") + (d.album ? ", from " + d.album + "." : ".");
     // Last.fm hands over a 300px copy; the same image at full size is 1200.
     const art = d.art && d.art.replace(/\/i\/u\/\d+x\d+\//, "/i/u/_/");
     if (art && art !== MUSIC.src) { MUSIC.src = art; paint(meshes[items.indexOf(MUSIC)], art); }
