@@ -21,7 +21,6 @@
   };
   nameIn.value = store.get('name') || '';
 
-  const avatar = (seed) => 'https://api.dicebear.com/9.x/pixel-art/png?size=64&seed=' + encodeURIComponent(seed);
   function when(iso) {
     const d = new Date(iso);
     const now = new Date();
@@ -39,12 +38,6 @@
     const el = document.createElement('div');
     el.className = 'mb95-msg';
     el.dataset.id = m.id;
-    const img = document.createElement('img');
-    img.className = 'mb95-av';
-    img.crossOrigin = 'anonymous';
-    img.alt = '';
-    img.width = img.height = 34;
-    img.src = avatar(m.name);
     const main = document.createElement('div');
     const head = document.createElement('div');
     head.className = 'mb95-head';
@@ -58,7 +51,7 @@
     text.className = 'mb95-text';
     text.textContent = m.body;
     main.append(head, text);
-    el.append(img, main);
+    el.append(main);
     return el;
   }
 
