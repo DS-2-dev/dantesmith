@@ -147,9 +147,146 @@
   .visitor-say canvas { display: block; image-rendering: pixelated; }
   .visitor-say.is-on { opacity: 1; translate: var(--nudge, 0px) 0; }
   @media (prefers-reduced-motion: reduce) { .visitor, .visitor.is-boing .visitor-sprite, .visitor-say { animation: none; transition: none; } }
+  /* Blank slate: everything is still here, just not drawn. Delete this line to bring the page back. */
+  body > *:not(.space-ui):not(.mb95) { display: none !important; }
+
+  /* the space ------------------------------------------------------------ */
+  .space { position: fixed; inset: 0 0 auto; height: var(--space-h, 100dvh); overflow: hidden; background: #fff; color: #000; font-family: 'Areal', sans-serif; letter-spacing: 0; }
+  .space-stage { position: absolute; inset: 0; touch-action: none; }
+  .space-stage canvas { display: block; }
+  .mask { display: inline-block; overflow: hidden; vertical-align: top; }
+  .mask > span { display: inline-block; }
+  .space-side { position: absolute; inset: 50% 0 auto; translate: 0 -50%; display: flex; justify-content: space-between; align-items: center; padding: 0 9%; pointer-events: none; font-size: 14px; line-height: 1.4; }
+  .space-side > span { display: flex; gap: 0.3em; }
+  @font-face { font-family: 'Gramercy Fine'; src: url('fonts/gramercy-fine.woff2') format('woff2'); font-display: swap; }
+  .space-side > span:first-child { font-family: 'Gramercy Fine', serif; font-size: 16px; font-weight: 400; }
+  .space-count { position: absolute; bottom: 16px; left: 50%; translate: -50% 0; overflow: hidden; pointer-events: none; }
+  .space-count p { margin: 0; font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .space-caption { position: absolute; bottom: 20px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .space-overview { height: 0; overflow: hidden; max-width: 470px; margin: 0 16px; text-align: center; font-size: 14px; line-height: 1.3; }
+  .space-overview > span { display: block; overflow: hidden; padding-bottom: 60px; }
+  .space-overview > span > span { display: block; }
+  .space-cap { display: flex; gap: 8px; align-items: flex-end; translate: 0 8px; }
+  .space-cap-name { font-size: 12px; line-height: 1.4; font-weight: 500; }
+  .space-cap-kind { font-size: 13px; line-height: 1.4; }
+  .space-label { position: fixed; top: 0; left: 0; z-index: 2150; pointer-events: none; font-size: 13px; font-weight: 500; line-height: 1.2; color: #fff; mix-blend-mode: difference; white-space: nowrap; }
+  .space-nav { position: fixed; top: 8px; left: 0; z-index: 9999; width: 100%; display: flex; justify-content: center; pointer-events: none; font-size: 12px; }
+  .space-nav-row { display: flex; align-items: center; gap: 14px; }
+  .pills { display: flex; gap: 4px; }
+  .pill { position: relative; display: flex; align-items: center; align-self: stretch; padding: 6px 7px; border-radius: 4px; overflow: hidden; background: rgba(237,237,237,.5); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); color: #000; text-decoration: none; cursor: pointer; pointer-events: auto; }
+  /* The name sits in a box whose width is the only thing that moves; the text
+     inside never reflows, so the fold is one smooth slide. */
+  .pill-room { display: block; width: 0; overflow: hidden; }
+  .pill-text { display: block; width: max-content; padding: 0 6px 0 5px; font-size: 15px; line-height: 1.1; white-space: nowrap; }
+  .pill sup { display: block; flex: none; }
+  .pill-mark { display: block; width: 12px; height: 12px; }
+  .about { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 72px 16px; background: #fff; color: #000; font-family: 'Areal', sans-serif; font-size: 14px; line-height: 1.4; visibility: hidden; }
+  .about-body { width: min(470px, 100%); }
+  .about-name { margin: 0 0 14px; font-family: 'Gramercy Fine', serif; font-size: 16px; font-weight: 400; color: #000; }
+  .about-body p { color: #000; }
+  .about-links { display: flex; flex-wrap: wrap; gap: 4px; margin: 24px 0 0; padding: 0; list-style: none; }
+  .about-links a { display: inline-block; padding: 6px 10px; border-radius: 4px; background: rgba(237,237,237,.5); color: #000; text-decoration: none; transition: background-color .35s ease; }
+  .about-links a:hover { background: rgba(216,216,216,.5); }
+  .about-meta { display: flex; gap: 28px; margin: 28px 0 0; font-size: 12px; line-height: 1.4; }
+  .about-meta dt { color: #6f6f6f; }
+  .about-meta dd { margin: 0; color: #000; font-variant-numeric: tabular-nums; }
+  @media (max-width: 1025px) { .space-side { display: none; } }
+  /* the message board: a Windows 95 window, styled after nostalgia/win95.html */
+  @font-face { font-family: 'MS Sans Serif 95'; src: url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif.woff2') format('woff2'); font-weight: 400; }
+  @font-face { font-family: 'MS Sans Serif 95'; src: url('https://unpkg.com/98.css@0.1.20/dist/ms_sans_serif_bold.woff2') format('woff2'); font-weight: 700; }
+  .mb95 { --face: #c0c0c0; --navy: #000080; --hi: #fff; --shadow: #808080; --dark: #0a0a0a; --light: #dfdfdf;
+    font-family: 'MS Sans Serif 95', Arial, sans-serif; font-size: 11px; color: #222; -webkit-font-smoothing: none; letter-spacing: 0; }
+  .mb95 { position: fixed; left: 0; top: 0; transform-origin: center; will-change: transform; z-index: 9000; box-sizing: border-box; user-select: none; display: flex; flex-direction: column; width: 320px; height: 380px; padding: 3px; background: var(--face);
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow), inset 2px 2px var(--hi); }
+  .mb95[hidden] { display: none; }
+  .mb95-title { display: flex; align-items: center; justify-content: space-between; height: 18px; padding: 3px 2px 3px 3px; background: var(--navy); color: #fff; font-weight: 700; user-select: none; }
+  .mb95-title span { display: flex; align-items: center; gap: 3px; }
+  .mb95-title img { width: 16px; height: 16px; image-rendering: pixelated; }
+  .mb95-controls { display: flex; gap: 2px; }
+  .mb95 button { min-height: 23px; padding: 0 12px; border: 0; border-radius: 0; background: var(--face); color: #222; font: inherit; cursor: pointer;
+    box-shadow: inset -1px -1px var(--dark), inset 1px 1px var(--hi), inset -2px -2px var(--shadow), inset 2px 2px var(--light); }
+  .mb95 button:active { box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--dark), inset -2px -2px var(--light), inset 2px 2px var(--shadow); }
+  .mb95 button:disabled { color: var(--shadow); text-shadow: 1px 1px 0 var(--hi); }
+  .mb95 .mb95-controls button { display: grid; place-items: center; width: 16px; min-height: 0; height: 14px; padding: 0; }
+  .mb95-controls svg { width: 8px; height: 7px; }
+  .mb95-banner { display: flex; align-items: center; height: 22px; margin: 3px 0; padding: 0 6px; background: var(--navy); color: #fff; font-weight: 700; }
+  .mb95-log { flex: 1; min-height: 0; overflow-y: auto; padding: 2px; background: #d4d0c8; user-select: text;
+    box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark); }
+  .mb95-msg { display: flex; gap: 8px; padding: 6px 8px 7px; border-bottom: 1px solid var(--shadow); box-shadow: 0 1px var(--hi); }
+  .mb95-av { flex: none; width: 34px; height: 34px; background: #fff; image-rendering: pixelated; box-shadow: 0 0 0 1px var(--shadow), 1px 1px 0 1px var(--hi); }
+  .mb95-head b { font-size: 12px; }
+  .mb95-head b.mine { color: var(--navy); }
+  .mb95-head i { margin-left: 10px; color: #404040; }
+  .mb95-text { margin-top: 4px; line-height: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .mb95-divider { padding: 6px 0; text-align: center; font-style: italic; color: var(--shadow); }
+  .mb95-compose { display: grid; grid-template-columns: 84px 1fr auto; gap: 4px; margin-top: 3px; }
+  .mb95-compose input { min-width: 0; height: 23px; padding: 3px 4px; border: 0; border-radius: 0; background: #fff; color: #222; font: inherit; outline: none;
+    box-shadow: inset -1px -1px var(--hi), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark); }
+  .mb95-compose .mb95-trap { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .mb95-send { min-width: 60px; }
+  .mb95-status { display: flex; gap: 2px; margin-top: 3px; }
+  .mb95-status p { margin: 0; padding: 2px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: inset -1px -1px var(--light), inset 1px 1px var(--shadow); }
+  .mb95-status-text { flex: 1; }
+  
 </style>
 </head>
 <body>
+<nav class="space-nav space-ui" aria-label="Main">
+  <div class="space-nav-row">
+    <div class="pills">
+      <a class="pill" href="#space"><span class="pill-room"><span class="pill-text">Creative Space</span></span><sup><svg class="pill-mark" viewBox="0 0 12 12" fill="none" aria-hidden="true"><ellipse cx="6" cy="6" rx="5.1" ry="2.1" transform="rotate(-24 6 6)" stroke="currentColor" stroke-width="1.1"/></svg></sup></a>
+      <a class="pill" href="#about"><span class="pill-room"><span class="pill-text">About</span></span><sup><svg class="pill-mark" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M6 6.8v3.9"/><path d="M3.9 10V6.8a2.1 2.1 0 0 1 4.2 0v1.7"/><path d="M1.8 8.6V6.8a4.2 4.2 0 0 1 8.4 0v3"/></svg></sup></a>
+    </div>
+  </div>
+</nav>
+<section class="about space-ui" id="about" aria-label="About">
+  <div class="about-body">
+    <h2 class="about-name">Dante Smith</h2>
+    <p>I&rsquo;m currently pursuing my Bachelor&rsquo;s of Management Info Systems. On the side, I build and design for the web with AI.</p>
+    <ul class="about-links">
+      <li><a href="mailto:dantesmith@weber.edu">Email</a></li>
+      <li><a href="https://www.linkedin.com/in/dante-smith-/" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+      <li><a href="https://www.are.na/dante-smith/inspo-syd5sijpqmk" target="_blank" rel="noopener noreferrer">Are.na</a></li>
+      <li><a href="dante-smith-resume.pdf" target="_blank" rel="noopener noreferrer">R&eacute;sum&eacute;</a></li>
+    </ul>
+    <dl class="about-meta">
+      <div><dt>Utah</dt><dd><time class="about-clock">--:--</time></dd></div>
+      <div><dt>Last updated</dt><dd><time class="about-updated" datetime="2026-10-11">10.11.2026</time></dd></div>
+    </dl>
+  </div>
+</section>
+<section class="mb95" aria-label="Message board" hidden>
+  <div class="mb95-title">
+    <span><img src="images/mb95-icon.png" alt="">Message Board</span>
+    <div class="mb95-controls">
+      <button type="button" data-act="min" aria-label="Minimize"><svg viewBox="0 0 8 7" aria-hidden="true"><rect x="0" y="5" width="6" height="2" fill="#000"/></svg></button>
+      <button type="button" data-act="close" aria-label="Close"><svg viewBox="0 0 8 7" aria-hidden="true"><path d="M0 0h2v1h1v1h2V1h1V0h2v1H7v1H6v1H5v1h1v1h1v1h1v1H6V6H5V5H3v1H2v1H0V6h1V5h1V4h1V3H2V2H1V1H0z" fill="#000"/></svg></button>
+    </div>
+  </div>
+  <div class="mb95-banner"># guestbook</div>
+  <div class="mb95-log" role="log" aria-live="polite"></div>
+  <form class="mb95-compose" autocomplete="off">
+    <input id="mb95-name" name="name" type="text" maxlength="24" placeholder="Name" aria-label="Your name">
+    <input id="mb95-body" name="body" type="text" maxlength="280" placeholder="Say hi..." aria-label="Message" required>
+    <button type="submit" class="mb95-send">Send</button>
+    <input class="mb95-trap" name="website" type="text" tabindex="-1" aria-hidden="true">
+  </form>
+  <div class="mb95-status"><p class="mb95-status-text">Connecting...</p><p class="mb95-status-count">0 messages</p></div>
+</section>
+<main class="space space-ui" id="space">
+  <h1 class="sr-only">Dante Smith</h1>
+  <div class="space-stage"></div>
+  <div class="space-side" aria-hidden="true">
+    <span><span class="mask"><span data-side-word>Dante</span></span><span class="mask"><span data-side-word>Smith</span></span></span>
+    <span><span class="mask"><span data-side-word>Designing</span></span><span class="mask"><span data-side-word>for</span></span><span class="mask"><span data-side-word>the</span></span><span class="mask"><span data-side-word>Web</span></span><span class="mask"><span data-side-word>with</span></span><span class="mask"><span data-side-word>AI</span></span></span>
+  </div>
+  <div class="space-caption" aria-live="polite">
+    <p class="space-overview"><span><span></span></span></p>
+    <div class="space-cap"><span class="mask"><span class="space-cap-name"></span></span><span class="mask"><span class="space-cap-kind"></span></span></div>
+  </div>
+  <div class="space-count" aria-hidden="true"><p>000</p></div>
+  <div class="space-label" aria-hidden="true">Close</div>
+</main>
   <div class="page">
   <aside class="intro">
   <h1>Dante Smith</h1>
@@ -253,6 +390,9 @@
   </div>
   <span class="sr-only" id="visitor-said" aria-live="polite"></span>
   <script type="module" src="visitor.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script type="module" src="space.js"></script>
+  <script src="board.js" defer></script>
   <script>
     (function () {
       const btn = document.querySelector('.copy');
