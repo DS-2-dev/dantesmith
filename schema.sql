@@ -6,3 +6,4 @@ CREATE TABLE IF NOT EXISTS messages (
   ip_hash TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS messages_ip_time ON messages (ip_hash, created_at);
+CREATE INDEX IF NOT EXISTS messages_time ON messages (created_at);
