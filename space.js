@@ -125,16 +125,22 @@ const open = { index: -1, e: 0, over: 0, reserve: 0 };
 let hover = -1;
 
 /* intro */
+/* The page starts with the nav, the words and the counter hidden in CSS, so
+   nothing shows before the intro has put each one at its starting point. */
+const unhide = () => gsap.set([nav, root.querySelector(".space-side"), counter.parentNode], { visibility: "visible" });
+
 function intro() {
   if (reduced) {
     meshes.forEach((m) => Object.assign(m.userData.u, { x: 1, s: planePx(), o: 1 }));
     counter.textContent = "100";
     phase = "live";
     gsap.set(nav, { yPercent: 0 });
+    unhide();
     return;
   }
   gsap.set(sideWords, { yPercent: 100, opacity: 0 });
   gsap.set(nav, { yPercent: -250 });
+  unhide();
   gsap.to(counter, { yPercent: 0, duration: 0.75, ease: "power4.out", delay: 0.5 });
 
   const shown = { n: 0 };
