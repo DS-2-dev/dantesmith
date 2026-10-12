@@ -464,6 +464,9 @@ function go(p) {
   } else {
     gsap.to(about, { xPercent: 100, ...tl, onComplete: () => gsap.set(about, { visibility: "hidden" }) });
     gsap.to(root, { xPercent: 0, ...tl });
+    // the name and line belong to Creative Space: back here, back they come
+    // (search may have sent them away before going on to About)
+    sides(true);
   }
 }
 
