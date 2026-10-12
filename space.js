@@ -727,8 +727,11 @@ function loadIndex() {
   indexing ??= fetch("inspo/index.json").then((r) => r.json()).then(({ c, b }) => {
     const df = new Map(), docs = [];
     for (const [id, key, w, h, ch, tags, mine] of b) {
-      const tf = new Map();
-      for (const t of words(tags)) tf.set(t, (tf.get(t) || 0) + 1);
+      // Tags open with what the thing is and what's in it; colors and moods
+      // come later. Words near the front weigh up to twice as much, so a
+      // green bottle outranks a poster that lists green among its colors.
+      const tf = new Map(), toks = words(tags);
+      toks.forEach((t, i) => tf.set(t, (tf.get(t) || 0) + 1 + (1 - i / toks.length)));
       for (const t of words(ch.map((n) => c[n][1]).join(" "))) if (!tf.has(t)) tf.set(t, 0.4);
       for (const t of tf.keys()) df.set(t, (df.get(t) || 0) + 1);
       docs.push({ id, key, w, h, ch, tags, mine, tf });
@@ -748,23 +751,24 @@ function search(query) {
   const forms = q.map((w) => index.vocab.filter((v) => v === w || (w.length > 2 && v.startsWith(w))).map((v) => [v, v === w ? 1 : 0.7, idf(v)]));
   const scored = [];
   for (const d of index.docs) {
-    let s = 0, hit = 0;
+    let s = 0, hit = 0, prominent = 0;
     for (const f of forms) {
-      let best = 0;
+      let best = 0, most = 0;
       for (const [v, weight, i] of f) {
         const tf = d.tf.get(v);
-        if (tf) best = Math.max(best, weight * i * (tf * 2.2) / (tf + 1.2));
+        if (tf) { best = Math.max(best, weight * i * (tf * 2.2) / (tf + 1.2)); most = Math.max(most, tf); }
       }
       if (best) { hit++; s += best; }
+      // in the front half of the tags, or said twice: the image is about it
+      if (most >= 1.5) prominent++;
     }
-    if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d, hit === q.length]);
+    if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d, hit === q.length, prominent === q.length]);
   }
   // every match is counted; the sphere only holds the best of them
   const top = scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
-  // the count is the blocks with every word; only if there are none does it
-  // fall back to the ones with some, so each word added narrows the number
-  const every = scored.filter((x) => x[2]).length;
-  top.total = every || scored.length;
+  // The count is the images every word is prominent in. A passing mention
+  // ("…black, white, green") doesn't count; adding a word always narrows it.
+  top.total = scored.filter((x) => x[3]).length || scored.filter((x) => x[2]).length || scored.length;
   return top;
 }
 
@@ -819,18 +823,9 @@ async function showPicks() {
   showSet(picks.map(asItem));
 }
 
-/* The count runs from the last number to the new one, and settles in with
-   a small lift, so each word you add visibly narrows (or widens) the field. */
-const tally = { v: 0 };
 const finds = (v) => v.toLocaleString("en-US") + (v === 1 ? " find" : " finds");
-function showCount(n) {
-  gsap.killTweensOf(tally);
-  if (!n) { tally.v = 0; seekCount.textContent = "nothing found"; }
-  else if (reduced) { tally.v = n; seekCount.textContent = finds(n); }
-  else gsap.to(tally, { v: n, duration: 0.8, ease: "power3.out", onUpdate: () => { seekCount.textContent = finds(Math.round(tally.v)); } });
-  gsap.fromTo(seekCount, { y: 4, opacity: 0.35 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out", overwrite: true });
-}
-function hideCount() { gsap.killTweensOf(tally); tally.v = 0; seekCount.textContent = ""; }
+function showCount(n) { seekCount.textContent = n ? finds(n) : "nothing found"; }
+function hideCount() { seekCount.textContent = ""; }
 
 async function runSearch() {
   const query = seekInput.value.trim();
