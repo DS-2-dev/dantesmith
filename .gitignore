@@ -21,3 +21,14 @@ graphify-out/
 # Brainstorm and planning scratch from the superpowers skills. Tool output,
 # and like everything else here it would be published if committed.
 .superpowers/
+
+# Contact sheets for the inspo tagging pass: scratch, rebuilt on demand.
+inspo/.work/
+
+# Are.na token for the inspo sync. Never commit it: this repo is the published site.
+inspo/.env
+
+# Inspo search working data: rebuilt by inspo/sync.mjs and inspo/merge.py.
+# Only inspo/index.json (which also carries every tag) is published.
+inspo/blocks.json
+inspo/tags.json

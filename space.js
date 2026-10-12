@@ -26,15 +26,16 @@ const MUSIC = { src: "", name: "Recently played", kind: "", text: "", music: tru
 /* The message board rides along as a card too: a little drawing of its
    window with the latest notes in it. Clicking it opens the real one. */
 const BOARD = { src: "", name: "Message Board", kind: "Leave a note", text: "", board: true };
-const items = [...WORK, MUSIC, BOARD];
-const COUNT = items.length;
+let items = [...WORK, MUSIC, BOARD];
+let COUNT = items.length;
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const CAM_Z = 12;
 const W = () => innerWidth;
 const H = () => root.clientHeight;
 const mid = () => W() > 1024 && W() <= 1440;
-const radiusPx = () => 250 * (mid() ? 0.8 : 1);
+// A bigger set (search results) gets a bigger sphere so the cards don't crowd.
+const radiusPx = () => 250 * (mid() ? 0.8 : 1) * Math.max(1, Math.sqrt(COUNT / 18) * 0.9);
 const planePx = () => (W() <= 640 ? 60 : 82 * (mid() ? 0.8 : 1));
 const px = (n) => n * ((2 * CAM_Z * Math.tan(Math.PI / 6)) / H());
 
@@ -52,23 +53,29 @@ scene.add(group);
 const geo = new THREE.PlaneGeometry(1, 1);
 const loader = new THREE.TextureLoader();
 let loaded = 0;
-const meshes = items.map((item, i) => {
+function makeMesh(item, i, count) {
   const mat = new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, depthWrite: false, opacity: 0 });
   const mesh = new THREE.Mesh(geo, mat);
-  if (item.src) paint(mesh, item.src);
+  if (item.arena) paintArena(mesh, item.arena);
+  else if (item.src) paint(mesh, item.src);
   // Fibonacci sphere, unit radius.
-  const n = i * (2 / COUNT) - 1 + 1 / COUNT;
+  const n = i * (2 / count) - 1 + 1 / count;
   const l = Math.sqrt(1 - n * n);
   const t = Math.PI * (3 - Math.sqrt(5)) * i;
   mesh.userData = {
-    i, item, aspect: item.music ? 1 : item.board ? 0.86 : 0.75,
+    i, item, aspect: item.arena ? item.arena.w / item.arena.h : item.music ? 1 : item.board ? 0.86 : 0.75,
     home: new THREE.Vector3(Math.cos(t) * l, n, Math.sin(t) * l),
     // intro state, in screen px
     u: { c: 0, x: 0, s: 0, o: 0 },
+    // how present it is: 0 gone into the middle, 1 at home on the sphere
+    k: 1,
   };
   group.add(mesh);
   return mesh;
-});
+}
+let meshes = items.map((item, i) => makeMesh(item, i, COUNT));
+const workItems = items, workMeshes = meshes;
+let leaving = [];
 
 /* Each card keeps its own shape. Sizes are by area, so a wide one and a
    tall one weigh the same on the sphere. */
@@ -95,6 +102,34 @@ function paint(mesh, src) {
     if (old) old.dispose(); else loaded++;
   });
 }
+/* Are.na blocks come through Are.na's resizer. It turns an animated GIF into
+   every frame stacked in one tall strip; we know the frame's proportions, so
+   the first frame is cut out on a canvas. */
+function arenaUrl(key, size) {
+  const spec = { bucket: "arena_images", key, edits: { resize: { width: size, height: size, fit: "inside", withoutEnlargement: true }, webp: { quality: 75 }, jpeg: { quality: 75 }, rotate: null } };
+  return "https://images.are.na/" + btoa(JSON.stringify(spec));
+}
+function paintArena(mesh, { key, w, h }) {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.decoding = "async";
+  img.onload = () => {
+    let source = img;
+    const frameH = Math.round(img.width * h / w);
+    if (img.height > frameH * 1.5) {
+      source = document.createElement("canvas");
+      source.width = img.width; source.height = frameH;
+      source.getContext("2d").drawImage(img, 0, 0, img.width, frameH, 0, 0, img.width, frameH);
+    }
+    const tex = source === img ? new THREE.Texture(img) : new THREE.CanvasTexture(source);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    mesh.material.map = tex;
+    mesh.material.needsUpdate = true;
+  };
+  img.src = arenaUrl(key, 640);
+}
+
 function dims(m, sizePx) {
   const a = m.userData.aspect;
   return [px(sizePx * Math.sqrt(0.75 * a)), px(sizePx * Math.sqrt(0.75 / a))];
@@ -225,10 +260,11 @@ function placeLive(m) {
     m.material.opacity = 1;
     m.renderOrder = 10;
   } else {
-    m.position.copy(home).multiplyScalar(R * (1 + 0.8 * e));
+    const k = m.userData.k;
+    m.position.copy(home).multiplyScalar(R * (1 + 0.8 * e) * (0.15 + 0.85 * k));
     const [sw, sh] = dims(m, planePx());
-    m.scale.set(sw, sh, 1);
-    m.material.opacity = 1 - e;
+    m.scale.set(sw * k, sh * k, 1);
+    m.material.opacity = (1 - e) * Math.min(1, k * 1.5);
     m.renderOrder = 0;
   }
 }
@@ -246,9 +282,11 @@ renderer.setAnimationLoop(() => {
     group.quaternion.premultiply(qTmp.setFromAxisAngle(AX, dx));
     if (autoSpin) group.quaternion.premultiply(qTmp.setFromAxisAngle(spinAxis, 0.001));
     meshes.forEach(placeLive);
+    leaving.forEach(placeLive);
   }
   inv.copy(group.quaternion).invert();
   meshes.forEach((m) => m.quaternion.copy(inv));
+  leaving.forEach((m) => m.quaternion.copy(inv));
   boardSync();
   renderer.render(scene, camera);
 });
@@ -310,6 +348,7 @@ stage.addEventListener("wheel", (ev) => {
 function clickAt(x, y) {
   const i = pick(x, y);
   if (open.index < 0) { if (i >= 0) expand(i); return; }
+  if (i === open.index && items[i].href) { window.open(items[i].href, "_blank", "noopener"); return; }
   if (i === open.index) toggleOverview();
   else collapse();
 }
@@ -378,7 +417,7 @@ function moveLabel(ev) {
   lx(ev.clientX); ly(ev.clientY);
   if (open.index >= 0) {
     const onCard = pick(ev.clientX, ev.clientY) === open.index;
-    label.textContent = onCard ? (open.over ? "Close Overview" : "Overview") : "Close";
+    label.textContent = !onCard ? "Close" : items[open.index]?.href ? "View on Are.na" : open.over ? "Close Overview" : "Overview";
   }
 }
 function showLabel(on) {
@@ -410,6 +449,8 @@ const about = document.querySelector(".about");
 let route = 0;
 function go(p) {
   const to = pills.indexOf(p);
+  // Creative Space from inside search: leave search, back to the work
+  if (to === 0 && seekOpen) { closeSeek(); if (route === 0) return; }
   if (to === route) return;
   setActive(p);
   if (open.index >= 0) collapse();
@@ -433,8 +474,7 @@ function go(p) {
      same animation, matched to the card's size and spot on screen each frame,
      until it lands at full size. Closing runs it back. */
 const winEl = document.querySelector(".mb95");
-const boardIndex = items.indexOf(BOARD);
-const boardMesh = meshes[boardIndex];
+const boardMesh = workMeshes[workItems.indexOf(BOARD)];
 const boardCanvas = document.createElement("canvas");
 let boardTex = null;
 loaded++;
@@ -638,12 +678,9 @@ function boardSync() {
 window.addEventListener("board:closed", () => { if (open.index >= 0) collapse(); });
 // Like any open card: "Close" follows the pointer off the window, and gets
 // out of the way while the pointer is on it.
-winEl?.addEventListener("pointerenter", () => { if (open.index === boardIndex) showLabel(false); });
-winEl?.addEventListener("pointerleave", () => { if (open.index === boardIndex && open.e > 0) showLabel(true); });
-// Like any open card: "Close" follows the pointer off the window, and gets
-// out of the way while the pointer is on it.
-winEl?.addEventListener("pointerenter", () => { if (open.index === boardIndex) showLabel(false); });
-winEl?.addEventListener("pointerleave", () => { if (open.index === boardIndex && open.e > 0) showLabel(true); });
+winEl?.addEventListener("pointerenter", () => { if (items[open.index] === BOARD) showLabel(false); });
+winEl?.addEventListener("pointerleave", () => { if (items[open.index] === BOARD && open.e > 0) showLabel(true); });
+
 
 /* about: the time in Utah, ticking, and when the site last changed (the
    server's Last-Modified, which is the last deploy; the date written in the
@@ -674,6 +711,175 @@ copyBtn.addEventListener("click", async () => {
   copyTimer = setTimeout(() => { copyBtn.classList.remove("is-done"); copySaid.textContent = ""; }, 1800);
 });
 
+/* inspo search -----------------------------------------------------------
+   The search pill opens into a field. A search swaps the sphere's cards:
+   the work shrinks into the middle and the matching Are.na blocks grow out
+   into a bigger sphere. Escape, or an empty search, brings the work back.
+   The index (inspo/index.json) loads the first time the field opens. */
+const seek = document.querySelector(".seek");
+const seekRoom = seek.querySelector(".seek-room");
+const seekInput = seek.querySelector("input");
+const RESULTS = 36;
+let index = null, indexing = null, lastQuery = "";
+
+const words = (str) => str.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").match(/[a-z0-9]+/g) || [];
+function loadIndex() {
+  indexing ??= fetch("inspo/index.json").then((r) => r.json()).then(({ c, b }) => {
+    const df = new Map(), docs = [];
+    for (const [id, key, w, h, ch, tags, mine] of b) {
+      const tf = new Map();
+      for (const t of words(tags)) tf.set(t, (tf.get(t) || 0) + 1);
+      for (const t of words(ch.map((n) => c[n][1]).join(" "))) if (!tf.has(t)) tf.set(t, 0.4);
+      for (const t of tf.keys()) df.set(t, (df.get(t) || 0) + 1);
+      docs.push({ id, key, w, h, ch, tags, mine, tf });
+    }
+    index = { c, docs, df, vocab: [...df.keys()] };
+  });
+  return indexing;
+}
+
+/* Every query word is matched exactly or as the start of a longer word
+   ("typo" finds "typography"); rarer words count more; a block that has every
+   word beats one that has some; my own saves get a small lift. */
+function search(query) {
+  const q = [...new Set(words(query))];
+  if (!q.length) return [];
+  const N = index.docs.length, idf = (t) => Math.log(1 + (N - index.df.get(t) + 0.5) / (index.df.get(t) + 0.5));
+  const forms = q.map((w) => index.vocab.filter((v) => v === w || (w.length > 2 && v.startsWith(w))).map((v) => [v, v === w ? 1 : 0.7, idf(v)]));
+  const scored = [];
+  for (const d of index.docs) {
+    let s = 0, hit = 0;
+    for (const f of forms) {
+      let best = 0;
+      for (const [v, weight, i] of f) {
+        const tf = d.tf.get(v);
+        if (tf) best = Math.max(best, weight * i * (tf * 2.2) / (tf + 1.2));
+      }
+      if (best) { hit++; s += best; }
+    }
+    if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d]);
+  }
+  return scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
+}
+
+function asItem(d) {
+  const [slug, title, owner] = index.c[d.ch[0]];
+  return {
+    name: title,
+    kind: d.mine ? "Saved by me" : owner ? "By " + owner : "Are.na",
+    text: d.tags,
+    href: `https://www.are.na/block/${d.id}`,
+    arena: { key: d.key, w: d.w, h: d.h },
+  };
+}
+
+let swapping = null;
+function showSet(nextItems) {
+  const go = () => {
+    const outgoing = meshes;
+    const incoming = nextItems === workItems ? workMeshes : nextItems.map((it, i) => makeMesh(it, i, nextItems.length));
+    leaving = outgoing.filter((m) => !incoming.includes(m));
+    leaving.forEach((m) => { m.userData.i = -1; });
+    gsap.to(leaving.map((m) => m.userData), { k: 0, duration: 0.55, ease: "power2.in", stagger: 0.008, overwrite: true,
+      onComplete: () => {
+        for (const m of leaving) {
+          if (workMeshes.includes(m)) continue;
+          group.remove(m); m.material.map?.dispose(); m.material.dispose();
+        }
+        leaving = [];
+      } });
+    items = nextItems; COUNT = items.length; meshes = incoming;
+    meshes.forEach((m, i) => { m.userData.i = i; m.userData.k = 0; });
+    gsap.to(meshes.map((m) => m.userData), { k: 1, duration: 1.1, ease: "back.out(1.4)", stagger: 0.015, delay: 0.35, overwrite: true });
+    hover = -1;
+  };
+  if (open.index >= 0) { collapse(); clearTimeout(swapping); swapping = setTimeout(go, 650); } else go();
+}
+
+const seekCount = seek.querySelector(".seek-count");
+/* An empty search isn't empty: five of my own saves, a new five each time. */
+const PICKS = 5;
+async function showPicks() {
+  await loadIndex();
+  if (!seekOpen || seekInput.value.trim()) return;
+  const mine = index.docs.filter((d) => d.mine);
+  const pool = mine.length >= PICKS ? mine : index.docs;
+  const picks = [];
+  while (picks.length < Math.min(PICKS, pool.length)) {
+    const d = pool[Math.floor(Math.random() * pool.length)];
+    if (!picks.includes(d)) picks.push(d);
+  }
+  touched();
+  showSet(picks.map(asItem));
+}
+
+function showCount(n) { seekCount.textContent = n ? n + (n === 1 ? " find" : " finds") : "nothing found"; }
+function hideCount() { seekCount.textContent = ""; }
+
+async function runSearch() {
+  const query = seekInput.value.trim();
+  if (query === lastQuery) return;
+  lastQuery = query;
+  if (!query) { hideCount(); if (seekOpen) showPicks(); else if (items !== workItems) showSet(workItems); return; }
+  await loadIndex();
+  if (seekInput.value.trim() !== query) return;
+  const found = search(query);
+  showCount(found.length);
+  if (!found.length) return;
+  touched();
+  showSet(found.map(asItem));
+}
+
+/* the pill: opens to the field's width, folds back when left empty */
+const seekText = seekRoom.firstElementChild;
+let seekOpen = false;
+/* Search is its own place: the other pills fold to their marks and the
+   name and line at the sides leave, since they belong to Creative Space. */
+const sideRow = root.querySelector(".space-side");
+function sides(on) {
+  gsap.to(sideWords, on
+    ? { yPercent: 0, opacity: 1, duration: 0.9, ease: "power4.out", stagger: 0.05, overwrite: true }
+    : { yPercent: -100, opacity: 0, duration: 0.6, ease: "power4.out", stagger: 0.04, overwrite: true });
+}
+function openSeek(on) {
+  if (on === seekOpen) return;
+  seekOpen = on;
+  seek.classList.toggle("is-open", on);
+  gsap.to(seekRoom, { width: on ? seekText.offsetWidth : 0, duration: 0.6, ease: "power3.inOut", overwrite: true });
+  if (on) {
+    loadIndex();
+    if (route !== 0) go(pills[0]);
+    setActive(null);
+    sides(false);
+    showPicks();
+    setTimeout(() => seekInput.focus({ preventScroll: true }), 50);
+  } else {
+    setActive(pills[route]);
+    if (route === 0) sides(true);
+  }
+}
+function closeSeek() {
+  seekInput.value = "";
+  lastQuery = "";
+  hideCount();
+  seekInput.blur();
+  openSeek(false);
+  if (items !== workItems) showSet(workItems);
+}
+seek.querySelector(".seek-btn").addEventListener("click", () => {
+  if (!seekOpen) return openSeek(true);
+  if (seekInput.value.trim()) runSearch(); else closeSeek();
+});
+let seekTimer;
+seekInput.addEventListener("input", () => { clearTimeout(seekTimer); seekTimer = setTimeout(runSearch, 650); });
+seek.addEventListener("submit", (ev) => { ev.preventDefault(); clearTimeout(seekTimer); runSearch(); });
+seekInput.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  ev.stopPropagation();
+  closeSeek();
+});
+
+
 /* now playing */
 const ENDPOINT = "https://now-playing.now-playing.workers.dev/";
 const ago = (t) => {
@@ -691,7 +897,7 @@ async function listen() {
     MUSIC.text = d.playing ? "Currently listening!" : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "") + (d.album ? ", from " + d.album + "." : ".");
     // Last.fm hands over a 300px copy; the same image at full size is 1200.
     const art = d.art && d.art.replace(/\/i\/u\/\d+x\d+\//, "/i/u/_/");
-    if (art && art !== MUSIC.src) { MUSIC.src = art; paint(meshes[items.indexOf(MUSIC)], art); }
+    if (art && art !== MUSIC.src) { MUSIC.src = art; paint(workMeshes[workItems.indexOf(MUSIC)], art); }
   } catch {}
 }
 listen();

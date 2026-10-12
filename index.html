@@ -44,6 +44,17 @@
   .pill-room { display: block; width: 0; overflow: hidden; }
   .pill-text { display: block; width: max-content; padding: 0 5px 0 6px; font-size: 15px; line-height: 1.1; white-space: nowrap; }
   .pill sup { display: block; flex: none; }
+  /* the search pill: a pill whose room holds a field instead of a name */
+  .space-nav-row { gap: 4px; }
+  .seek { display: flex; align-items: center; margin: 0; padding: 0 7px 0 0; border-radius: 4px; background: rgba(237,237,237,.5); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); pointer-events: auto; overflow: hidden; }
+  .seek-btn { display: grid; place-items: center; align-self: stretch; padding: 0 0 0 7px; border: 0; background: none; color: #000; cursor: pointer; }
+  .seek:not(.is-open) { padding-right: 7px; }
+  .seek-room { display: block; width: 0; overflow: hidden; }
+  .seek-field { display: flex; align-items: center; gap: 8px; width: 220px; padding-left: 6px; }
+  .seek-count { flex: none; font-size: 12px; color: #8a8a8a; font-variant-numeric: tabular-nums; }
+  .seek input { display: block; flex: 1; min-width: 0; height: 29px; padding: 0; border: 0; outline: 0; background: none; color: #000; font: 15px/1.1 'Areal', sans-serif; letter-spacing: 0; -webkit-appearance: none; appearance: none; }
+  .seek input::placeholder { color: #8a8a8a; }
+  .seek input::-webkit-search-cancel-button { display: none; }
   .pill-mark { display: block; width: 12px; height: 12px; }
   .about { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 72px 16px; background: #fff; color: #000; font-family: 'Areal', sans-serif; font-size: 14px; line-height: 1.4; visibility: hidden; }
   .about-body { width: min(470px, 100%); }
@@ -117,6 +128,10 @@
       <a class="pill" href="#space"><sup><svg class="pill-mark" viewBox="0 0 12 12" fill="none" aria-hidden="true"><ellipse cx="6" cy="6" rx="5.1" ry="2.1" transform="rotate(-24 6 6)" stroke="currentColor" stroke-width="1.1"/></svg></sup><span class="pill-room"><span class="pill-text">Creative Space</span></span></a>
       <a class="pill" href="#about"><sup><svg class="pill-mark" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><path d="M6.00 10.40L6.00 1.60"/><path d="M9.81 8.20L2.19 3.80"/><path d="M2.19 8.20L9.81 3.80"/></svg></sup><span class="pill-room"><span class="pill-text">About</span></span></a>
     </div>
+    <form class="seek" role="search" autocomplete="off">
+      <button class="seek-btn" type="button" aria-label="Search my Are.na"><svg class="pill-mark" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" aria-hidden="true"><circle cx="5.2" cy="5.2" r="3.7"/><path d="M8 8l2.8 2.8"/></svg></button>
+      <span class="seek-room"><span class="seek-field"><input type="search" name="q" placeholder="Search my Are.na" aria-label="Search my Are.na" enterkeyhint="search" spellcheck="false"><span class="seek-count" aria-live="polite"></span></span></span>
+    </form>
   </div>
 </nav>
 <section class="about space-ui" id="about" aria-label="About">
