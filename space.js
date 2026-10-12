@@ -794,16 +794,22 @@ let swapping = null;
 function showSet(nextItems) {
   const go = () => {
     const outgoing = meshes;
-    const incoming = nextItems === workItems ? workMeshes : nextItems.map((it, i) => makeMesh(it, i, nextItems.length));
-    leaving = outgoing.filter((m) => !incoming.includes(m));
+    // sets worth keeping (the work, the picks) keep their cards and textures
+    const incoming = kept.get(nextItems) || nextItems.map((it, i) => makeMesh(it, i, nextItems.length));
+    if (nextItems === pickItems) kept.set(pickItems, incoming);
+    // cards still on their way out from a quick earlier swap keep leaving
+    leaving = [...new Set([...leaving, ...outgoing])].filter((m) => !incoming.includes(m));
     leaving.forEach((m) => { m.userData.i = -1; });
-    gsap.to(leaving.map((m) => m.userData), { k: 0, duration: 0.55, ease: "power2.in", stagger: 0.008, overwrite: true,
+    // This swap cleans up only its own cards: a newer swap may already have
+    // its own list going, and a card may have come back in the meantime.
+    const going = leaving;
+    gsap.to(going.map((m) => m.userData), { k: 0, duration: 0.55, ease: "power2.in", stagger: 0.008, overwrite: true,
       onComplete: () => {
-        for (const m of leaving) {
-          if (workMeshes.includes(m)) continue;
+        for (const m of going) {
+          if (meshes.includes(m) || [...kept.values()].some((set) => set.includes(m))) continue;
           group.remove(m); m.material.map?.dispose(); m.material.dispose();
         }
-        leaving = [];
+        leaving = leaving.filter((m) => !going.includes(m));
       } });
     items = nextItems; COUNT = items.length; meshes = incoming;
     meshes.forEach((m, i) => { m.userData.i = i; m.userData.k = 0; });
@@ -816,9 +822,14 @@ function showSet(nextItems) {
 const seekCount = seek.querySelector(".seek-count");
 /* An empty search isn't empty: five of my own saves, a new five each time. */
 const PICKS = 5;
+// The same five come back each time the field is cleared, until search is
+// left; a new visit draws a new five.
+let pickItems = null;
+const kept = new Map([[workItems, workMeshes]]);
 async function showPicks() {
   await loadIndex();
   if (!seekOpen || seekInput.value.trim()) return;
+  if (pickItems) { if (items !== pickItems) showSet(pickItems); return; }
   const mine = index.docs.filter((d) => d.mine);
   const pool = mine.length >= PICKS ? mine : index.docs;
   const picks = [];
@@ -827,7 +838,8 @@ async function showPicks() {
     if (!picks.includes(d)) picks.push(d);
   }
   touched();
-  showSet(picks.map(asItem));
+  pickItems = picks.map(asItem);
+  showSet(pickItems);
 }
 
 const finds = (v) => v.toLocaleString("en-US") + (v === 1 ? " find" : " finds");
@@ -888,6 +900,9 @@ function closeSeek(to) {
   seekInput.blur();
   openSeek(false);
   leavingFor = null;
+  // leaving search lets the picks go: their cards are disposed on the way out
+  if (pickItems) kept.delete(pickItems);
+  pickItems = null;
   if (items !== workItems) showSet(workItems);
 }
 seek.querySelector(".seek-btn").addEventListener("click", () => {
@@ -895,7 +910,9 @@ seek.querySelector(".seek-btn").addEventListener("click", () => {
   if (seekInput.value.trim()) { lastQuery = null; runSearch(); } else closeSeek();
 });
 let seekTimer;
-seekInput.addEventListener("input", () => { clearTimeout(seekTimer); seekTimer = setTimeout(runSearch, 650); });
+// Typing waits for a pause before searching; clearing the field doesn't,
+// the picks come straight back.
+seekInput.addEventListener("input", () => { clearTimeout(seekTimer); seekTimer = setTimeout(runSearch, seekInput.value.trim() ? 650 : 0); });
 // Enter again on the same words draws a fresh 36
 seek.addEventListener("submit", (ev) => { ev.preventDefault(); clearTimeout(seekTimer); lastQuery = null; runSearch(); });
 seekInput.addEventListener("keydown", (ev) => {
