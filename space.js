@@ -449,8 +449,9 @@ const about = document.querySelector(".about");
 let route = 0;
 function go(p) {
   const to = pills.indexOf(p);
-  // Creative Space from inside search: leave search, back to the work
-  if (to === 0 && seekOpen) { closeSeek(); if (route === 0) return; }
+  // Search is its own place: going anywhere else leaves it first. Creative
+  // Space from inside search is just that, leaving search.
+  if (seekOpen) { closeSeek(to); if (to === route) return; }
   if (to === route) return;
   setActive(p);
   if (open.index >= 0) collapse();
@@ -764,11 +765,17 @@ function search(query) {
     }
     if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d, hit === q.length, prominent === q.length]);
   }
-  // every match is counted; the sphere only holds the best of them
-  const top = scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
-  // The count is the images every word is prominent in. A passing mention
-  // ("…black, white, green") doesn't count; adding a word always narrows it.
-  top.total = scored.filter((x) => x[3]).length || scored.filter((x) => x[2]).length || scored.length;
+  // The sphere holds 36. Rather than always the same top 36, each search
+  // draws 36 at random from the images it's really about (every word
+  // prominent), falling back to every-word matches, then any match. Search
+  // again and it's a fresh draw from the same pool.
+  const pool = [scored.filter((x) => x[3]), scored.filter((x) => x[2]), scored].find((p) => p.length) || [];
+  const top = [];
+  const picked = new Set();
+  while (top.length < Math.min(RESULTS, pool.length)) {
+    const i = Math.floor(Math.random() * pool.length);
+    if (!picked.has(i)) { picked.add(i); top.push(pool[i][1]); }
+  }
   return top;
 }
 
@@ -854,36 +861,43 @@ function sides(on) {
 }
 function openSeek(on) {
   if (on === seekOpen) return;
+  // search lives over Creative Space: get there before search counts as open
+  if (on && route !== 0) go(pills[0]);
   seekOpen = on;
   seek.classList.toggle("is-open", on);
   gsap.to(seekRoom, { width: on ? seekText.offsetWidth : 0, duration: 0.6, ease: "power3.inOut", overwrite: true });
   if (on) {
     loadIndex();
-    if (route !== 0) go(pills[0]);
     setActive(null);
     sides(false);
     showPicks();
     setTimeout(() => seekInput.focus({ preventScroll: true }), 50);
   } else {
-    setActive(pills[route]);
-    if (route === 0) sides(true);
+    // where we're headed: the section being left for, or the one we came from
+    const next = leavingFor ?? route;
+    setActive(pills[next]);
+    if (next === 0) sides(true);
   }
 }
-function closeSeek() {
+let leavingFor = null;
+function closeSeek(to) {
+  leavingFor = to ?? null;
   seekInput.value = "";
   lastQuery = "";
   hideCount();
   seekInput.blur();
   openSeek(false);
+  leavingFor = null;
   if (items !== workItems) showSet(workItems);
 }
 seek.querySelector(".seek-btn").addEventListener("click", () => {
   if (!seekOpen) return openSeek(true);
-  if (seekInput.value.trim()) runSearch(); else closeSeek();
+  if (seekInput.value.trim()) { lastQuery = null; runSearch(); } else closeSeek();
 });
 let seekTimer;
 seekInput.addEventListener("input", () => { clearTimeout(seekTimer); seekTimer = setTimeout(runSearch, 650); });
-seek.addEventListener("submit", (ev) => { ev.preventDefault(); clearTimeout(seekTimer); runSearch(); });
+// Enter again on the same words draws a fresh 36
+seek.addEventListener("submit", (ev) => { ev.preventDefault(); clearTimeout(seekTimer); lastQuery = null; runSearch(); });
 seekInput.addEventListener("keydown", (ev) => {
   if (ev.key !== "Escape") return;
   ev.stopPropagation();
