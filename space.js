@@ -759,7 +759,10 @@ function search(query) {
     }
     if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d]);
   }
-  return scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
+  // every match is counted; the sphere only holds the best of them
+  const top = scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
+  top.total = scored.length;
+  return top;
 }
 
 function asItem(d) {
@@ -813,7 +816,7 @@ async function showPicks() {
   showSet(picks.map(asItem));
 }
 
-function showCount(n) { seekCount.textContent = n ? n + (n === 1 ? " find" : " finds") : "nothing found"; }
+function showCount(n) { seekCount.textContent = n ? n.toLocaleString("en-US") + (n === 1 ? " find" : " finds") : "nothing found"; }
 function hideCount() { seekCount.textContent = ""; }
 
 async function runSearch() {
@@ -824,7 +827,7 @@ async function runSearch() {
   await loadIndex();
   if (seekInput.value.trim() !== query) return;
   const found = search(query);
-  showCount(found.length);
+  showCount(found.total);
   if (!found.length) return;
   touched();
   showSet(found.map(asItem));
