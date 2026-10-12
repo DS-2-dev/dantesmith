@@ -835,7 +835,7 @@ async function runSearch() {
   await loadIndex();
   if (seekInput.value.trim() !== query) return;
   const found = search(query);
-  showCount(found.total);
+  showCount(found.length);
   if (!found.length) return;
   touched();
   showSet(found.map(asItem));
