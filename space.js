@@ -757,11 +757,14 @@ function search(query) {
       }
       if (best) { hit++; s += best; }
     }
-    if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d]);
+    if (hit) scored.push([s * (hit / q.length) ** 2 * (d.mine ? 1.15 : 1), d, hit === q.length]);
   }
   // every match is counted; the sphere only holds the best of them
   const top = scored.sort((a, b) => b[0] - a[0]).slice(0, RESULTS).map(([, d]) => d);
-  top.total = scored.length;
+  // the count is the blocks with every word; only if there are none does it
+  // fall back to the ones with some, so each word added narrows the number
+  const every = scored.filter((x) => x[2]).length;
+  top.total = every || scored.length;
   return top;
 }
 
@@ -816,8 +819,18 @@ async function showPicks() {
   showSet(picks.map(asItem));
 }
 
-function showCount(n) { seekCount.textContent = n ? n.toLocaleString("en-US") + (n === 1 ? " find" : " finds") : "nothing found"; }
-function hideCount() { seekCount.textContent = ""; }
+/* The count runs from the last number to the new one, and settles in with
+   a small lift, so each word you add visibly narrows (or widens) the field. */
+const tally = { v: 0 };
+const finds = (v) => v.toLocaleString("en-US") + (v === 1 ? " find" : " finds");
+function showCount(n) {
+  gsap.killTweensOf(tally);
+  if (!n) { tally.v = 0; seekCount.textContent = "nothing found"; }
+  else if (reduced) { tally.v = n; seekCount.textContent = finds(n); }
+  else gsap.to(tally, { v: n, duration: 0.8, ease: "power3.out", onUpdate: () => { seekCount.textContent = finds(Math.round(tally.v)); } });
+  gsap.fromTo(seekCount, { y: 4, opacity: 0.35 }, { y: 0, opacity: 1, duration: 0.5, ease: "power3.out", overwrite: true });
+}
+function hideCount() { gsap.killTweensOf(tally); tally.v = 0; seekCount.textContent = ""; }
 
 async function runSearch() {
   const query = seekInput.value.trim();
