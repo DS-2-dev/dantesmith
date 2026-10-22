@@ -35,7 +35,9 @@ const W = () => innerWidth;
 const H = () => root.clientHeight;
 const mid = () => W() > 1024 && W() <= 1440;
 // A bigger set (search results) gets a bigger sphere so the cards don't crowd.
-const radiusPx = () => 250 * (mid() ? 0.8 : 1) * Math.max(1, Math.sqrt(COUNT / 18) * 0.9);
+// The radius eases between sizes rather than snapping the moment a set swaps.
+const sphere = { n: COUNT };
+const radiusPx = () => 250 * (mid() ? 0.8 : 1) * Math.max(1, Math.sqrt(sphere.n / 18) * 0.9);
 const planePx = () => (W() <= 640 ? 60 : 82 * (mid() ? 0.8 : 1));
 const px = (n) => n * ((2 * CAM_Z * Math.tan(Math.PI / 6)) / H());
 
@@ -349,7 +351,7 @@ function clickAt(x, y) {
   const i = pick(x, y);
   if (open.index < 0) { if (i >= 0) expand(i); return; }
   if (i === open.index && items[i].href) { window.open(items[i].href, "_blank", "noopener"); return; }
-  if (i === open.index) toggleOverview();
+  if (i === open.index && items[i].text) toggleOverview();
   else collapse();
 }
 
@@ -362,6 +364,7 @@ function expand(i) {
   if (board) boardFly(true);
   gsap.to(open, { e: 1, duration: 0.8, ease: "power4.out", overwrite: true });
   showLabel(true);
+  sides(false);
 }
 
 function collapse() {
@@ -370,6 +373,7 @@ function collapse() {
     onComplete: () => { if (items[open.index]?.board) boardFly(false); open.index = -1; } });
   hideCaption();
   showLabel(false);
+  if (!seekOpen && route === 0) sides(true);
 }
 
 function toggleOverview(force) {
@@ -411,13 +415,14 @@ function hideCaption() {
 const lx = gsap.quickTo(label, "x", { duration: 0.5, ease: "power3.out" });
 const ly = gsap.quickTo(label, "y", { duration: 0.5, ease: "power3.out" });
 gsap.set(counter, { yPercent: 100 });
-gsap.set(label, { xPercent: -50, yPercent: -50, opacity: 0, scale: 0.6 });
+gsap.set(label, { xPercent: 0, yPercent: 0, transformOrigin: "0 0", opacity: 0, scale: 0.6 });
 gsap.set([capName, capKind], { opacity: 0 });
 function moveLabel(ev) {
-  lx(ev.clientX); ly(ev.clientY);
+  // sits to the bottom right of the cursor so the hand never covers it
+  lx(ev.clientX + 14); ly(ev.clientY + 18);
   if (open.index >= 0) {
     const onCard = pick(ev.clientX, ev.clientY) === open.index;
-    label.textContent = !onCard ? "Close" : items[open.index]?.href ? "View on Are.na" : open.over ? "Close Overview" : "Overview";
+    label.textContent = !onCard ? "Close" : items[open.index]?.href ? "View on Are.na" : !items[open.index]?.text ? "Close" : open.over ? "Close Overview" : "Overview";
   }
 }
 function showLabel(on) {
@@ -815,6 +820,7 @@ function showSet(nextItems) {
         leaving = leaving.filter((m) => !going.includes(m));
       } });
     items = nextItems; COUNT = items.length; meshes = incoming;
+    gsap.to(sphere, { n: COUNT, duration: 1.2, ease: "power3.inOut", overwrite: true });
     meshes.forEach((m, i) => { m.userData.i = i; m.userData.k = 0; });
     gsap.to(meshes.map((m) => m.userData), { k: 1, duration: 1.1, ease: "back.out(1.4)", stagger: 0.015, delay: 0.35, overwrite: true });
     hover = -1;
@@ -938,8 +944,10 @@ async function listen() {
     const d = await r.json();
     if (!d || !d.track) return;
     MUSIC.name = d.track;
-    MUSIC.kind = d.playing ? (d.artist ? d.artist + " \u00b7 " : "") + "Currently listening!" : d.artist || "";
-    MUSIC.text = d.playing ? "Currently listening!" : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "") + (d.album ? ", from " + d.album + "." : ".");
+    // no overview for music: the when goes right on the line under the name
+    const when = d.playing ? "Currently listening!" : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "");
+    MUSIC.kind = (d.artist ? d.artist + " \u00b7 " : "") + when;
+    MUSIC.text = "";
     // Last.fm hands over a 300px copy; the same image at full size is 1200.
     const art = d.art && d.art.replace(/\/i\/u\/\d+x\d+\//, "/i/u/_/");
     if (art && art !== MUSIC.src) { MUSIC.src = art; paint(workMeshes[workItems.indexOf(MUSIC)], art); }
