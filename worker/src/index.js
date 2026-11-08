@@ -1,6 +1,11 @@
 // guestbook: the message board on dantesmith.studio. Anyone can read every
 // message and leave one; nothing is ever edited. Deleting takes the admin
 // token, a Worker secret (`npx wrangler secret put ADMIN_TOKEN`).
+// It also counts page views from the site's beacon. Each message and visit
+// keeps roughly where it came from (Cloudflare's city, region, country and
+// network) and the device; never the address itself. Only /admin shows them.
+
+import ADMIN_PAGE from './admin.js';
 
 export const SITE = 'https://dantesmith.studio';
 const LOCALHOST = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -12,6 +17,9 @@ export const COOLDOWN = 30;
    bot rotating addresses could pour in before anyone notices. */
 export const HOURLY_MAX = 60;
 const READ_LIMIT = 200;
+/* The same visitor on the same page within this many seconds is one visit. */
+export const VISIT_GAP = 1800;
+const ADMIN_VISITS = 500;
 
 /* Browsers may read from anywhere the site lives; only these may write. */
 export function allowedOrigin(origin) {
@@ -58,6 +66,28 @@ async function visitorKey(ip, salt) {
   return [...digest.slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/* What Cloudflare knows about where a request came from. Missing outside
+   Cloudflare (and in tests that don't set it). */
+export function whereFrom(request) {
+  const cf = request.cf || {};
+  return { city: cf.city || null, region: cf.region || null, country: cf.country || null, network: cf.asOrganization || null };
+}
+
+/* A short name for the device: the OS, then the browser, or the app whose
+   built-in browser it is, since that says where the link was tapped. */
+export function device(ua) {
+  ua = ua || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android'
+    : /CrOS/.test(ua) ? 'ChromeOS' : /Mac OS X|Macintosh/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '';
+  const app = /Instagram/.test(ua) ? 'Instagram' : /FBAN|FBAV/.test(ua) ? 'Facebook' : /musical_ly|TikTok|BytedanceWebview/.test(ua) ? 'TikTok'
+    : /Snapchat/.test(ua) ? 'Snapchat' : /LinkedInApp/.test(ua) ? 'LinkedIn' : /Discord/.test(ua) ? 'Discord' : '';
+  const browser = app ? app + ' app' : /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\/|FxiOS/.test(ua) ? 'Firefox'
+    : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
+  return [os, browser].filter(Boolean).join(' ') || 'unknown';
+}
+
+const BOT = /bot|crawl|spider|slurp|preview|headless|lighthouse|python|curl|wget/i;
+
 const ago = (seconds) => new Date(Date.now() - seconds * 1000).toISOString();
 
 async function list(env, origin) {
@@ -93,15 +123,63 @@ async function post(request, env, origin) {
   }
 
   const at = new Date().toISOString();
-  const row = await env.DB.prepare('INSERT INTO messages (name, body, created_at, ip_hash) VALUES (?, ?, ?, ?) RETURNING id')
-    .bind(name, body, at, key).first();
+  const w = whereFrom(request);
+  const row = await env.DB.prepare('INSERT INTO messages (name, body, created_at, ip_hash, city, region, country, network, device) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id')
+    .bind(name, body, at, key, w.city, w.region, w.country, w.network, device(request.headers.get('User-Agent'))).first();
   return json({ message: { id: row.id, name, body, at } }, 201, origin);
 }
 
-async function remove(request, env, origin, id) {
+/* A page view. Sent as text/plain so the browser needs no preflight; the
+   body is still JSON. Always answers 204, so a page never waits on it. */
+async function visit(request, env, origin) {
+  const done = new Response(null, { status: 204, headers: corsHeaders(origin) });
+  if (!allowedOrigin(origin)) return done;
+  const ua = request.headers.get('User-Agent') || '';
+  if (BOT.test(ua) || request.cf?.verifiedBotCategory) return done;
+  let input = {};
+  try { input = JSON.parse(await request.text()); } catch {}
+  const path = clean(input.path, 200) || '/';
+  const referrer = clean(input.referrer, 300) || null;
+  const ip = request.headers.get('CF-Connecting-IP');
+  const key = ip ? await visitorKey(ip, env.SALT || 'guestbook') : 'unknown';
+  if (ip) {
+    const seen = await env.DB.prepare('SELECT 1 FROM visits WHERE ip_hash = ? AND path = ? AND at > ? LIMIT 1')
+      .bind(key, path, ago(VISIT_GAP)).first();
+    if (seen) return done;
+  }
+  const w = whereFrom(request);
+  await env.DB.prepare('INSERT INTO visits (at, path, referrer, ip_hash, city, region, country, network, device) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(new Date().toISOString(), path, referrer, key, w.city, w.region, w.country, w.network, device(ua)).run();
+  return done;
+}
+
+async function isAdmin(request, env) {
   const auth = request.headers.get('Authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!(await sameSecret(token, env.ADMIN_TOKEN))) return json({ error: 'no' }, 401, origin);
+  return sameSecret(token, env.ADMIN_TOKEN);
+}
+
+/* Everything /admin shows. `visitor` is a short form of the hashed address:
+   the same visitor gets the same one across messages and visits. */
+async function adminData(request, env) {
+  if (!(await isAdmin(request, env))) return json({ error: 'no' }, 401, null);
+  const visitor = 'substr(ip_hash, 1, 6) AS visitor';
+  const [messages, visits, totals] = await Promise.all([
+    env.DB.prepare(`SELECT id, name, body, created_at AS at, ${visitor}, city, region, country, network, device FROM messages ORDER BY id DESC LIMIT ${READ_LIMIT}`).all(),
+    env.DB.prepare(`SELECT at, path, referrer, ${visitor}, city, region, country, network, device FROM visits ORDER BY id DESC LIMIT ${ADMIN_VISITS}`).all(),
+    env.DB.prepare(`SELECT
+        (SELECT COUNT(*) FROM visits WHERE at > ?1) AS day,
+        (SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE at > ?1) AS day_people,
+        (SELECT COUNT(*) FROM visits WHERE at > ?2) AS week,
+        (SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE at > ?2) AS week_people,
+        (SELECT COUNT(*) FROM visits) AS all_time,
+        (SELECT COUNT(DISTINCT ip_hash) FROM visits) AS all_people`).bind(ago(86400), ago(7 * 86400)).first(),
+  ]);
+  return json({ totals, messages: messages.results, visits: visits.results }, 200, null);
+}
+
+async function remove(request, env, origin, id) {
+  if (!(await isAdmin(request, env))) return json({ error: 'no' }, 401, origin);
   await env.DB.prepare('DELETE FROM messages WHERE id = ?').bind(id).run();
   return json({ ok: true }, 200, origin);
 }
@@ -119,6 +197,11 @@ export default {
     }
     if (pathname === '/messages' && request.method === 'GET') return list(env, origin);
     if (pathname === '/messages' && request.method === 'POST') return post(request, env, origin);
+    if (pathname === '/visit' && request.method === 'POST') return visit(request, env, origin);
+    if (pathname === '/admin' && request.method === 'GET') {
+      return new Response(ADMIN_PAGE, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
+    }
+    if (pathname === '/admin/data' && request.method === 'GET') return adminData(request, env);
     const one = pathname.match(/^\/messages\/(\d+)$/);
     if (one && request.method === 'DELETE') return remove(request, env, origin, +one[1]);
     return json({ error: 'not found' }, 404, origin);

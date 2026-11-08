@@ -160,3 +160,57 @@ describe('helpers', () => {
 it('answers anything else with 404', async () => {
   assert.equal((await call('GET', '/nope')).status, 404);
 });
+
+/* A request as Cloudflare hands it over, with its `cf` details. */
+const beacon = (body, { origin = SITE, ip = '203.0.113.7', ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1', cf } = {}) => {
+  const headers = { 'Content-Type': 'text/plain', 'User-Agent': ua };
+  if (origin) headers.Origin = origin;
+  if (ip) headers['CF-Connecting-IP'] = ip;
+  const req = new Request('https://guestbook.test/visit', { method: 'POST', headers, body: JSON.stringify(body) });
+  if (cf) Object.defineProperty(req, 'cf', { value: cf });
+  return worker.fetch(req, env);
+};
+const visits = () => env.DB.raw.prepare('SELECT * FROM visits').all();
+const admin = (auth = 'Bearer test-token') => call('GET', '/admin/data', { auth });
+
+describe('visits', () => {
+  it('counts a page view with where it came from', async () => {
+    const res = await beacon({ path: '/oct/', referrer: 'https://www.instagram.com/' },
+      { cf: { city: 'Ogden', region: 'Utah', country: 'US', asOrganization: 'Comcast Cable' } });
+    assert.equal(res.status, 204);
+    const [v] = visits();
+    assert.equal(v.path, '/oct/');
+    assert.equal(v.referrer, 'https://www.instagram.com/');
+    assert.equal(v.city, 'Ogden');
+    assert.equal(v.network, 'Comcast Cable');
+    assert.equal(v.device, 'iPhone Safari');
+    assert.notEqual(v.ip_hash, '203.0.113.7');
+  });
+
+  it('counts the same visitor on the same page once per gap', async () => {
+    await beacon({ path: '/' });
+    await beacon({ path: '/' });
+    await beacon({ path: '/nov/' });
+    await beacon({ path: '/' }, { ip: '198.51.100.2' });
+    assert.equal(visits().length, 3);
+  });
+
+  it('ignores bots and other sites', async () => {
+    await beacon({ path: '/' }, { ua: 'Googlebot/2.1' });
+    await beacon({ path: '/' }, { origin: 'https://elsewhere.example' });
+    assert.equal(visits().length, 0);
+  });
+});
+
+describe('admin', () => {
+  it('keeps the details of messages and visits behind the token', async () => {
+    await post({ body: 'hi' });
+    await beacon({ path: '/' });
+    assert.equal((await admin('Bearer wrong')).status, 401);
+    const data = await (await admin()).json();
+    assert.equal(data.messages.length, 1);
+    assert.equal(data.totals.all_time, 1);
+    assert.equal(data.messages[0].visitor, data.visits[0].visitor);
+    assert.equal('city' in (await read())[0], false);
+  });
+});
