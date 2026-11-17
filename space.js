@@ -27,6 +27,9 @@ const MUSIC = { src: "", name: "Recently played", kind: "", text: "", music: tru
    window with the latest notes in it. Clicking it opens the real one. */
 const BOARD = { src: "", name: "Message Board", kind: "Leave a note", text: "", board: true };
 let items = [...WORK, MUSIC, BOARD];
+/* Tells the visit counter (visit.js) what someone did here; it decides
+   whether anything is sent. */
+const did = (what) => dispatchEvent(new CustomEvent("site:did", { detail: what }));
 let COUNT = items.length;
 
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -358,6 +361,8 @@ function clickAt(x, y) {
 function expand(i) {
   touched();
   open.index = i;
+  const it = items[i];
+  did((WORK.includes(it) || it === MUSIC || it === BOARD ? "opened " : "opened inspo ") + it.name);
   vel.x = vel.y = 0;
   showCaption(items[i]);
   const board = items[i].board;
@@ -461,6 +466,7 @@ function go(p) {
   setActive(p);
   if (open.index >= 0) collapse();
   route = to;
+  if (to === 1) did("about");
   const tl = { duration: 1.2, ease: "expo.inOut", overwrite: true };
   if (to === 1) {
     gsap.set(about, { visibility: "visible", xPercent: 100 });
@@ -712,6 +718,7 @@ const copyBtn = document.querySelector(".about-copy");
 const copySaid = copyBtn.nextElementSibling;
 let copyTimer;
 copyBtn.addEventListener("click", async () => {
+  did("copied email");
   let ok = false;
   try { await navigator.clipboard.writeText(copyBtn.dataset.copy); ok = true; } catch {}
   copyBtn.classList.toggle("is-done", ok);
@@ -863,6 +870,7 @@ async function runSearch() {
   await loadIndex();
   if (seekInput.value.trim() !== query) return;
   const found = search(query);
+  did('searched "' + query + '"');
   showCount(found.length);
   if (!found.length) return;
   touched();

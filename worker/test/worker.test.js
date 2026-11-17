@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { beforeEach, describe, it } from 'node:test';
 import { DatabaseSync } from 'node:sqlite';
-import worker, { BODY_MAX, COOLDOWN, HOURLY_MAX, NAME_MAX, SITE, clean, sameSecret } from '../src/index.js';
+import worker, { BODY_MAX, COOLDOWN, HOURLY_MAX, MAX_CLICKS, MAX_SECONDS, NAME_MAX, SITE, clean, sameSecret } from '../src/index.js';
 
 /* D1's prepare/bind/first/all/run, over an in-memory SQLite with the real
    schema. Nothing here ever touches the live database. */
@@ -162,15 +162,17 @@ it('answers anything else with 404', async () => {
 });
 
 /* A request as Cloudflare hands it over, with its `cf` details. */
-const beacon = (body, { origin = SITE, ip = '203.0.113.7', ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1', cf } = {}) => {
+const beacon = (body, { origin = SITE, ip = '203.0.113.7', ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1', cf, part = '' } = {}) => {
   const headers = { 'Content-Type': 'text/plain', 'User-Agent': ua };
   if (origin) headers.Origin = origin;
   if (ip) headers['CF-Connecting-IP'] = ip;
-  const req = new Request('https://guestbook.test/visit', { method: 'POST', headers, body: JSON.stringify(body) });
+  const req = new Request('https://guestbook.test/visit' + part, { method: 'POST', headers, body: JSON.stringify(body) });
   if (cf) Object.defineProperty(req, 'cf', { value: cf });
   return worker.fetch(req, env);
 };
 const visits = () => env.DB.raw.prepare('SELECT * FROM visits').all();
+const clicks = () => env.DB.raw.prepare('SELECT * FROM clicks').all();
+const VIEW = '0f8e2c1a-1b2c-4d5e-8f90-123456789abc';
 const admin = (auth = 'Bearer test-token') => call('GET', '/admin/data', { auth });
 
 describe('visits', () => {
@@ -195,6 +197,48 @@ describe('visits', () => {
     assert.equal(visits().length, 3);
   });
 
+  it('keeps the tag a shared link carried', async () => {
+    await beacon({ path: '/', from: 'resume', view: VIEW });
+    assert.equal(visits()[0].tag, 'resume');
+  });
+
+  it('keeps the longest time a view reports, within reason', async () => {
+    await beacon({ path: '/', view: VIEW });
+    await beacon({ view: VIEW, seconds: 40 }, { part: '/time' });
+    await beacon({ view: VIEW, seconds: 12 }, { part: '/time' });
+    assert.equal(visits()[0].seconds, 40);
+    await beacon({ view: VIEW, seconds: 1e9 }, { part: '/time' });
+    assert.equal(visits()[0].seconds, MAX_SECONDS);
+  });
+
+  it('logs what was done on a view, capped', async () => {
+    await beacon({ path: '/', view: VIEW });
+    await beacon({ view: VIEW, what: 'clicked Résumé' }, { part: '/did' });
+    await beacon({ view: 'not-a-real-view', what: 'x' }, { part: '/did' });
+    assert.deepEqual(clicks().map((c) => c.what), ['clicked Résumé']);
+    for (let i = 0; i < MAX_CLICKS + 5; i++) await beacon({ view: VIEW, what: 'opened ' + i }, { part: '/did' });
+    assert.equal(clicks().length, MAX_CLICKS);
+  });
+
+  it('hands a reload the visit it repeats, so its time still lands', async () => {
+    await beacon({ path: '/', view: VIEW });
+    const again = 'aaaaaaaa-1b2c-4d5e-8f90-123456789abc';
+    await beacon({ path: '/', view: again, from: 'linkedin-dm' });
+    await beacon({ view: again, seconds: 9 }, { part: '/time' });
+    const [v] = visits();
+    assert.equal(visits().length, 1);
+    assert.equal(v.seconds, 9);
+    assert.equal(v.tag, 'linkedin-dm');
+  });
+
+  it('takes later pings only from the site', async () => {
+    await beacon({ path: '/', view: VIEW });
+    await beacon({ view: VIEW, seconds: 30 }, { part: '/time', origin: 'https://elsewhere.example' });
+    await beacon({ view: VIEW, what: 'x' }, { part: '/did', origin: 'https://elsewhere.example' });
+    assert.equal(visits()[0].seconds, null);
+    assert.equal(clicks().length, 0);
+  });
+
   it('ignores bots and other sites', async () => {
     await beacon({ path: '/' }, { ua: 'Googlebot/2.1' });
     await beacon({ path: '/' }, { origin: 'https://elsewhere.example' });
@@ -211,6 +255,17 @@ describe('admin', () => {
     assert.equal(data.messages.length, 1);
     assert.equal(data.totals.all_time, 1);
     assert.equal(data.messages[0].visitor, data.visits[0].visitor);
+    assert.equal('id' in data.visits[0], false);
     assert.equal('city' in (await read())[0], false);
+  });
+
+  it('shows each visit with its time and what was done', async () => {
+    await beacon({ path: '/', view: VIEW, from: 'resume' });
+    await beacon({ view: VIEW, what: 'opened Outfitr' }, { part: '/did' });
+    await beacon({ view: VIEW, seconds: 75 }, { part: '/time' });
+    const [v] = (await (await admin()).json()).visits;
+    assert.equal(v.tag, 'resume');
+    assert.equal(v.seconds, 75);
+    assert.deepEqual(v.did.map((d) => d.what), ['opened Outfitr']);
   });
 });

@@ -22,6 +22,7 @@ export default `<!DOCTYPE html>
   th { color: #6f6f6f; font-weight: 400; }
   td.text { white-space: normal; min-width: 200px; }
   .muted { color: #8a8a8a; }
+  .tag { padding: 1px 6px; border-radius: 4px; background: #fff3c4; }
   button.who { padding: 1px 6px; border: 0; border-radius: 4px; background: rgba(237,237,237,.8); font: 12px ui-monospace, monospace; cursor: pointer; }
   .filter { margin-left: 8px; color: #6f6f6f; }
   .filter button { border: 0; background: none; padding: 0; color: #000; text-decoration: underline; cursor: pointer; font: inherit; }
@@ -51,6 +52,17 @@ export default `<!DOCTYPE html>
     if (!r) return '<span class="muted">direct</span>';
     try { return esc(new URL(r).host); } catch (e) { return esc(r); }
   }
+  function came(v) {
+    return v.tag ? '<span class="tag">' + esc(v.tag) + '</span>' + (v.referrer ? ' <span class="muted">via ' + ref(v.referrer) + '</span>' : '') : ref(v.referrer);
+  }
+  function stay(s) {
+    if (s == null) return '<span class="muted">&ndash;</span>';
+    return s < 60 ? s + 's' : Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  }
+  function didList(d) {
+    if (!d || !d.length) return '<span class="muted">nothing</span>';
+    return d.map(function (x) { return esc(x.what); }).join('<br>');
+  }
   function table(el, head, rows) {
     el.innerHTML = '<tr>' + head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr>' + rows.join('');
   }
@@ -71,9 +83,10 @@ export default `<!DOCTYPE html>
 
     var visits = only ? data.visits.filter(function (v) { return v.visitor === only; }) : data.visits;
     document.querySelector('.filter').innerHTML = only ? 'only ' + esc(only) + ' &middot; <button data-who="">show all</button>' : '';
-    table(document.querySelector('.visits'), ['When', 'Page', 'Came from', 'From', 'Network', 'Device', 'Visitor'],
+    table(document.querySelector('.visits'), ['When', 'Page', 'Came from', 'Time', 'Did', 'From', 'Network', 'Device', 'Visitor'],
       visits.map(function (v) {
-        return '<tr><td>' + when(v.at) + '</td><td>' + esc(v.path) + '</td><td>' + ref(v.referrer) + '</td><td>' + place(v) +
+        return '<tr><td>' + when(v.at) + '</td><td>' + esc(v.path) + '</td><td>' + came(v) + '</td><td>' + stay(v.seconds) +
+          '</td><td class="text">' + didList(v.did) + '</td><td>' + place(v) +
           '</td><td>' + esc(v.network || '') + '</td><td>' + esc(v.device || '') + '</td><td>' + who(v.visitor) + '</td></tr>';
       }));
   }

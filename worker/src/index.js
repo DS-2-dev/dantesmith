@@ -20,6 +20,11 @@ const READ_LIMIT = 200;
 /* The same visitor on the same page within this many seconds is one visit. */
 export const VISIT_GAP = 1800;
 const ADMIN_VISITS = 500;
+/* Longest a single view can say it was on screen, and most things one view
+   can log, so a script can't fill the tables through one row. */
+export const MAX_SECONDS = 4 * 3600;
+export const MAX_CLICKS = 100;
+const VIEW = /^[A-Za-z0-9-]{8,64}$/;
 
 /* Browsers may read from anywhere the site lives; only these may write. */
 export function allowedOrigin(origin) {
@@ -131,25 +136,54 @@ async function post(request, env, origin) {
 
 /* A page view. Sent as text/plain so the browser needs no preflight; the
    body is still JSON. Always answers 204, so a page never waits on it. */
-async function visit(request, env, origin) {
+async function visit(request, env, origin, part) {
   const done = new Response(null, { status: 204, headers: corsHeaders(origin) });
   if (!allowedOrigin(origin)) return done;
   const ua = request.headers.get('User-Agent') || '';
   if (BOT.test(ua) || request.cf?.verifiedBotCategory) return done;
   let input = {};
   try { input = JSON.parse(await request.text()); } catch {}
+  const view = typeof input.view === 'string' && VIEW.test(input.view) ? input.view : null;
+
+  /* Later pings from the same page view: how long it was on screen (the
+     page sends its running total; the longest one stands), and each thing
+     done on it. */
+  if (part === 'time') {
+    const seconds = Math.round(Number(input.seconds));
+    if (view && seconds >= 0) {
+      await env.DB.prepare('UPDATE visits SET seconds = MAX(COALESCE(seconds, 0), ?) WHERE view = ?')
+        .bind(Math.min(seconds, MAX_SECONDS), view).run();
+    }
+    return done;
+  }
+  if (part === 'did') {
+    const what = clean(input.what, 120);
+    if (view && what) {
+      await env.DB.prepare(`INSERT INTO clicks (visit_id, at, what) SELECT id, ?, ? FROM visits
+          WHERE view = ? AND (SELECT COUNT(*) FROM clicks WHERE visit_id = visits.id) < ${MAX_CLICKS} LIMIT 1`)
+        .bind(new Date().toISOString(), what, view).run();
+    }
+    return done;
+  }
+
   const path = clean(input.path, 200) || '/';
   const referrer = clean(input.referrer, 300) || null;
+  const tag = clean(input.from, 60) || null;
   const ip = request.headers.get('CF-Connecting-IP');
   const key = ip ? await visitorKey(ip, env.SALT || 'guestbook') : 'unknown';
   if (ip) {
-    const seen = await env.DB.prepare('SELECT 1 FROM visits WHERE ip_hash = ? AND path = ? AND at > ? LIMIT 1')
+    /* A reload within the gap is the same visit: it takes over the row, so
+       its time and clicks still land somewhere. */
+    const seen = await env.DB.prepare('SELECT id FROM visits WHERE ip_hash = ? AND path = ? AND at > ? ORDER BY id DESC LIMIT 1')
       .bind(key, path, ago(VISIT_GAP)).first();
-    if (seen) return done;
+    if (seen) {
+      if (view) await env.DB.prepare('UPDATE visits SET view = ?, tag = COALESCE(tag, ?) WHERE id = ?').bind(view, tag, seen.id).run();
+      return done;
+    }
   }
   const w = whereFrom(request);
-  await env.DB.prepare('INSERT INTO visits (at, path, referrer, ip_hash, city, region, country, network, device) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .bind(new Date().toISOString(), path, referrer, key, w.city, w.region, w.country, w.network, device(ua)).run();
+  await env.DB.prepare('INSERT INTO visits (at, path, referrer, ip_hash, city, region, country, network, device, view, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(new Date().toISOString(), path, referrer, key, w.city, w.region, w.country, w.network, device(ua), view, tag).run();
   return done;
 }
 
@@ -164,9 +198,9 @@ async function isAdmin(request, env) {
 async function adminData(request, env) {
   if (!(await isAdmin(request, env))) return json({ error: 'no' }, 401, null);
   const visitor = 'substr(ip_hash, 1, 6) AS visitor';
-  const [messages, visits, totals] = await Promise.all([
+  const [messages, visits, totals, clicks] = await Promise.all([
     env.DB.prepare(`SELECT id, name, body, created_at AS at, ${visitor}, city, region, country, network, device FROM messages ORDER BY id DESC LIMIT ${READ_LIMIT}`).all(),
-    env.DB.prepare(`SELECT at, path, referrer, ${visitor}, city, region, country, network, device FROM visits ORDER BY id DESC LIMIT ${ADMIN_VISITS}`).all(),
+    env.DB.prepare(`SELECT id, at, path, referrer, tag, seconds, ${visitor}, city, region, country, network, device FROM visits ORDER BY id DESC LIMIT ${ADMIN_VISITS}`).all(),
     env.DB.prepare(`SELECT
         (SELECT COUNT(*) FROM visits WHERE at > ?1) AS day,
         (SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE at > ?1) AS day_people,
@@ -174,8 +208,13 @@ async function adminData(request, env) {
         (SELECT COUNT(DISTINCT ip_hash) FROM visits WHERE at > ?2) AS week_people,
         (SELECT COUNT(*) FROM visits) AS all_time,
         (SELECT COUNT(DISTINCT ip_hash) FROM visits) AS all_people`).bind(ago(86400), ago(7 * 86400)).first(),
+    env.DB.prepare(`SELECT visit_id, at, what FROM clicks
+        WHERE visit_id >= (SELECT MIN(id) FROM (SELECT id FROM visits ORDER BY id DESC LIMIT ${ADMIN_VISITS})) ORDER BY id`).all(),
   ]);
-  return json({ totals, messages: messages.results, visits: visits.results }, 200, null);
+  const did = {};
+  for (const c of clicks.results) (did[c.visit_id] ||= []).push({ at: c.at, what: c.what });
+  const rows = visits.results.map(({ id, ...v }) => ({ ...v, did: did[id] || [] }));
+  return json({ totals, messages: messages.results, visits: rows }, 200, null);
 }
 
 async function remove(request, env, origin, id) {
@@ -198,6 +237,8 @@ export default {
     if (pathname === '/messages' && request.method === 'GET') return list(env, origin);
     if (pathname === '/messages' && request.method === 'POST') return post(request, env, origin);
     if (pathname === '/visit' && request.method === 'POST') return visit(request, env, origin);
+    if (pathname === '/visit/time' && request.method === 'POST') return visit(request, env, origin, 'time');
+    if (pathname === '/visit/did' && request.method === 'POST') return visit(request, env, origin, 'did');
     if (pathname === '/admin' && request.method === 'GET') {
       return new Response(ADMIN_PAGE, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
     }
