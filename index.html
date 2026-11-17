@@ -38,6 +38,9 @@
   .space-cap { display: flex; gap: 8px; align-items: flex-end; translate: 0 8px; }
   .space-cap-name { font-size: 12px; line-height: 1.4; font-weight: 500; }
   .space-cap-kind { font-size: 13px; line-height: 1.4; }
+  .space-lyrics { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .space-lyrics p { position: absolute; top: 0; left: 0; margin: 0; max-width: 240px; font-size: 14px; line-height: 1.35; color: #000; opacity: 0; }
+  .space-lyrics p.is-small { max-width: 180px; font-size: 11px; line-height: 1.3; }
   .space-label { position: fixed; top: 0; left: 0; z-index: 2150; pointer-events: none; font-size: 13px; font-weight: 500; line-height: 1.2; color: #fff; mix-blend-mode: difference; white-space: nowrap; }
   .space-nav { position: fixed; top: 8px; left: 0; z-index: 9999; width: 100%; display: flex; justify-content: center; pointer-events: none; font-size: 12px; }
   .space-nav-row { display: flex; align-items: center; gap: 14px; }

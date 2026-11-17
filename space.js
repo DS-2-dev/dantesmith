@@ -84,7 +84,7 @@ let leaving = [];
 
 /* Each card keeps its own shape. Sizes are by area, so a wide one and a
    tall one weigh the same on the sphere. */
-function paint(mesh, src) {
+function paint(mesh, src, backups = []) {
   if (/\.mp4$/.test(src)) {
     const video = Object.assign(document.createElement("video"), { src, muted: true, loop: true, playsInline: true, autoplay: true });
     video.addEventListener("loadeddata", () => {
@@ -104,8 +104,10 @@ function paint(mesh, src) {
     mesh.userData.aspect = tex.image.width / tex.image.height;
     mesh.material.map = tex;
     mesh.material.needsUpdate = true;
-    if (old) old.dispose(); else loaded++;
-  });
+    if (!old) loaded++;
+    else if (mesh.userData.item.music && !reduced) crossfade(mesh, old);
+    else old.dispose();
+  }, undefined, () => { if (backups.length) paint(mesh, backups[0], backups.slice(1)); });
 }
 /* Are.na blocks come through Are.na's resizer. It turns an animated GIF into
    every frame stacked in one tall strip; we know the frame's proportions, so
@@ -133,6 +135,31 @@ function paintArena(mesh, { key, w, h }) {
     mesh.material.needsUpdate = true;
   };
   img.src = arenaUrl(key, 640);
+}
+
+/* A new cover doesn't swap in: the old one lies over it and fades away. */
+function crossfade(mesh, oldTex) {
+  if (mesh.userData.veil) gsap.killTweensOf(mesh.userData.veil.userData), dropVeil(mesh);
+  const veil = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: oldTex, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  veil.position.z = 0.001;
+  veil.userData.f = 1;
+  mesh.add(veil);
+  mesh.userData.veil = veil;
+  gsap.to(veil.userData, { f: 0, duration: 1.4, ease: "power2.inOut", onComplete: () => dropVeil(mesh) });
+}
+function dropVeil(mesh) {
+  const veil = mesh.userData.veil;
+  if (!veil) return;
+  mesh.remove(veil);
+  veil.material.map.dispose();
+  veil.material.dispose();
+  mesh.userData.veil = null;
+}
+function syncVeil(m) {
+  const veil = m.userData.veil;
+  if (!veil) return;
+  veil.material.opacity = m.material.opacity * veil.userData.f;
+  veil.renderOrder = m.renderOrder + 1;
 }
 
 function dims(m, sizePx) {
@@ -289,6 +316,8 @@ renderer.setAnimationLoop(() => {
     meshes.forEach(placeLive);
     leaving.forEach(placeLive);
   }
+  meshes.forEach(syncVeil);
+  lyricsSync();
   inv.copy(group.quaternion).invert();
   meshes.forEach((m) => m.quaternion.copy(inv));
   leaving.forEach((m) => m.quaternion.copy(inv));
@@ -939,30 +968,240 @@ seekInput.addEventListener("keydown", (ev) => {
 });
 
 
-/* now playing */
-const ENDPOINT = "https://now-playing.now-playing.workers.dev/";
+/* now playing: two sources. Last.fm, every 30 seconds, says what I played
+   last. The Spotify app itself, through a Spicetify extension posting to
+   the Worker's /live, says exactly where I am in the song; while it's live
+   it wins, and the lyrics sync to it. */
+const ENDPOINT = "https://now-playing.ds2dev.workers.dev/";
 const ago = (t) => {
   const m = Math.round((Date.now() - t) / 60000);
   return m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " hr ago" : Math.round(m / 1440) + " days ago";
 };
+let live = null;
 async function listen() {
   try {
     const r = await fetch(ENDPOINT, { cache: "no-store" });
     if (!r.ok) return;
     const d = await r.json();
-    if (!d || !d.track) return;
-    MUSIC.name = d.track;
+    if (!d || !d.track || (live && live.live)) return;
     // no overview for music: the when goes right on the line under the name
     const when = d.playing ? "Currently listening!" : "Last played" + (d.playedAt ? " " + ago(Date.parse(d.playedAt)) : "");
-    MUSIC.kind = (d.artist ? d.artist + " \u00b7 " : "") + when;
-    MUSIC.text = "";
-    // Last.fm hands over a 300px copy; the same image at full size is 1200.
-    const art = d.art && d.art.replace(/\/i\/u\/\d+x\d+\//, "/i/u/_/");
-    if (art && art !== MUSIC.src) { MUSIC.src = art; paint(workMeshes[workItems.indexOf(MUSIC)], art); }
+    // Last.fm hands over a 300px copy; the same image at full size is
+    // usually 1200. Some originals won't decode in Chrome (a 2000px JPEG
+    // did), so a 770px copy and then the 300 stand behind it.
+    const sized = (s) => d.art.replace(/\/i\/u\/\d+x\d+\//, "/i/u/" + s + "/");
+    showSong({ track: d.track, artist: d.artist, when, art: d.art && sized("_"), backups: d.art ? [sized("770x0"), d.art] : [], duration: d.duration });
   } catch {}
 }
-listen();
+async function listenLive() {
+  try {
+    const sent = performance.now();
+    const r = await fetch(ENDPOINT + "live", { cache: "no-store" });
+    if (!r.ok) return;
+    const d = await r.json();
+    // about when the Worker read its clock: halfway through the round trip
+    d.got = (sent + performance.now()) / 2;
+    const was = live && live.live;
+    live = d;
+    if (!d.live) { if (was) listen(); return; }
+    showSong({ track: d.track, artist: d.artist, when: d.playing ? "Currently listening!" : "Paused", art: d.art, backups: [], duration: d.duration && d.duration / 1000 });
+  } catch {}
+}
+/* Seconds into the song right now, or null when the app isn't live. */
+function position() {
+  if (!live || !live.live) return null;
+  return (live.progress + (live.playing ? live.now - live.at + performance.now() - live.got : 0)) / 1000;
+}
+function showSong(s) {
+  const before = MUSIC.name + MUSIC.kind;
+  MUSIC.name = s.track;
+  MUSIC.kind = (s.artist ? s.artist + " · " : "") + s.when;
+  MUSIC.text = "";
+  // open on the song as it changes: the caption follows
+  if (before !== MUSIC.name + MUSIC.kind && open.index >= 0 && items[open.index] === MUSIC) showCaption(MUSIC);
+  if (s.art && s.art !== MUSIC.src) { MUSIC.src = s.art; paint(workMeshes[workItems.indexOf(MUSIC)], s.art, s.backups); }
+  const song = norm(s.artist) + "|" + norm(s.track);
+  if (song !== lyricsFor) { lyricsFor = song; loadLyrics(s.artist, s.track, s.duration, song); }
+}
+
+/* lyrics: from LRCLIB, timed when it has them. While the Spotify app is
+   live, each line shows as it's sung; otherwise lines come in no
+   particular order. Around the big cover while it's open, beside the
+   little one on the sphere. A song LRCLIB doesn't know simply has none. */
+const lyricsEl = document.createElement("div");
+lyricsEl.className = "space-lyrics";
+lyricsEl.setAttribute("aria-hidden", "true");
+root.appendChild(lyricsEl);
+let lyricsFor = "", lyrics = [], synced = null, syncAt = -1, lyricsOn = "", lyricTimer = 0, lastLine = -1;
+const norm = (t) => String(t || "").toLowerCase().replace(/\(.*?\)|\[.*?\]/g, "").replace(/[^a-z0-9]/g, "");
+async function loadLyrics(artist, track, duration, song) {
+  lyrics = [];
+  synced = null;
+  clearLyrics();
+  if (!artist || !track) return;
+  try {
+    let best = null;
+    // with the length, LRCLIB can name the exact recording
+    if (duration) {
+      const r = await fetch("https://lrclib.net/api/get?" + new URLSearchParams({ track_name: track, artist_name: artist, duration: Math.round(duration) }));
+      if (r.ok) best = await r.json();
+    }
+    if (song !== lyricsFor) return;
+    if (!best || !best.plainLyrics) {
+      const r = await fetch("https://lrclib.net/api/search?" + new URLSearchParams({ track_name: track, artist_name: artist }));
+      if (!r.ok || song !== lyricsFor) return;
+      const found = (await r.json()).filter((x) => x.plainLyrics && !x.instrumental);
+      const named = (x) => norm(x.trackName) === norm(track);
+      const fits = (x) => !duration || Math.abs(x.duration - duration) < 4;
+      best = found.find((x) => x.syncedLyrics && named(x) && fits(x)) || found.find(named) || found[0];
+    }
+    if (!best || !best.plainLyrics || song !== lyricsFor) return;
+    lyrics = [...new Set(best.plainLyrics.split("\n").map((l) => l.trim()).filter((l) => l && !/^\[.*\]$/.test(l)))];
+    synced = best.syncedLyrics ? parseLrc(best.syncedLyrics) : null;
+    syncAt = -1;
+  } catch {}
+}
+/* "[01:02.34] words" lines into [{ t: seconds, line }], in order. */
+function parseLrc(lrc) {
+  const out = [];
+  for (const raw of lrc.split("\n")) {
+    const line = raw.replace(/\[[^\]]*\]/g, "").trim();
+    for (const m of raw.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)) out.push({ t: +m[1] * 60 + +m[2], line });
+  }
+  return out.sort((a, b) => a.t - b.t);
+}
+function clearLyrics() {
+  clearTimeout(lyricTimer);
+  lyricTimer = 0;
+  [...lyricsEl.children].forEach((el) => gsap.to(el, { opacity: 0, duration: 0.5, overwrite: true, onComplete: () => el.remove() }));
+}
+/* Two ways to show: "open" around the big cover, or "card", smaller lines
+   that ride along beside the little cover as the sphere turns. */
+const cardAt = new THREE.Vector3();
+function lyricsSync() {
+  let on = "";
+  if (lyrics.length && phase === "live") {
+    if (open.index >= 0) { if (items[open.index] === MUSIC && open.e > 0.6) on = "open"; }
+    else if (items === workItems && route === 0 && !seekOpen && open.e < 0.05) on = "card";
+  }
+  if (on === "card") followCard();
+  if (on !== lyricsOn) {
+    lyricsOn = on;
+    clearLyrics();
+    syncAt = -1;
+  }
+  if (!on) return;
+  const p = synced ? position() : null;
+  if (p === null) {
+    // no timing: a random line every few seconds
+    if (!lyricTimer) lyricTimer = setTimeout(floatLine, on === "card" ? 300 : 500);
+    return;
+  }
+  if (lyricTimer) { clearTimeout(lyricTimer); lyricTimer = 0; }
+  // a hair early, since a line fades in
+  let i = -1;
+  while (i + 1 < synced.length && synced[i + 1].t <= p + 0.2) i++;
+  if (i === syncAt) return;
+  syncAt = i;
+  if (i < 0 || !synced[i].line) return;
+  const next = synced[i + 1];
+  floatLine(synced[i].line, Math.min(8, Math.max(1.2, next ? next.t - synced[i].t : 4)) + 0.8);
+}
+/* Each card-mode line keeps an offset from the cover; this puts it there. */
+function followCard() {
+  const m = workMeshes[workItems.indexOf(MUSIC)];
+  group.updateMatrixWorld();
+  m.getWorldPosition(cardAt).project(camera);
+  const cx = (cardAt.x + 1) / 2 * W(), cy = (1 - cardAt.y) / 2 * H();
+  for (const el of lyricsEl.children) {
+    const o = el._off;
+    if (o) gsap.set(el, { x: cx + o.x, y: cy + o.y });
+  }
+}
+/* One line: the one being sung, for `life` seconds, or with no text a
+   random one, which then queues the next. */
+function floatLine(text, life) {
+  if (!lyricsOn) { lyricTimer = 0; return; }
+  const random = text === undefined;
+  if (random) {
+    let k = Math.floor(Math.random() * lyrics.length);
+    if (lyrics.length > 1 && k === lastLine) k = (k + 1) % lyrics.length;
+    lastLine = k;
+    text = lyrics[k];
+  }
+  const el = document.createElement("p");
+  el.textContent = text;
+  lyricsEl.appendChild(el);
+  if (lyricsOn === "card") return cardLine(el, life, random);
+  const w = W(), h = H();
+  const half = Math.min(h * 0.35, w * 0.4);
+  const bw = el.offsetWidth, bh = el.offsetHeight;
+  // pick a side with room, then a spot along it
+  const sides = [];
+  if (w / 2 - half > bw * 0.6 + 24) sides.push("left", "right");
+  sides.push("top", "bottom");
+  // a few tries for a spot clear of the lines already up
+  const taken = [...lyricsEl.children].filter((o) => o !== el).map((o) => o.getBoundingClientRect());
+  const box = root.getBoundingClientRect();
+  let side, x, y;
+  for (let tries = 0; tries < 12; tries++) {
+    side = sides[Math.floor(Math.random() * sides.length)];
+    const gap = 24 + Math.random() * 40;
+    if (side === "left") { x = w / 2 - half - gap - bw; y = h / 2 - half + Math.random() * (half * 2 - bh); }
+    else if (side === "right") { x = w / 2 + half + gap; y = h / 2 - half + Math.random() * (half * 2 - bh); }
+    else {
+      x = w / 2 - half + Math.random() * (half * 2) - bw / 2;
+      y = side === "top" ? h / 2 - half - gap - bh : h / 2 + half + gap * 0.5;
+    }
+    x = Math.max(16, Math.min(w - bw - 16, x));
+    // clear of the nav up top (and the rise) and the caption below
+    y = Math.max(110, Math.min(h - bh - 64, y));
+    const clear = taken.every((r) => x + bw + 16 < r.left - box.left || x > r.right - box.left + 16 ||
+      y + bh + 40 < r.top - box.top || y > r.bottom - box.top + 40);
+    if (clear) break;
+    // a sung line goes up regardless; a random one waits for room
+    if (tries === 11 && random) { el.remove(); lyricTimer = setTimeout(floatLine, 900); return; }
+  }
+  gsap.set(el, { x, y, opacity: 0 });
+  life = life || 6 + Math.random() * 2;
+  const fadeIn = random ? 1.2 : 0.5, fadeOut = random ? 1.4 : 0.8;
+  // drift away from the cover, never onto it
+  const drift = side === "bottom" ? 12 + Math.random() * 8 : -(30 + Math.random() * 20);
+  if (!reduced) gsap.to(el, { y: y + drift * Math.min(1, life / 6), x: x + (Math.random() - 0.5) * 24, duration: life, ease: "none" });
+  gsap.to(el, { opacity: 1, duration: fadeIn, ease: "power2.out" });
+  gsap.to(el, { opacity: 0, duration: fadeOut, ease: "power2.in", delay: Math.max(fadeIn, life - fadeOut), onComplete: () => el.remove() });
+  if (random) lyricTimer = setTimeout(floatLine, 1800 + Math.random() * 1200);
+}
+
+/* Beside the little cover: one line at a time, just off one of its sides,
+   drifting outward as it fades. */
+let lastSide = -1;
+function cardLine(el, life, random) {
+  el.classList.add("is-small");
+  const bw = el.offsetWidth, bh = el.offsetHeight;
+  const half = planePx() / 2 + 10;
+  // never the side the last line is still fading out on
+  const side = (lastSide + 1 + Math.floor(Math.random() * 3)) % 4;
+  lastSide = side;
+  const off = side === 0 ? { x: half, y: -bh / 2 + (Math.random() - 0.5) * half }
+    : side === 1 ? { x: -half - bw, y: -bh / 2 + (Math.random() - 0.5) * half }
+    : side === 2 ? { x: -bw / 2 + (Math.random() - 0.5) * half, y: -half - bh }
+    : { x: -bw / 2 + (Math.random() - 0.5) * half, y: half };
+  el._off = off;
+  followCard();
+  const away = [[1, 0], [-1, 0], [0, -1], [0, 1]][side];
+  life = life || 5 + Math.random() * 1.5;
+  const fadeIn = random ? 1 : 0.4, fadeOut = random ? 1.2 : 0.7;
+  if (!reduced) gsap.to(off, { x: off.x + away[0] * 18, y: off.y + away[1] * 14, duration: life, ease: "none" });
+  gsap.to(el, { opacity: 1, duration: fadeIn, ease: "power2.out" });
+  gsap.to(el, { opacity: 0, duration: fadeOut, ease: "power2.in", delay: Math.max(fadeIn, life - fadeOut), onComplete: () => el.remove() });
+  if (random) lyricTimer = setTimeout(floatLine, life * 1000 - 600 + Math.random() * 800);
+}
+// live first, so a page opened mid-song doesn't flash the Last.fm one
+listenLive().finally(listen);
 setInterval(() => { if (!document.hidden) listen(); }, 30000);
+setInterval(() => { if (!document.hidden) listenLive(); }, 4000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) listenLive(); });
 
 document.fonts.ready.then(() => {
   setActive(pills[0], true);
