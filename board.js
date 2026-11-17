@@ -2,7 +2,7 @@
    notes live in the guestbook Worker's database, so they stay for good and
    every visitor sees the same list. It opens from its card in the space. */
 (function () {
-  const API = 'https://guestbook.now-playing.workers.dev/messages';
+  const API = 'https://guestbook.ds2dev.workers.dev/messages';
   const EVERY = 20000;
   const win = document.querySelector('.mb95');
   if (!win) return;

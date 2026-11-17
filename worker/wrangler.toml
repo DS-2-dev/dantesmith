@@ -2,13 +2,14 @@ name = "guestbook"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 workers_dev = true
+account_id = "f869a3858d30e93ff95da34be689cc90"
 
 # Every message, kept for good. Created with `npx wrangler d1 create guestbook`;
 # the table is in schema.sql.
 [[d1_databases]]
 binding = "DB"
 database_name = "guestbook"
-database_id = "1be13109-1c59-4cdf-979d-91c80ec65b57"
+database_id = "cb418337-0489-43c6-843b-e75583e2615b"
 
 # ADMIN_TOKEN (for deleting a message) and SALT (for hashing visitor IPs) are
 # secrets: `npx wrangler secret put ADMIN_TOKEN`, `npx wrangler secret put SALT`.

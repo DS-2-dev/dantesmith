@@ -14,7 +14,7 @@
 // the page reports as a "site:did" event (space.js: work opened, About,
 // email copied, searches).
 (() => {
-  const ENDPOINT = 'https://guestbook.now-playing.workers.dev/visit';
+  const ENDPOINT = 'https://guestbook.ds2dev.workers.dev/visit';
   const params = new URLSearchParams(location.search);
   const tag = params.get('from') || '';
   let mine = false;
